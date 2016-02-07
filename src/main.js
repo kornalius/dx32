@@ -33,8 +33,8 @@ var src = '\n\
 console.log(src);
 
 var vm = new VM();
-var addr = vm.load(src);
-vm.run(addr);
+vm.load(src);
+vm.run();
 
 console.log(hexy.hexy(vm.mem, { offset: 0, length: 512, display_offset: 0x00, width: 16, caps: 'upper', indent: 2 }));
 
