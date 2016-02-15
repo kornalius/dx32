@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import hexy from 'hexy';
 import { defaults, opcodes, opcodes_idx, registers, register_names, error, runtime_error, read, write, byte, word, dword } from './globals.js';
+import MemoryManager from './memorymanager.js';
 import Port from './port.js';
 import Label from './label.js';
 import Tokenizer from './tokenizer.js';
@@ -18,7 +19,9 @@ class VM {
   constructor (mem_size = defaults.vm.mem_size) {
     window._vm = this;
 
-    this.ports = {};
+    this.mm = new MemoryManager(this);
+
+    this.ports = [];
 
     this.code = '';
     this.fn = null;
@@ -63,8 +66,6 @@ class VM {
   }
 
   reset () {
-    this.start = this.top;
-
     this.paused = false;
     this.halted = false;
 
@@ -95,19 +96,34 @@ class VM {
 
   check_bounds (addr, sz = 4) { if (addr < this.top || addr + sz > this.bottom) { this.hlt(0x06); } }
 
+  db (...args) {
+    var addr = this.mm.alloc(args.length);
+    for (var a of args) {
+      this.mem[addr++] = a;
+    }
+  }
+
+  dw (...args) {
+    var addr = this.mm.alloc(args.length * 2);
+    for (var a of args) {
+      this.mem.writeUInt16LE(a, addr);
+      addr += 2;
+    }
+  }
+
+  dd (...args) {
+    var addr = this.mm.alloc(args.length * 4);
+    for (var a of args) {
+      this.mem.writeUInt32LE(a, addr);
+      addr += 4;
+    }
+  }
+
   ldb (addr) { return this.mem[addr]; }
   ldw (addr) { return this.mem.readUInt16LE(addr); }
   ld (addr) { return this.mem.readUInt32LE(addr); }
 
-  stb (addr, value) { this.mem.writeUInt8(addr, value); }
-  stw (addr, value) { this.mem.writeUInt16LE(addr, value); }
-  st (addr, value) { this.mem.writeUInt32LE(addr, value); }
-
-  gpa (port, offset) { return this.ports[port].top + offset; }
-  gfa (offset) { return this.fp + offset; }
-  gsa (offset) { return this.sp + offset; }
-
-  read_string (addr) {
+  lds (addr) {
     var s = '';
     var c = this.mem[addr++];
     while (addr < this.bottom && c !== 0) {
@@ -117,6 +133,29 @@ class VM {
     return s;
   }
 
+  stb (addr, value) { this.mem.writeUInt8(addr, value); }
+  stw (addr, value) { this.mem.writeUInt16LE(addr, value); }
+  st (addr, value) { this.mem.writeUInt32LE(addr, value); }
+
+  sts (addr, str) {
+    for (var i = 0; i < str.length; i++) {
+      this.mem[addr++] = str.charCodeAt(i);
+    }
+    this.mem[addr] = 0;
+  }
+
+  gpa (port, offset) { return this.ports[port].top + offset; }
+  gfa (offset) { return this.fp + offset; }
+  gsa (offset) { return this.sp + offset; }
+
+  fill (addr, value, size) {
+    this.mem.fill(value, addr, addr + size);
+  }
+
+  copy (src, tgt, size) {
+    this.mem.copy(this.mem, tgt, src, src + size);
+  }
+
   load (uri) {
     var t = new Tokenizer();
     var tokens = t.tokenize('', uri);
@@ -124,11 +163,15 @@ class VM {
     var a = new Assembler();
     this.code = a.asm('', tokens);
     console.log(this.code);
-    this.fn = new Function(['args'], this.code);
+    if (a.errors === 0) {
+      this.fn = new Function(['args'], this.code);
+    }
   }
 
   run (...args) {
-    this.fn.apply(this, args);
+    if (this.fn) {
+      this.fn.apply(this, args);
+    }
   }
 
   stop () { this.halted = true; }
@@ -143,6 +186,29 @@ class VM {
         this.ports[k].tick();
       }
     }
+  }
+
+  beginSequence (start) {
+    this._seq = start;
+  }
+
+  byte (value) {
+    this.stb(this._seq, value);
+    this._seq++;
+  }
+
+  word (value) {
+    this.stw(this._seq, value);
+    this._seq += 2;
+  }
+
+  dword (value) {
+    this.st(this._seq, value);
+    this._seq += 4;
+  }
+
+  endSequence () {
+    this._seq = 0;
   }
 
 }

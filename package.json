@@ -7,7 +7,8 @@
   "dependencies": {
     "hexy": "^0.2.7",
     "lodash": "^4.0.0",
-    "moment": "^2.11.1"
+    "moment": "^2.11.1",
+    "pixi.js": "^3.0.9"
   },
   "devDependencies": {
     "babel-loader": "^6.2.1",
@@ -19,6 +20,7 @@
     "file-loader": "^0.8.5",
     "html-loader": "^0.4.0",
     "json-loader": "^0.5.4",
+    "raw-loader": "^0.5.1",
     "style-loader": "^0.13.0",
     "url-loader": "^0.5.7",
     "webpack": "^1.12.12"

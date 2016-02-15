@@ -4,19 +4,14 @@ import { defaults, error } from './globals.js';
 
 class Port {
 
-  constructor (vm, port_number, mem_size = defaults.port.mem_size) {
-    var start = 0;
-    for (var k in _vm.ports) {
-      start += _vm.ports[k].mem_size;
-    }
+  constructor (vm, port_number) {
+    var top = vm.mm.alloc(4);
+    vm.st(top, port_number);
 
     this.port_number = port_number;
     vm.ports[port_number] = this;
 
-    this.mem_size = mem_size;
-
-    this.top = start;
-    this.bottom = this.top + this.mem_size;
+    this.top = top;
   }
 
   boot (cold = false) {
@@ -28,7 +23,8 @@ class Port {
 
   shut () {
     this.reset();
-    delete _vm.ports[port_number];
+    // _vm.mm.free(this.top);
+    _vm.ports[port_number] = null;
   }
 
   tick () {

@@ -5,7 +5,7 @@ module.exports = {
 
   output: {
     path: './build',
-    filename: 'bundle.js'
+    filename: 'bundle.js',
   },
 
   devtool: 'inline-source-map',
@@ -13,7 +13,7 @@ module.exports = {
   module: {
     loaders: [
       {
-        test: /\.js$/,
+        test: /\.js$/i,
         exclude: /(node_modules|bower_components)/,
         loader: 'babel',
         query: {
@@ -22,19 +22,25 @@ module.exports = {
       },
 
       {
-        test: /\.json$/,
+        test: /\.json$/i,
         loader: 'json'
       },
 
       {
-        test: /\.html$/,
+        test: /\.html$/i,
         loader: 'html'
       },
 
       {
-        test: /\.css$/,
+        test: /\.css$/i,
         loaders: ['style', 'css', 'cssnext']
-      }
+      },
+
+      {
+        test: /\.(png|jpg)$/i,
+        loader: 'url-loader'
+      },
+
     ]
   },
 
@@ -53,7 +59,7 @@ module.exports = {
       server: { baseDir: ['./'] },
       browser: "google chrome",
       notify: false
-    })
+    }),
   ],
 
 };

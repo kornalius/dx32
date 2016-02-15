@@ -1,3 +1,5 @@
+require('file?name=[name].[ext]!../node_modules/pixi.js/bin/pixi.js');
+
 import css from '../style/main.css';
 import t from '../html/main.html';
 
@@ -9,25 +11,34 @@ var src = '\n\
             #my-const $FF $20\n\
             :my-label db $FF my-const, 40\n\
             \n\
-            @_init\n\
-              if (> 10 $A0)\n\
-                psh (- $FFFF 30)\n\
+            @init\n\
+              :v = "a string now" \n\
+              sts v ("a string now")\n\
+              if (& (> 10 $A0) (< 20 $02))\n\
+                :v = (- $FFFF 30)\n\
+              else\n\
+                :v = ((+ $FF 30)) ;this is a comment\n\
               end\n\
               \n\
-              psh ((+ $FF 30)) ;this is a comment\n\
-              psh ("a string now")\n\
-              hlt()\n\
-              \n\
-              end\n\
+            end\n\
             \n\
-            @_shut\n\
-              end\n\
+            @shut\n\
+            end\n\
             \n\
-            @_tick ms\n\
-              end\n\
+            @tick ms\n\
+            end\n\
             \n\
             @main\n\
+              init()\n\
+              (#1:moveTo 10 2)\n\
+              :i = 0\n\
+              whl (< (ld i) 5)\n\
+                #1:bs\n\
+                :i = (+ (ld i) 1)\n\
               end\n\
+              hlt()\n\
+              \n\
+            end\n\
             \n\
           ';
 console.log(src);
@@ -35,9 +46,10 @@ console.log(src);
 var vm = new VM();
 vm.load(src);
 vm.run();
+vm.mm.dump();
 
-console.log(hexy.hexy(vm.mem, { offset: 0, length: 512, display_offset: 0x00, width: 16, caps: 'upper', indent: 2 }));
+// console.log(hexy.hexy(vm.mem, { offset: 0, length: 512, display_offset: 0x00, width: 16, caps: 'upper', indent: 2 }));
 
-var el = document.createElement('div');
-el.innerHTML = t;
-document.body.appendChild(el);
+// var el = document.createElement('div');
+// el.innerHTML = t;
+// document.body.appendChild(el);

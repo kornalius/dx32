@@ -107,30 +107,37 @@ export var opcodes = {
   },
   ldb: {
     expr: true,
-    gen: (a) => { return ['this.mem[' + a + ']']; },
+    gen: (a) => { return ['_vm.mem', '[', a, ']']; },
   },
   ldw: {
     expr: true,
-    gen: (a) => { return ['this.mem.readUInt16LE(' + a + ')']; },
+    gen: (a) => { return ['_vm.mem.readUInt16LE', '(', a, ')']; },
   },
   ld: {
     expr: true,
-    gen: (a) => { return ['this.mem.readUInt32LE(' + a + ')']; },
+    gen: (a) => { return ['_vm.mem.readUInt32LE', '(', a, ')']; },
+  },
+  lds: {
+    expr: true,
+    gen: (a) => { return ['_vm.lds', '(', a, ')']; },
   },
   stb: {
-    gen: (a, b) => { return ['this.mem[' + a + '] = b']; },
+    gen: (a, b) => { return ['_vm.mem', '[', a, ']', '=', b]; },
   },
   stw: {
-    gen: (a, b) => { return ['this.mem.writeUInt16LE(' + b + ', ' + a + ')']; },
+    gen: (a, b) => { return ['_vm.mem.writeUInt16LE', '(', b, ',', a, ')']; },
   },
   st: {
-    gen: (a, b) => { return ['this.mem.writeUInt32LE(' + b + ', ' + a + ')']; },
+    gen: (a, b) => { return ['_vm.mem.writeUInt32LE', '(', b, ',', a, ')']; },
+  },
+  sts: {
+    gen: (a, b) => { return ['_vm.sts', '(', a, ',', b, ')']; },
   },
   call: {
-    gen: (a, ...args) => { return ['this.' + a + '.apply(this, ' + args.join(', ') + ')']; },
+    gen: (a, ...args) => { return ['_vm.' + a + '.apply', '(', 'this', ',', args, ')']; },
   },
   callp: {
-    gen: (a, b, ...args) => { return ['this.ports[' + a + '].' + b + '.apply(this, ' + args.join(', ') + ')']; },
+    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].' + b + '.apply', '(', 'this', ',', args, ')']; },
   },
   ret: {
     gen: (a) => { return ['return', a]; },
@@ -154,13 +161,17 @@ export var opcodes = {
     gen: () => { return ['']; },
   },
   copy: {
+    gen: (s, t, sz) => { return ['_vm.copy', '(', s, ',', t, ',', sz ,')']; },
     gen: () => { return ['']; },
   },
   fill: {
-    gen: () => { return ['']; },
+    gen: (a, v, sz) => { return ['_vm.fill', '(', a, ',', v, ',', size ,')']; },
   },
   print: {
-    gen: () => { return 'console.log(' + args.join(', ') + ')'; },
+    gen: () => { return 'console.log', '(' + args.join(', ') + ')'; },
+  },
+  hlt: {
+    gen: (a) => { return ['_vm.hlt', '(', a, ')']; },
   },
 };
 
@@ -174,12 +185,22 @@ export var error = (self, t, msg) => {
   console.error(msg, 'at', t.value, '(' + t.row + ',' + t.col + ')');
 }
 
+export var runtime_error = (self, code) => {
+  var e = 'Unknown runtime error';
+  switch(code) {
+    case 0x00:
+      e = 'Out of memory';
+      break;
+  }
+  console.error(e);
+}
+
 export var is_eos = (t) => {
   return t.type === 'comment' || t.type === 'eol';
 }
 
 export var is_symbol = (t) => {
-  return t.type === 'comp' || t.type === 'math' || t.type === 'logic';
+  return t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign';
 }
 
 export var is_opcode = (t) => {
@@ -198,9 +219,7 @@ export var is_value = (t) => {
   return is_digit(t) || is_string(t);
 }
 
-export var peek_at = (x, type, tokens) => {
-  var p = tokens[x];
-
+var peek_token = (p, type) => {
   if (_.isString(type)) {
     if (type === 'opcode') {
       return is_opcode(p);
@@ -214,7 +233,7 @@ export var peek_at = (x, type, tokens) => {
     else if (type === 'value') {
       return is_value(p);
     }
-    return p.type === type;
+    return p.type === type || p.value === type;
   }
 
   else if (_.isNumber(type)) {
@@ -241,6 +260,10 @@ export var peek_at = (x, type, tokens) => {
   return false;
 }
 
+export var peek_at = (x, type, tokens) => {
+  return peek_token(tokens[x], type);
+}
+
 export var peeks_at = (x, arr, tokens) => {
   var len = tokens.length;
   var ax = 0;
@@ -251,4 +274,10 @@ export var peeks_at = (x, arr, tokens) => {
     }
   }
   return true;
+}
+
+export var expected = (self, t, type) => {
+  if (!peek_token(t, type)) {
+    error(self, t, type + ' expected');
+  }
 }
