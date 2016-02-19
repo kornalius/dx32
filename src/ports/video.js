@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import Port from '../port.js';
 import { defaults } from '../globals.js';
 import hexy from 'hexy';
@@ -208,7 +209,7 @@ class Video extends Port {
     this.renderer.view.style.left = "0px";
     this._resize();
     document.body.appendChild(this.renderer.view);
-    window.addEventListener("_resize", this._resize.bind(this));
+    window.addEventListener("resize", this._resize.bind(this));
 
     this._setupPalette();
 
@@ -704,6 +705,30 @@ class Video extends Port {
 
   right () { return this.moveTo(this.overlays.cursor.x + 1, this.overlays.cursor.y); }
 
+  scroll (x, y) {
+    _vm.mem.copy(this.mem, this.screen, this.screen + y * this.width, (this.height - y) * this.width);
+    this.refresh();
+  }
+
+  cl () {
+
+  }
+
+  cel () {
+
+  }
+
+  ces () {
+
+  }
+
+  cbl () {
+
+  }
+
+  cbs () {
+
+  }
 }
 
 export default Video
