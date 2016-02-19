@@ -6,7 +6,7 @@ class Port {
 
   constructor (vm, port_number) {
     var top = vm.mm.alloc(4);
-    vm.st(top, port_number);
+    // vm.st(top, port_number);
 
     this.port_number = port_number;
     vm.ports[port_number] = this;
