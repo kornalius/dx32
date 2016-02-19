@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import hexy from 'hexy';
-import { defaults, opcodes, opcodes_idx, registers, register_names, error, runtime_error, read, write, byte, word, dword } from './globals.js';
+import { defaults, mixin, opcodes, opcodes_idx, registers, register_names, error, runtime_error, read, write, byte, word, dword } from './globals.js';
+import Memory from './memory.js';
 import MemoryManager from './memorymanager.js';
 import Port from './port.js';
 import Label from './label.js';
@@ -11,8 +12,9 @@ import CPU from './ports/cpu.js';
 import Video from './ports/video.js';
 import Keyboard from './ports/keyboard.js';
 import Mouse from './ports/mouse.js';
-import Disk from './ports/disk.js';
+import Drive from './ports/drive.js';
 import Network from './ports/network.js';
+import Sound from './ports/sound.js';
 
 class VM {
 
@@ -49,8 +51,9 @@ class VM {
       new Video(this, 1);
       new Keyboard(this, 2);
       new Mouse(this, 3);
-      new Disk(this, 4);
+      new Drive(this, 4);
       new Network(this, 5);
+      new Sound(this, 6);
     }
 
     for (var k in this.ports) {
@@ -96,65 +99,9 @@ class VM {
 
   check_bounds (addr, sz = 4) { if (addr < this.top || addr + sz > this.bottom) { this.hlt(0x06); } }
 
-  db (...args) {
-    var addr = this.mm.alloc(args.length);
-    for (var a of args) {
-      this.mem[addr++] = a;
-    }
-  }
-
-  dw (...args) {
-    var addr = this.mm.alloc(args.length * 2);
-    for (var a of args) {
-      this.mem.writeUInt16LE(a, addr);
-      addr += 2;
-    }
-  }
-
-  dd (...args) {
-    var addr = this.mm.alloc(args.length * 4);
-    for (var a of args) {
-      this.mem.writeUInt32LE(a, addr);
-      addr += 4;
-    }
-  }
-
-  ldb (addr) { return this.mem[addr]; }
-  ldw (addr) { return this.mem.readUInt16LE(addr); }
-  ld (addr) { return this.mem.readUInt32LE(addr); }
-
-  lds (addr) {
-    var s = '';
-    var c = this.mem[addr++];
-    while (addr < this.bottom && c !== 0) {
-      s += String.fromCharCode(c);
-      c = this.mem[addr++];
-    }
-    return s;
-  }
-
-  stb (addr, value) { this.mem.writeUInt8(addr, value); }
-  stw (addr, value) { this.mem.writeUInt16LE(addr, value); }
-  st (addr, value) { this.mem.writeUInt32LE(addr, value); }
-
-  sts (addr, str) {
-    for (var i = 0; i < str.length; i++) {
-      this.mem[addr++] = str.charCodeAt(i);
-    }
-    this.mem[addr] = 0;
-  }
-
   gpa (port, offset) { return this.ports[port].top + offset; }
   gfa (offset) { return this.fp + offset; }
   gsa (offset) { return this.sp + offset; }
-
-  fill (addr, value, size) {
-    this.mem.fill(value, addr, addr + size);
-  }
-
-  copy (src, tgt, size) {
-    this.mem.copy(this.mem, tgt, src, src + size);
-  }
 
   load (uri) {
     var t = new Tokenizer();
@@ -188,29 +135,8 @@ class VM {
     }
   }
 
-  beginSequence (start) {
-    this._seq = start;
-  }
-
-  byte (value) {
-    this.stb(this._seq, value);
-    this._seq++;
-  }
-
-  word (value) {
-    this.stw(this._seq, value);
-    this._seq += 2;
-  }
-
-  dword (value) {
-    this.st(this._seq, value);
-    this._seq += 4;
-  }
-
-  endSequence () {
-    this._seq = 0;
-  }
-
 }
+
+mixin(VM.prototype, Memory.prototype);
 
 export default VM

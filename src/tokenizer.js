@@ -42,7 +42,7 @@ class Tokenizer {
 
       label: /\:([A-Z_][A-Z_0-9\-]*)/i,
 
-      func: /\@([A-Z_0-9\-]+)/i,
+      func: /\:\:([A-Z_][A-Z_0-9\-]+)/i,
 
       portFunc: /\#([0-9]+\:[A-Z_][A-Z_0-9\-]+)/i,
 
@@ -50,6 +50,10 @@ class Tokenizer {
         match: /\.include\s/i,
         include: true,
       },
+
+      indirect: /\@([A-Z_][A-Z_0-9\-]*)/i,
+
+      indirectsym: /(\@)[^A-Z_]/i,
 
       id: /([A-Z_][A-Z_0-9\-]*)/i,
 
@@ -88,6 +92,12 @@ class Tokenizer {
       },
 
       string: /\"([^"]*)\"/i,
+
+      char: {
+        match: /\'(.)\'/i,
+        type (k, v) { return 'digit' },
+        value (v) { return v.charCodeAt(0) },
+      },
 
     };
 

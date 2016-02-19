@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 export var defaults = {
   vm: {
     mem_size: 512 * 1024,
@@ -23,7 +25,7 @@ export var defaults = {
     mem_size: 8 * 1024,
   },
 
-  disk: {
+  drive: {
     mem_size: 32 * 1024,
   },
 
@@ -31,11 +33,27 @@ export var defaults = {
     mem_size: 32 * 1024,
   },
 
+  sound: {
+    mem_size: 4 * 1024,
+  },
+
+  floppy: {
+    size: 720 * 1024,
+    block_size: 512,
+    max_blocks: 1376,
+    entry_size: 32,
+    max_entries: 1024,
+  },
+
 }
 
 export var opcodes = {
   nop: {
     fn: () => {},
+  },
+  '@': {
+    expr: true,
+    gen: (a) => { return ['_vm.mem.readUInt32LE', '(', a, ')']; },
   },
   '>': {
     expr: true,
@@ -121,6 +139,10 @@ export var opcodes = {
     expr: true,
     gen: (a) => { return ['_vm.lds', '(', a, ')']; },
   },
+  ldl: {
+    expr: true,
+    gen: (a, b) => { return ['_vm.ldl', '(', a, ',', b, ')']; },
+  },
   stb: {
     gen: (a, b) => { return ['_vm.mem', '[', a, ']', '=', b]; },
   },
@@ -133,11 +155,14 @@ export var opcodes = {
   sts: {
     gen: (a, b) => { return ['_vm.sts', '(', a, ',', b, ')']; },
   },
+  stl: {
+    gen: (a, b) => { return ['_vm.stl', '(', a, ',', b, ')']; },
+  },
   call: {
-    gen: (a, ...args) => { return ['_vm.' + a + '.apply', '(', 'this', ',', args, ')']; },
+    gen: (a, ...args) => { return ['_vm.' + a, '(', args, ')']; },
   },
   callp: {
-    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].' + b + '.apply', '(', 'this', ',', args, ')']; },
+    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].' + b, '(', args, ')']; },
   },
   ret: {
     gen: (a) => { return ['return', a]; },
@@ -173,6 +198,15 @@ export var opcodes = {
   hlt: {
     gen: (a) => { return ['_vm.hlt', '(', a, ')']; },
   },
+  dbg: {
+    gen: () => { return ['debugger']; },
+  },
+  free: {
+    gen: (a) => { return ['_vm.mm.free', '(', a, ')']; },
+  },
+  size: {
+    gen: (a) => { return ['_vm.mm.size', '(', a, ')']; },
+  },
 };
 
 var x = 0;
@@ -188,8 +222,45 @@ export var error = (self, t, msg) => {
 export var runtime_error = (self, code) => {
   var e = 'Unknown runtime error';
   switch(code) {
-    case 0x00:
+    case 0x01:
       e = 'Out of memory';
+      break;
+  }
+  console.error(e);
+}
+
+export var io_error = (self, code) => {
+  var e = 'I/O runtime error';
+  switch(code) {
+    case 0x01:
+      e = 'File not found';
+      break;
+    case 0x02:
+      e = 'Cannot open file';
+      break;
+    case 0x03:
+      e = 'Cannot close file';
+      break;
+    case 0x04:
+      e = 'Cannot lock file';
+      break;
+    case 0x05:
+      e = 'Cannot unlock file';
+      break;
+    case 0x06:
+      e = 'Invalid file id';
+      break;
+    case 0x07:
+      e = 'A floppy is already in the drive';
+      break;
+    case 0x08:
+      e = 'No floppy in drive';
+      break;
+    case 0x09:
+      e = 'Cannot delete file';
+      break;
+    case 0x10:
+      e = 'Drive is not spinning';
       break;
   }
   console.error(e);
@@ -200,7 +271,7 @@ export var is_eos = (t) => {
 }
 
 export var is_symbol = (t) => {
-  return t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign';
+  return t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectsym';
 }
 
 export var is_opcode = (t) => {
@@ -280,4 +351,15 @@ export var expected = (self, t, type) => {
   if (!peek_token(t, type)) {
     error(self, t, type + ' expected');
   }
+}
+
+export var mixin = (proto, ...mixins) => {
+  mixins.forEach((mixin) => {
+    Object.getOwnPropertyNames(mixin).forEach((key) => {
+      if (key !== 'constructor') {
+        let descriptor = Object.getOwnPropertyDescriptor(mixin, key);
+        Object.defineProperty(proto, key, descriptor);
+      }
+    });
+  });
 }

@@ -173,15 +173,15 @@ class Assembler {
             a.push(args_values(args('curly')));
             expected(this, t, 'close_curly');
           }
-          // else if (t.type === 'open_bracket') {
-          //   next();
-          //   a = a.concat(args_values(args('bracket')));
-          //   expected(this, t, 'close_bracket');
-          // }
+          else if (t.type === 'open_bracket') {
+            next();
+            a.push(['+', args_values(args('bracket'))]);
+            expected(this, t, 'close_bracket');
+          }
           else {
             var l = find_label(_.snakeCase(t.value));
             if (l) {
-              a.push(l.fn ? func(false) : label(false));
+              a.push(l.fn ? func(false) : label(false, t.type === 'indirect'));
             }
             else if (t.type === 'portFunc') {
               var parts = t.value.split(':');
@@ -213,7 +213,7 @@ class Assembler {
       return a;
     }
 
-    var label = (def) => {
+    var label = (def, indirect = false) => {
       var name = _.snakeCase(t.value);
 
       if (def) {
@@ -224,6 +224,10 @@ class Assembler {
         if (!l) {
           l = new_label(name);
           nw = true;
+        }
+
+        if (find_constant(t.value)) {
+          constant(false);
         }
 
         if (is_eos(t)) {
@@ -254,6 +258,29 @@ class Assembler {
             code.line_s('_vm.mem.writeUInt32LE', '(', args_values(args()), ',', name, ')');
             expected(this, t, 'close_paren');
           }
+          else {
+            var l = find_label(_.snakeCase(t.value));
+            if (l) {
+              if (nw) {
+                code.line_s('var', name, '=', '_vm.mm.alloc', '(', 4, ')');
+              }
+              code.line_s('_vm.mem.writeUInt32LE', '(', l.fn ? func(false) : label(false, t.type === 'indirect'), ',', name, ')');
+            }
+            else if (t.type === 'portFunc') {
+              var parts = t.value.split(':');
+              next();
+              if (nw) {
+                code.line_s('var', name, '=', '_vm.mm.alloc', '(', 4, ')');
+              }
+              code.line_s('_vm.mem.writeUInt32LE', '(', '_vm.ports[' + parts[0] + '].' + parts[1], '(', comma_array(args_values(args('func'))), ')', ',', name, ')');
+            }
+            else if (is_opcode(t)) {
+              if (nw) {
+                code.line_s('var', name, '=', '_vm.mm.alloc', '(', 4, ')');
+              }
+              code.line_s('_vm.mem.writeUInt32LE', '(', opcode(true), ',', name, ')');
+            }
+          }
         }
         else {
           var szfn = 'db';
@@ -275,11 +302,19 @@ class Assembler {
                 return;
             }
             next();
-            var aa = args('def');
-            if (nw) {
-              code.line_s('var', name, '=', '_vm.mm.alloc', '(', sz * aa.length, ')');
+            if (t.type === 'open_bracket' && nw) {
+              next();
+              var aa = args('def');
+              code.line_s('var', name, '=', '_vm.mm.alloc', '(', sz, '*', aa, ')');
+              expected(this, t, 'close_bracket')
             }
-            code.line_s('_vm.' + szfn, '(', name, ',', comma_array(args_values(aa)), ')');
+            else {
+              var aa = args('def');
+              if (nw) {
+                code.line_s('var', name, '=', '_vm.mm.alloc', '(', sz * aa.length, ')');
+              }
+              code.line_s('_vm.' + szfn, '(', name, ',', comma_array(args_values(aa)), ')');
+            }
           }
           else {
             error(this, t, 'db, dw, dd expected');
@@ -289,7 +324,12 @@ class Assembler {
       }
 
       else {
-        return name;
+        if (indirect) {
+          return ['_vm.mem.readUInt32LE', '(', name, ')'];
+        }
+        else {
+          return name;
+        }
       }
     }
 

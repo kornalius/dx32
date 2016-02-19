@@ -58,6 +58,15 @@ class MemoryManager {
     }
   }
 
+  size (addr) {
+    for (var b of this.blocks) {
+      if (b.top === addr) {
+        return b.bottom - b.top;
+      }
+    }
+    return -1;
+  }
+
   collect () {
     var n = [];
     for (var b of this.blocks) {
