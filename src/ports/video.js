@@ -3,7 +3,7 @@ import Port from '../port.js';
 import { defaults } from '../globals.js';
 import hexy from 'hexy';
 
-var crtUrl = require('../../imgs/crt.png');
+var crtUrl = require('file?name=[path]/[name].[ext]!../../imgs/crt.png');
 
 PIXI.Point.prototype.distance = (target) => {
   Math.sqrt((this.x - target.x) * (this.x - target.x) + (this.y - target.y) * (this.y - target.y))
@@ -153,8 +153,8 @@ class Video extends Port {
     this.sprites = vm.mm.alloc(this.sprites_size);
 
     this.char_count = 256;
-    this.char_width = 8;
-    this.char_height = 12;
+    this.char_width = 7;
+    this.char_height = 10;
     this.text_width = Math.trunc(this.width / this.char_width);
     this.text_height = Math.trunc(this.height / this.char_height);
     this.font_size = this.char_width * this.char_height;
@@ -210,6 +210,56 @@ class Video extends Port {
     this._resize();
     document.body.appendChild(this.renderer.view);
     window.addEventListener("resize", this._resize.bind(this));
+
+    // var f = require('file?name=[path]/[name].[ext]!../../fonts/font1.fnt');
+    // require('file?name=[path]/[name].[ext]!../../fonts/font1.png');
+
+    // PIXI.loader
+    // .add(f)
+    // .load(((loader, resources) => {
+    //   var s = '';
+    //   for (var i = 0; i < 256; i++) {
+    //     s += String.fromCharCode(i);
+    //   }
+    //   var bf = new PIXI.extras.BitmapText(s, { font: "8px David Device" });
+
+    //   var renderTexture = new PIXI.RenderTexture(this.renderer, this.char_width, this.char_height);
+
+    //   var ptr = this.fonts;
+
+    //   for (var g of bf._glyphs) {
+    //     var f = g.texture.frame;
+
+    //     renderTexture.clear();
+    //     renderTexture.render(g);
+    //     var pixels = renderTexture.getPixels();
+
+    //     var i = 0;
+    //     for (var y = 0; y < this.char_height; y++) {
+    //       for (var x = 0; x < this.char_width; x++) {
+    //         _vm.mem[ptr] = pixels[i] > 0 ? 1 : 0;
+    //         i += 4;
+    //         ptr++;
+    //       }
+    //     }
+    //   }
+
+    //   this.moveTo(10, 10);
+    //   this.putChar('A', 29, 5);
+
+    //   this.moveTo(10, 11);
+    //   this.print('Welcome to DX32\nÉgalitée!', 2, 6);
+
+    //   var chars = '';
+    //   for (var i = 33; i < 256; i++) {
+    //     chars += String.fromCharCode(i);
+    //   }
+    //   this.moveTo(1, 2);
+    //   this.print(chars, 1, 0);
+
+    //   this.moveTo(10, 22);
+    //   this.print('WWWWWWWWWWWWWWW', 1, 0);
+    // }).bind(this));
 
     this._setupPalette();
 
@@ -515,7 +565,7 @@ class Video extends Port {
 
   _loadFont () {
     var b = new BDF();
-    var f = require('raw!../../fonts/gohufont-11.bdf');
+    var f = require('raw!../../fonts/6x9.bdf');
     b.load(f);
 
     var points = b.meta.size.points;

@@ -57,6 +57,7 @@ module.exports = {
       host: 'localhost',
       port: 3001,
       server: { baseDir: ['./'] },
+      // serveStatic: ['.', './build/assets'],
       browser: "google chrome",
       notify: false
     }),
