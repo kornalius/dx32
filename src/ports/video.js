@@ -3,7 +3,7 @@ import Port from '../port.js';
 import { defaults } from '../globals.js';
 import hexy from 'hexy';
 
-var crtUrl = require('../../imgs/crt.png');
+var crtUrl = require('file?name=[path]/[name].[ext]!../../imgs/crt.png');
 
 PIXI.Point.prototype.distance = (target) => {
   Math.sqrt((this.x - target.x) * (this.x - target.x) + (this.y - target.y) * (this.y - target.y))
@@ -137,8 +137,8 @@ class Video extends Port {
 
     this.info = vm.mm.alloc(80);
 
-    this.width = 320;
-    this.height = 240;
+    this.width = 384;
+    this.height = 264;
     this.scale = 3;
 
     this.palette_count = 32;
@@ -151,15 +151,6 @@ class Video extends Port {
     this.sprite_size = this.sprite_width * this.sprite_height;
     this.sprites_size = this.sprite_count * this.sprite_size;
     this.sprites = vm.mm.alloc(this.sprites_size);
-
-    this.char_count = 256;
-    this.char_width = 8;
-    this.char_height = 12;
-    this.text_width = Math.trunc(this.width / this.char_width);
-    this.text_height = Math.trunc(this.height / this.char_height);
-    this.font_size = this.char_width * this.char_height;
-    this.fonts_size = this.char_count * this.font_size;
-    this.fonts = vm.mm.alloc(this.fonts_size);
 
     this._loadFont();
 
@@ -441,8 +432,8 @@ class Video extends Port {
       this.moveTo(1, 2);
       this.print(chars, 1, 0);
 
-      this.moveTo(10, 22);
-      this.print('WWWWWWWWWWWWWWW', 1, 0);
+      this.moveTo(1, 24);
+      this.print('0123456789012345678901234567890123456789012345678901234567890123', 1, 0);
 
       this.refresh();
     }
@@ -514,14 +505,25 @@ class Video extends Port {
   }
 
   _loadFont () {
+    this.char_count = 256;
+    this.char_width = 6;
+    this.char_height = 11;
+    this.char_offset_x = 0;
+    this.char_offset_y = 1;
+    this.text_width = Math.round(this.width / this.char_width);
+    this.text_height = Math.round(this.height / this.char_height);
+    this.font_size = this.char_width * this.char_height;
+    this.fonts_size = this.char_count * this.font_size;
+    this.fonts = _vm.mm.alloc(this.fonts_size);
+
     var b = new BDF();
-    var f = require('raw!../../fonts/gohufont-11.bdf');
+    var f = require('raw!../../fonts/ctrld-fixed-10r.bdf');
     b.load(f);
 
     var points = b.meta.size.points;
     var fontAscent = b.meta.properties.fontAscent;
     var fontDescent = b.meta.properties.fontDescent;
-    var baseline = fontAscent + 1;
+    var baseline = fontAscent + this.char_offset_y;
 
     for (var k in b.glyphs) {
       var g = b.glyphs[k];
@@ -532,7 +534,7 @@ class Video extends Port {
       for (var y = 0; y < bb.height; y++) {
         var p = ptr + (y + dsc) * this.char_width;
         for (var x = 0; x < bb.width; x++) {
-          _vm.mem[p + x + bb.x + 1] |= g.bitmap[y][x];
+          _vm.mem[p + x + bb.x + this.char_offset_x] |= g.bitmap[y][x];
         }
       }
     }
