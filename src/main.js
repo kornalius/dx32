@@ -9,10 +9,21 @@ import hexy from 'hexy';
 import VM from './vm.js';
 
 var src = '\n\
-            #my-const $FF $20\n\
-            :my-label db $FF my-const, 40\n\
+            #my_const $FF $20\n\
+            :my_label db $FF my_const, 40\n\
+            :my_dict = { :k1 = 3, :k2 = 100, :k3 = "string" }\n\
+            print(lds(@my_dict.k3))\n\
             \n\
-            ::init\n\
+            :s22 struct\n\
+              :a1 db 0\n\
+              :b1 db 0\n\
+              :st struct\n\
+                :a2 db 0\n\
+                :b2 db 0\n\
+              end\n\
+            end\n\
+            \n\
+            :init()\n\
               :v = "a string now" \n\
               sts v ("a string now")\n\
               if (& (> 10 $A0) (< 20 $02))\n\
@@ -23,24 +34,30 @@ var src = '\n\
               \n\
             end\n\
             \n\
-            ::shut\n\
+            :shut()\n\
             end\n\
             \n\
-            ::tick ms\n\
+            :tick(ms)\n\
             end\n\
             \n\
-            ::main\n\
+            :main()\n\
               init()\n\
               (#1:moveTo 10 2)\n\
               :i = 0\n\
-              whl (< (ld i) 5)\n\
+              whl (< @i 5)\n\
                 #1:bs\n\
-                :i = (+ (ld i) 1)\n\
+                :i = +(@i 1)\n\
+                print(@i)\n\
               end\n\
               \n\
               :n db $01 $01 $02 \'F\' \'3\' $00 $03 $10 $08 $14 $30 $00 $00\n\
               :wad = #6:note(n)\n\
               #6:play(@wad)\n\
+              \n\
+              :stack dd [100]\n\
+              stk stack 100\n\
+              psh stack 10 20 30\n\
+              print pop stack\n\
               \n\
               hlt()\n\
               \n\

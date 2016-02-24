@@ -159,10 +159,10 @@ export var opcodes = {
     gen: (a, b) => { return ['_vm.stl', '(', a, ',', b, ')']; },
   },
   call: {
-    gen: (a, ...args) => { return ['_vm.' + a, '(', args, ')']; },
+    gen: (a, ...args) => { return ['_vm.' + a, '(', comma_array(args), ')']; },
   },
   callp: {
-    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].' + b, '(', args, ')']; },
+    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].' + b, '(', comma_array(args), ')']; },
   },
   ret: {
     gen: (a) => { return ['return', a]; },
@@ -187,13 +187,12 @@ export var opcodes = {
   },
   copy: {
     gen: (s, t, sz) => { return ['_vm.copy', '(', s, ',', t, ',', sz ,')']; },
-    gen: () => { return ['']; },
   },
   fill: {
     gen: (a, v, sz) => { return ['_vm.fill', '(', a, ',', v, ',', size ,')']; },
   },
   print: {
-    gen: () => { return 'console.log', '(' + args.join(', ') + ')'; },
+    gen: (...args) => { return ['console.log', '(', comma_array(args), ')']; },
   },
   hlt: {
     gen: (a) => { return ['_vm.hlt', '(', a, ')']; },
@@ -206,6 +205,28 @@ export var opcodes = {
   },
   size: {
     gen: (a) => { return ['_vm.mm.size', '(', a, ')']; },
+  },
+  dict: {
+    gen: (a, ...args) => { return ['_vm.dict.make', '(', a, ',', comma_array(args), ')']; },
+  },
+  get: {
+    gen: (a, b) => { return ['_vm.dict.get', '(', a, ',', b, ')']; },
+  },
+  set: {
+    gen: (a, b, c) => { return ['_vm.dict.set', '(', a, ',', b, ',', c, ')']; },
+  },
+  mix: {
+    gen: (a, ...args) => { return ['_vm.dict.mix', '(', a, ',', comma_array(args), ')']; },
+  },
+  stk: {
+    gen: (a, b) => { return ['_vm.stk', '(', a, ',', b, ')']; },
+  },
+  psh: {
+    gen: (a, ...args) => { return ['_vm.psh', '(', a, ',', comma_array(args), ')']; },
+  },
+  pop: {
+    expr: true,
+    gen: (a) => { return ['_vm.pop', '(', a, ')']; },
   },
 };
 
@@ -224,6 +245,12 @@ export var runtime_error = (self, code) => {
   switch(code) {
     case 0x01:
       e = 'Out of memory';
+      break;
+    case 0x02:
+      e = 'Stack underflow';
+      break;
+    case 0x03:
+      e = 'Stack overflow';
       break;
   }
   console.error(e);
@@ -264,6 +291,16 @@ export var io_error = (self, code) => {
       break;
   }
   console.error(e);
+}
+
+export var comma_array = (_args) => {
+  var r = [];
+  for (var a of _args) {
+    r.push(a);
+    r.push(',');
+  }
+  r.splice(r.length - 1, 1);
+  return r;
 }
 
 export var is_eos = (t) => {

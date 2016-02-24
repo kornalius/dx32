@@ -137,7 +137,7 @@ class Video extends Port {
 
     this.info = vm.mm.alloc(80);
 
-    this.width = 384;
+    this.width = 378;
     this.height = 264;
     this.scale = 3;
 
@@ -433,7 +433,7 @@ class Video extends Port {
       this.print(chars, 1, 0);
 
       this.moveTo(1, 24);
-      this.print('0123456789012345678901234567890123456789012345678901234567890123', 1, 0);
+      this.print('012345678901234567890123456789012345678901234567890123', 1, 0);
 
       this.refresh();
     }
@@ -506,7 +506,7 @@ class Video extends Port {
 
   _loadFont () {
     this.char_count = 256;
-    this.char_width = 6;
+    this.char_width = 7;
     this.char_height = 11;
     this.char_offset_x = 0;
     this.char_offset_y = 1;

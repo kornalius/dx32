@@ -49,6 +49,34 @@ class MemoryManager {
     return n + 1;
   }
 
+  alloc_b (v) {
+    var addr = this.alloc(1);
+    this.vm.mem[addr] = v;
+    return addr;
+  }
+
+  alloc_w (v) {
+    var addr = this.alloc(2);
+    this.vm.mem.writeUInt16LE(v, addr);
+    return addr;
+  }
+
+  alloc_d (v) {
+    var addr = this.alloc(4);
+    this.vm.mem.writeUInt32LE(v, addr);
+    return addr;
+  }
+
+  alloc_s (str) {
+    var addr = this.alloc(str.length + 1);
+    var a = addr;
+    for (var i = 0; i < str.length; i++) {
+      this.vm.mem[a++] = str.charCodeAt(i);
+    }
+    this.vm.mem[a] = 0;
+    return addr;
+  }
+
   free (addr) {
     for (var b of this.blocks) {
       if (b.top === addr) {

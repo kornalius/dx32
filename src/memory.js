@@ -1,3 +1,5 @@
+import { defaults, runtime_error } from './globals.js';
+
 class Memory {
 
   db (addr, ...args) {
@@ -34,9 +36,9 @@ class Memory {
 
   lds (addr, size = -1) {
     var s = '';
-    var c = this.mem[addr++];
     var l = 0;
-    while (addr < this.bottom && l < size) {
+    while (addr < this.bottom && (size === -1 || l < size)) {
+      var c = this.mem[addr++];
       if (c === 0) {
         if (size === -1) {
           break;
@@ -45,17 +47,16 @@ class Memory {
       else {
         s += String.fromCharCode(c);
       }
-      c = this.mem[addr++];
       l++;
     }
     return s;
   }
 
-  stb (addr, value) { this.mem.writeUInt8(addr, value); }
+  stb (addr, value) { this.mem.writeUInt8(value, addr); }
 
-  stw (addr, value) { this.mem.writeUInt16LE(addr, value); }
+  stw (addr, value) { this.mem.writeUInt16LE(value, addr); }
 
-  st (addr, value) { this.mem.writeUInt32LE(addr, value); }
+  st (addr, value) { this.mem.writeUInt32LE(value, addr); }
 
   stl (addr, buffer, size) { buffer.copy(this.mem, addr, 0, size); }
 

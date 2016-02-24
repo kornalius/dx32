@@ -3,6 +3,7 @@ import hexy from 'hexy';
 import { defaults, mixin, opcodes, opcodes_idx, registers, register_names, error, runtime_error, read, write, byte, word, dword } from './globals.js';
 import Memory from './memory.js';
 import MemoryManager from './memorymanager.js';
+import Dict from './dict.js';
 import Port from './port.js';
 import Label from './label.js';
 import Tokenizer from './tokenizer.js';
@@ -22,6 +23,8 @@ class VM {
     window._vm = this;
 
     this.mm = new MemoryManager(this);
+    this.dict = new Dict(this);
+    this.stacks = {};
 
     this.ports = [];
 
@@ -83,6 +86,8 @@ class VM {
     }
     this.ports = {};
 
+    this.stacks = {};
+
     this.mem = null;
 
     this.avail_mem = 0;
@@ -102,6 +107,37 @@ class VM {
   gpa (port, offset) { return this.ports[port].top + offset; }
   gfa (offset) { return this.fp + offset; }
   gsa (offset) { return this.sp + offset; }
+
+  stk (addr, count) {
+    this.stacks[addr] = { top: addr, bottom: addr + (count - 1) * 4, ptr: addr, count: count };
+  }
+
+  psh (addr, ...values) {
+    var s = this.stacks[addr];
+    for (var v of values) {
+      if (s.ptr + 4 < s.bottom ) {
+        this.st(s.ptr, v);
+        s.ptr += 4;
+      }
+      else {
+        runtime_error(this, 0x03);
+        break;
+      }
+    }
+  }
+
+  pop (addr) {
+    var s = this.stacks[addr];
+    if (s.ptr - 4 >= s.top) {
+      s.ptr -= 4;
+      var r = this.ld(s.ptr);
+      return r;
+    }
+    else {
+      runtime_error(this, 0x02);
+      return 0;
+    }
+  }
 
   load (uri) {
     var t = new Tokenizer();

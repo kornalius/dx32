@@ -38,24 +38,26 @@ class Tokenizer {
 
       comment: /\;([^\n]*)/,
 
-      constant: /\#([A-Z_][A-Z_0-9\-]*)/i,
+      constant: /\#([A-Z_][A-Z_0-9]*)/i,
 
-      label: /\:([A-Z_][A-Z_0-9\-]*)/i,
+      label: /\:([A-Z_][A-Z_0-9]*)(?=\s+db|\s+dw|\s+dd|\s*\=)/i,
 
-      func: /\:\:([A-Z_][A-Z_0-9\-]+)/i,
+      struct: /\:([A-Z_][A-Z_0-9]*)(?=\s+struct)/i,
 
-      portFunc: /\#([0-9]+\:[A-Z_][A-Z_0-9\-]+)/i,
+      func: /\:([A-Z_][A-Z_0-9]+)(?=\s*\()/i,
+
+      portFunc: /\#([0-9]+\:[A-Z_][A-Z_0-9]+)/i,
 
       include: {
         match: /\.include\s/i,
         include: true,
       },
 
-      indirect: /\@([A-Z_][A-Z_0-9\-]*)/i,
+      indirect: /\@([A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
 
       indirectsym: /(\@)[^A-Z_]/i,
 
-      id: /([A-Z_][A-Z_0-9\-]*)/i,
+      id: /([A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
 
       digit: {
         match: /[0-9]+/,
