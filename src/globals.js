@@ -195,13 +195,13 @@ export var opcodes = {
     gen: (...args) => { return ['console.log', '(', comma_array(args), ')']; },
   },
   hlt: {
-    gen: (a) => { return ['_vm.hlt', '(', a, ')']; },
+    gen: (a) => { return ['_vm.hlt', '(', a || '', ')']; },
   },
   dbg: {
     gen: () => { return ['debugger']; },
   },
   free: {
-    gen: (a) => { return ['_vm.mm.free', '(', a, ')']; },
+    gen: (...args) => { return ['_vm.mm.free', '(', comma_array(args), ')']; },
   },
   size: {
     gen: (a) => { return ['_vm.mm.size', '(', a, ')']; },
@@ -227,6 +227,15 @@ export var opcodes = {
   pop: {
     expr: true,
     gen: (a) => { return ['_vm.pop', '(', a, ')']; },
+  },
+  hex: {
+    gen: (a) => { return ['_vm.hex', '(', a, ')']; },
+  },
+  hex8: {
+    gen: (a) => { return ['_vm.hex', '(', a, ',', 8, ')']; },
+  },
+  hex16: {
+    gen: (a) => { return ['_vm.hex', '(', a, ',', 16, ')']; },
   },
 };
 
@@ -293,13 +302,37 @@ export var io_error = (self, code) => {
   console.error(e);
 }
 
-export var comma_array = (_args) => {
+export var comma_array = (args) => {
   var r = [];
-  for (var a of _args) {
+  for (var a of args) {
     r.push(a);
     r.push(',');
   }
   r.splice(r.length - 1, 1);
+  return r;
+}
+
+export var codify = (args) => {
+  var r = [];
+  if (!_.isArray(args)) {
+    args = [args];
+  }
+  for (var a of args) {
+    if (a.type) {
+      if (is_string(a)) {
+        r.push('"' + a.value + '"');
+      }
+      else {
+        r.push(a.value);
+      }
+    }
+    else if (_.isArray(a)) {
+      r = r.concat(codify(a));
+    }
+    else {
+      r.push(a);
+    }
+  }
   return r;
 }
 
@@ -308,7 +341,7 @@ export var is_eos = (t) => {
 }
 
 export var is_symbol = (t) => {
-  return t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectsym';
+  return t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectSymbol';
 }
 
 export var is_opcode = (t) => {
@@ -349,12 +382,12 @@ var peek_token = (p, type) => {
   }
 
   else if (_.isRegExp(type)) {
-    return p.value.match(type);
+    return p.type.match(type) || p.value.match(type);
   }
 
   else if (_.isArray(type)) {
     for (var a of type) {
-      if (p.type === a) {
+      if (p.type === a || p.value === a) {
         return true;
       }
     }
@@ -387,7 +420,9 @@ export var peeks_at = (x, arr, tokens) => {
 export var expected = (self, t, type) => {
   if (!peek_token(t, type)) {
     error(self, t, type + ' expected');
+    return false;
   }
+  return true;
 }
 
 export var mixin = (proto, ...mixins) => {

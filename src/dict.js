@@ -9,17 +9,40 @@ class Dict {
     this.vm = vm;
   }
 
-  make (addr, d) {
-    for (var k in d) {
-      var key = this.vm.mm.alloc_s(k);
-      var value = d[k];
-      if (_.isString(value)) {
-        value = this.vm.mm.alloc_s(value);
+  make (d) {
+    var find_size = (dd) => {
+      var size = 0;
+      for (var k in dd) {
+        var value = dd[k];
+        size += _.isObject(value) ? find_size(value) : 8;
       }
-      this.vm.st(addr, key);
-      this.vm.st(addr + 4, value);
-      addr += 8;
+      return size;
     }
+
+    var addr = this.vm.mm.alloc(find_size(d));
+    var a = addr;
+
+    var gen = (dd) => {
+      for (var k in dd) {
+        var value = dd[k];
+        if (_.isObject(value)) {
+          gen(value);
+        }
+        else {
+          var key = this.vm.mm.alloc_s(k);
+          if (_.isString(value)) {
+            value = this.vm.mm.alloc_s(value);
+          }
+          this.vm.st(a, key);
+          this.vm.st(a + 4, value);
+          a += 8;
+        }
+      }
+    }
+
+    gen(d);
+
+    return addr;
   }
 
   mix (addr, ...d) {

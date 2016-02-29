@@ -13,7 +13,7 @@ const _CURRENT = '.';
 const _PARENT =  '..';
 
 
-class Block {
+export class Block {
 
   constructor (floppy, idx, entry_idx, end_mark) {
     this.floppy = floppy;
@@ -42,13 +42,13 @@ class Block {
 }
 
 
-class Entry {
+export class Entry {
 
   constructor (floppy, idx, uid, parent_uid, filename, ext, created, modified, attrs) {
     this.floppy = floppy;
     this.drive = this.floppy.drive;
     this.idx = idx;
-    this.top = this.floppy.entries_table_top + this.idx * this.floppy.entry_size;
+    this.top = this.floppy.entries_table_top + 4 + this.idx * this.floppy.entry_size;
 
     if (uid) {
       this.uid = uid;
@@ -67,20 +67,20 @@ class Entry {
 
   _read () {
     var ptr = this.top;
-    this.uid = this.ld(ptr);
+    this.uid = this.floppy.ld(ptr);
     ptr += 4;
-    this.parent_uid = this.ld(ptr);
+    this.parent_uid = this.floppy.ld(ptr);
     this.parent = this.floppy._findById(this.parent_uid);
     ptr += 4;
-    this.filename = this.ldl(ptr, 32).toString('ascii');
+    this.filename = this.floppy.ldl(ptr, 32).toString('ascii');
     ptr += 32;
-    this.ext = this.ldl(ptr, 3).toString('ascii');
+    this.ext = this.floppy.ldl(ptr, 3).toString('ascii');
     ptr += 3;
-    this.created = this.ld(ptr);
-    ptr += 4;
-    this.modified = this.ld(ptr);
-    ptr += 4;
-    this.attrs = this.ldb(ptr);
+    this.created = this.floppy.ldd(ptr);
+    ptr += 8;
+    this.modified = this.floppy.ldd(ptr);
+    ptr += 8;
+    this.attrs = this.floppy.ldb(ptr);
   }
 
   _write () {
@@ -91,19 +91,19 @@ class Entry {
     ext.write(this.ext, 0, Math.min(this.ext.length, 3), 'ascii');
 
     var ptr = this.top;
-    this.st(ptr, this.uid);
+    this.floppy.st(ptr, this.uid);
     ptr += 4;
-    this.st(ptr, this.parent_uid);
+    this.floppy.st(ptr, this.parent_uid);
     ptr += 4;
-    this.stl(fn, ptr, 32);
+    this.floppy.stl(ptr, fn, 32);
     ptr += 32;
-    this.stl(ext, ptr, 3);
+    this.floppy.stl(ptr, ext, 3);
     ptr += 3;
-    this.st(ptr, this.created);
-    ptr += 4;
-    this.st(ptr, this.modified);
-    ptr += 4;
-    this.stb(ptr, this.attrs);
+    this.floppy.std(ptr, this.created);
+    ptr += 8;
+    this.floppy.std(ptr, this.modified);
+    ptr += 8;
+    this.floppy.stb(ptr, this.attrs);
   }
 
   _isDir () { return this.attrs & _DIR; }
@@ -111,6 +111,8 @@ class Entry {
   _isOpened () { return this.attrs & _OPEN; }
 
   _isLocked () { return this.attrs & _LOCK; }
+
+  isRoot () { return !this.parent_uid; }
 
   pathname () {
     var paths = [];
@@ -124,7 +126,7 @@ class Entry {
     var entries = [];
     var p = this;
     while (p) {
-      parents.unshift(p);
+      entries.unshift(p);
       p = p.parent;
     }
     return entries;
@@ -152,7 +154,7 @@ class Entry {
 }
 
 
-class Floppy {
+export class Floppy {
 
   constructor (drive, size = defaults.floppy.size, block_size = defaults.floppy.block_size, max_blocks = defaults.floppy.max_blocks, entry_size = defaults.floppy.entry_size, max_entries = defaults.floppy.max_entries) {
     this.drive = drive;
@@ -174,6 +176,13 @@ class Floppy {
     this.mem = new Buffer(this.size);
     this.entries = [];
     this.blocks = [];
+  }
+
+  format () {
+    this.mem.fill(0);
+    this.entries = [];
+    this.blocks = [];
+    this.flush();
   }
 
   loaded () { return this.drive !== null; }
@@ -226,8 +235,9 @@ class Floppy {
   }
 
   _readBlocksTable () {
-    var ptr = this.blocks_table_top;
-    for (var i = 0; i < this.max_blocks; i++) {
+    var max = this.ld(this.entries_table_top);
+    var ptr = this.blocks_table_top + 4;
+    for (var i = 0; i < max; i++) {
       var m = this.ld(ptr);
       ptr += 4;
       var entry = (m >> 8 & 0xFFFF) - 1;
@@ -237,25 +247,27 @@ class Floppy {
   }
 
   _writeBlocksTable () {
-    var ptr = this.blocks_table_top;
-    for (var i = 0; i < this.max_blocks; i++) {
-      var b = this.blocks[i];
+    this.st(this.blocks_table_top, this.blocks.length);
+    var ptr = this.blocks_table_top + 4;
+    for (var b of this.blocks) {
       this.st(ptr, (b.entry_idx + 1) | (b.end_mark & 0xFF));
       ptr += 4;
     }
   }
 
   _readEntriesTable () {
-    for (var i = 0; i < this.max_entries; i++) {
+    var max = this.ld(this.entries_table_top);
+    for (var i = 0; i < max; i++) {
       var e = new Entry(this, i);
-      e.read();
+      e._read();
       this.entries.push(e);
     }
   }
 
   _writeEntriesTable () {
-    for (var i = 0; i < this.max_entries; i++) {
-      this.entries[i].write();
+    this.st(this.entries_table_top, this.entries.length);
+    for (var e of this.entries) {
+      e._write();
     }
   }
 
@@ -324,8 +336,14 @@ class Floppy {
     return entry ? entry.parents() : null;
   }
 
+  dumpEntries () {
+    this.dump(this.entries_table_top);
+  }
+
+  dumpBlocks () {
+    this.dump(this.blocks_table_top, this.blocks_table_size);
+  }
 }
 
 mixin(Floppy.prototype, Memory.prototype);
 
-export default Floppy

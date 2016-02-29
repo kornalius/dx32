@@ -132,173 +132,25 @@ class Video extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number);
-
-    this.overlays = {};
-
-    this.info = vm.mm.alloc(80);
-
-    this.width = 378;
-    this.height = 264;
-    this.scale = 3;
-
-    this.palette_count = 32;
-    this.palette_size = this.palette_count * 4;
-    this.palette = vm.mm.alloc(this.palette_size);
-
-    this.sprite_count = 16;
-    this.sprite_width = 16;
-    this.sprite_height = 16;
-    this.sprite_size = this.sprite_width * this.sprite_height;
-    this.sprites_size = this.sprite_count * this.sprite_size;
-    this.sprites = vm.mm.alloc(this.sprites_size);
-
-    this._loadFont();
-
-    this.screen_size = this.width * this.height;
-    this.screen = vm.mm.alloc(this.screen_size);
-
-    _vm.beginSequence(this.info);
-
-    _vm.dword(this.screen);
-    _vm.dword(this.width);
-    _vm.dword(this.height);
-    _vm.dword(this.scale);
-
-    _vm.dword(this.palette);
-    _vm.dword(this.palette_count);
-    _vm.dword(this.palette_size);
-
-    _vm.dword(this.sprites);
-    _vm.dword(this.sprite_width);
-    _vm.dword(this.sprite_height);
-    _vm.dword(this.sprite_size);
-    _vm.dword(this.sprites_size);
-
-    _vm.dword(this.fonts);
-    _vm.dword(this.char_count);
-    _vm.dword(this.char_width);
-    _vm.dword(this.char_height);
-    _vm.dword(this.text_width);
-    _vm.dword(this.text_height);
-    _vm.dword(this.font_size);
-    _vm.dword(this.fonts_size);
-
-    _vm.endSequence();
-
-    this.forceUpdate = false;
-    this.forceFlip = false;
-
-    this._lastMouse = new PIXI.Point();
-
-    this.offset = new PIXI.Point(16, 16);
-
-    this.stage = new PIXI.Container();
-
-    this.renderer = new PIXI.autoDetectRenderer(this.width * this.scale + this.offset.x * 2, this.height * this.scale + this.offset.y * 2, null, { });
-    this.renderer.view.style.position = "absolute";
-    this.renderer.view.style.top = "0px";
-    this.renderer.view.style.left = "0px";
-    this._resize();
-    document.body.appendChild(this.renderer.view);
-    window.addEventListener("resize", this._resize.bind(this));
-
-    this._setupPalette();
-
-    this._overlay('scanline', this.renderer.width, 640);
-
-    this._overlay('screen', this.width, this.height, this.scale);
-    this.overlays.screen.sprite.x = this.offset.x;
-    this.overlays.screen.sprite.y = this.offset.y;
-
-    this._overlay('cursor', this.char_width * this.scale, this.char_height * this.scale);
-    this.overlays.cursor.x = 11;
-    this.overlays.cursor.y = 10;
-    this._makeCursor();
-
-    this._overlay('rgb', this.renderer.width, this.renderer.height);
-    this._overlay('scanlines', this.renderer.width, this.renderer.height);
-    this._overlay('crt', this.renderer.width, this.renderer.height);
-
-    this._makeNoises();
-    this._makeRGB();
-    this._makeScanlines();
-    this._makeScanline();
-    this._makeCrt();
-
-    var tex = PIXI.Texture.fromImage(crtUrl);
-    var monitor = new PIXI.Sprite(tex);
-    monitor.width = this.renderer.width;
-    monitor.height = this.renderer.height;
-    this.stage.addChild(monitor);
-
-    this.overlays.scanline.sprite.y = -this.overlays.scanline.sprite.height;
-    var noises = this.overlays.noises;
-    var noiseKeys = _.keys(noises);
-
-    var lastCursor = 0;
-    var lastNoises = 0;
-    var lastScanline = 0;
-
-    var that = this;
-    PIXI.ticker.shared.add( (time) => {
-      var t = performance.now();
-
-      if (t - lastNoises >= 150) {
-        var noise = noiseKeys[Math.trunc(Math.random() * noiseKeys.length)];
-        for (var k in noises) {
-          noises[k].sprite.visible = false;
-        }
-        noises[noise].sprite.visible = true;
-        lastNoises = t;
-        that.forceUpdate = true;
-      }
-
-      if (t - lastScanline >= 50) {
-        that.overlays.scanline.sprite.y += 16;
-        if (that.overlays.scanline.sprite.y > that.renderer.height) {
-          that.overlays.scanline.sprite.y = -that.overlays.scanline.sprite.height;
-        }
-        lastScanline = t;
-        that.forceUpdate = true;
-      }
-
-      if (t - lastCursor >= 500) {
-        that.overlays.cursor.sprite.visible = !that.overlays.cursor.sprite.visible;
-        lastCursor = t;
-        that.forceUpdate = true;
-      }
-
-      if (that.forceUpdate) {
-        that.forceUpdate = false;
-
-        that.overlays.cursor.sprite.x = (that.overlays.cursor.x - 1) * that.overlays.cursor.sprite.width + that.offset.x;
-        that.overlays.cursor.sprite.y = (that.overlays.cursor.y - 1) * that.overlays.cursor.sprite.height + that.offset.y;
-
-        if (that.forceFlip) {
-          that.flip();
-          that.forceFlip = false;
-        }
-
-        that.renderer.render(that.stage);
-      }
-    });
   }
 
-  _overlay (name, width, height, scale = 1.0) {
+  _overlay (name, width, height, scale = 1.0, stageit = true) {
     var canvas = new PIXI.CanvasBuffer(width, height);
     var tex = PIXI.Texture.fromCanvas(canvas.canvas, PIXI.SCALE_MODES.NEAREST);
     tex.scaleMode = PIXI.SCALE_MODES.NEAREST;
     var sprite = new PIXI.Sprite(tex);
     sprite.scale.x = sprite.scale.y = scale;
-    this.stage.addChild(sprite);
+    if (stageit) {
+      this.stage.addChild(sprite);
+    }
     var context = canvas.canvas.getContext('2d', { alpha: true, antialias: false });
     var o = { context, canvas, tex, sprite, width, height, scale };
     _.set(this.overlays, name, o);
     return o;
   }
 
-  _makeCursor (style = 'block', color = 1) {
-    var cursor = this.overlays.cursor;
+  _makeTextCursor (style = 'block', color = 1) {
+    var cursor = this.overlays.cursor.text;
     var data = cursor.context.getImageData(0, 0, cursor.sprite.width, cursor.sprite.height);
     var pixels = data.data;
     var sz = cursor.sprite.width * 4;
@@ -410,38 +262,254 @@ class Video extends Port {
     super.boot(cold);
 
     if (cold) {
+      this.info = _vm.mm.alloc(80);
+
+      this.reset();
+
+      this.palette = _vm.mm.alloc(this.palette_size);
+      this.sprites = _vm.mm.alloc(this.sprites_size);
+      this.fonts = _vm.mm.alloc(this.fonts_size);
+      this.screen = _vm.mm.alloc(this.screen_size);
+      this.text_buffer = _vm.mm.alloc(this.text_size);
+
+      this.writeInfo();
+
+      this._setupPalette();
+
+      this._loadFont();
+
+      this.stage = new PIXI.Container();
+
+      this.renderer = new PIXI.autoDetectRenderer(this.width * this.scale + this.offset.x * 2, this.height * this.scale + this.offset.y * 2, null, { });
+      this.renderer.view.style.position = "absolute";
+      this.renderer.view.style.top = "0px";
+      this.renderer.view.style.left = "0px";
+      this._resize();
+      document.body.appendChild(this.renderer.view);
+      window.addEventListener("resize", this._resize.bind(this));
+
+      this.overlays = {};
+
+      this.setupOverlays();
+
+      this.overlays.scanline.sprite.y = -this.overlays.scanline.sprite.height;
+      var noises = this.overlays.noises;
+      var noiseKeys = _.keys(noises);
+
+      var that = this;
+      PIXI.ticker.shared.add( (time) => {
+        var t = performance.now();
+
+        if (t - that.lastNoises >= 250) {
+          var noise = noiseKeys[Math.trunc(Math.random() * noiseKeys.length)];
+          for (var k in noises) {
+            noises[k].sprite.visible = false;
+          }
+          noises[noise].sprite.visible = true;
+          that.lastNoises = t;
+          that.forceUpdate = true;
+        }
+
+        if (t - that.lastScanline >= 50) {
+          that.overlays.scanline.sprite.y += 16;
+          if (that.overlays.scanline.sprite.y > that.renderer.height) {
+            that.overlays.scanline.sprite.y = -that.overlays.scanline.sprite.height;
+          }
+          that.lastScanline = t;
+
+          that.overlays.cursor.mouse.sprite.x = 0;
+          that.overlays.cursor.mouse.sprite.y = 0;
+          that.lastMouseCursor = t;
+
+          that.forceUpdate = true;
+        }
+
+        if (t - that.lastTextCursor >= 500) {
+          that.overlays.cursor.text.sprite.visible = !that.overlays.cursor.text.sprite.visible;
+          that.lastTextCursor = t;
+          that.forceUpdate = true;
+        }
+
+        if (that.forceUpdate) {
+          that.forceUpdate = false;
+
+          that.overlays.cursor.text.sprite.x = (that.overlays.cursor.text.x - 1) * that.overlays.cursor.text.sprite.width + that.offset.x;
+          that.overlays.cursor.text.sprite.y = (that.overlays.cursor.text.y - 1) * that.overlays.cursor.text.sprite.height + that.offset.y;
+
+          if (that.forceSprites) {
+            that.draw_sprites();
+            that.forceSprites = false;
+          }
+
+          if (that.forceText) {
+            that.draw_text();
+            that.forceText = false;
+          }
+
+          if (that.forceFlip) {
+            that.flip();
+            that.forceFlip = false;
+          }
+
+          that.renderer.render(that.stage);
+        }
+      });
+
       this.clear();
 
-      _vm.fill(this.screen, 10, 1000);
-
-      this.pixel(200, 0);
-      this.pixel(400, 6);
-      this.pixel(500, 8);
-      this.pixel(600, 20);
-
-      this.moveTo(10, 10);
-      this.putChar('A', 29, 5);
-
-      this.moveTo(10, 11);
-      this.print('Welcome to DX32\nÉgalitée!', 2, 6);
-
-      var chars = '';
-      for (var i = 33; i < 256; i++) {
-        chars += String.fromCharCode(i);
-      }
-      this.moveTo(1, 2);
-      this.print(chars, 1, 0);
-
-      this.moveTo(1, 24);
-      this.print('012345678901234567890123456789012345678901234567890123', 1, 0);
-
-      this.refresh();
+      this.test();
     }
 
   }
 
+  setupOverlays () {
+    this._overlay('screen', this.width, this.height, this.scale);
+    this.overlays.screen.sprite.x = this.offset.x;
+    this.overlays.screen.sprite.y = this.offset.y;
+
+    this._overlay('scanline', this.renderer.width, 640);
+
+    this._overlay('cursor.text', this.char_width * this.scale, this.char_height * this.scale);
+    this.overlays.cursor.text.x = 11;
+    this.overlays.cursor.text.y = 10;
+    this._makeTextCursor();
+
+    this._overlay('cursor.mouse', this.sprite_width * this.scale, this.sprite_height * this.scale);
+    // this._makeMouseCursor();
+
+    this._overlay('rgb', this.renderer.width, this.renderer.height);
+    this._overlay('scanlines', this.renderer.width, this.renderer.height);
+    this._overlay('crt', this.renderer.width, this.renderer.height);
+
+    this._makeNoises();
+    this._makeRGB();
+    this._makeScanlines();
+    this._makeScanline();
+    this._makeCrt();
+
+    var tex = PIXI.Texture.fromImage(crtUrl);
+    var monitor = new PIXI.Sprite(tex);
+    monitor.width = this.renderer.width;
+    monitor.height = this.renderer.height;
+    this.stage.addChild(monitor);
+  }
+
+  test () {
+    _vm.fill(this.screen, 10, 2000);
+
+    this.pixel(200, 0);
+    this.pixel(400, 6);
+    this.pixel(500, 8);
+    this.pixel(600, 20);
+
+    this.moveTo(1, 1);
+    this.putChar('A', 29, 15);
+
+    this.moveTo(10, 11);
+    this.print('Welcome to DX32\nÉgalitée!', 2, 6);
+
+    var chars = '';
+    for (var i = 33; i < 256; i++) {
+      chars += String.fromCharCode(i);
+    }
+    this.moveTo(1, 2);
+    this.print(chars, 1, 0);
+
+    this.moveTo(1, 23);
+    this.print('Second to last line', 30, 0);
+
+    this.moveTo(1, 24);
+    this.print('012345678901234567890123456789012345678901234567890123', 1, 0);
+
+    this.refreshText();
+  }
+
+  writeInfo () {
+    _vm.beginSequence(this.info);
+
+    _vm.dword(this.screen);
+    _vm.dword(this.width);
+    _vm.dword(this.height);
+    _vm.dword(this.scale);
+
+    _vm.dword(this.palette);
+    _vm.dword(this.palette_count);
+    _vm.dword(this.palette_size);
+
+    _vm.dword(this.sprites);
+    _vm.dword(this.sprite_width);
+    _vm.dword(this.sprite_height);
+    _vm.dword(this.sprite_size);
+    _vm.dword(this.sprites_size);
+
+    _vm.dword(this.fonts);
+    _vm.dword(this.font_size);
+    _vm.dword(this.fonts_size);
+
+    _vm.dword(this.char_count);
+    _vm.dword(this.char_width);
+    _vm.dword(this.char_height);
+
+    _vm.dword(this.text_width);
+    _vm.dword(this.text_height);
+    _vm.dword(this.text_buffer);
+    _vm.dword(this.text_size);
+
+    _vm.endSequence();
+  }
+
   reset () {
     super.reset();
+
+    this.width = 378;
+    this.height = 264;
+    this.scale = 3;
+
+    this.screen_size = this.width * this.height;
+    this.offset = new PIXI.Point(16, 16);
+
+    this.palette_count = 32;
+    this.palette_size = this.palette_count * 4;
+
+    this.sprite_count = 16;
+    this.sprite_width = 16;
+    this.sprite_height = 16;
+    this.sprite_size = this.sprite_width * this.sprite_height;
+    this.sprites_size = this.sprite_count * this.sprite_size;
+
+    this.char_count = 256;
+    this.char_width = 7;
+    this.char_height = 11;
+    this.char_offset_x = 0;
+    this.char_offset_y = 1;
+
+    this.text_width = Math.round(this.width / this.char_width);
+    this.text_height = Math.round(this.height / this.char_height);
+    this.text_size = (this.text_width * this.text_height) * 3;
+
+    this.font_size = this.char_width * this.char_height;
+    this.fonts_size = this.char_count * this.font_size;
+
+    this.lastMouse = new PIXI.Point();
+    this.forceUpdate = false;
+    this.forceFlip = false;
+    this.forceText = false;
+    this.forceSprites = false;
+    this.lastTextCursor = 0;
+    this.lastMouseCursor = 0;
+    this.lastNoises = 0;
+    this.lastScanline = 0;
+
+    this.writeInfo();
+
+    if (this.palette) {
+      this._setupPalette();
+    }
+
+    if (this.fonts) {
+      this._loadFont();
+    }
+
     this.clear();
   }
 
@@ -470,7 +538,7 @@ class Video extends Port {
   }
 
   _setupPalette () {
-    this.paletteRGBA(0,  0x00000000);
+    this.paletteRGBA(0,  0x000000ff);
     this.paletteRGBA(1,  0xffffffff);
     this.paletteRGBA(2,  0x120723ff);
     this.paletteRGBA(3,  0x080e41ff);
@@ -505,17 +573,6 @@ class Video extends Port {
   }
 
   _loadFont () {
-    this.char_count = 256;
-    this.char_width = 7;
-    this.char_height = 11;
-    this.char_offset_x = 0;
-    this.char_offset_y = 1;
-    this.text_width = Math.round(this.width / this.char_width);
-    this.text_height = Math.round(this.height / this.char_height);
-    this.font_size = this.char_width * this.char_height;
-    this.fonts_size = this.char_count * this.font_size;
-    this.fonts = _vm.mm.alloc(this.fonts_size);
-
     var b = new BDF();
     var f = require('raw!../../fonts/ctrld-fixed-10r.bdf');
     b.load(f);
@@ -555,13 +612,56 @@ class Video extends Port {
     screen.context.putImageData(data, 0, 0);
   }
 
+  draw_text () {
+    var cw = this.char_width;
+    var ch = this.char_height;
+    var tw = this.text_width;
+    var th = this.text_height;
+
+    var idx = this.text_buffer;
+    for (var y = 0; y < th; y++) {
+      for (var x = 0; x < tw; x++) {
+        var c = _vm.mem[idx];
+        if (c) {
+          var fg = _vm.mem[idx + 1];
+          var bg = _vm.mem[idx + 2];
+
+          var px = x * cw;
+          var py = y * ch;
+
+          var ptr = this.fonts + (c * this.font_size);
+          for (var by = 0; by < ch; by++) {
+            var pi = (py + by) * this.width + px;
+            for (var bx = 0; bx < cw; bx++) {
+              this.pixel(pi++, _vm.mem[ptr++] ? fg : bg);
+            }
+          }
+        }
+        idx += 3;
+      }
+    }
+  }
+
   refresh (flip = true) {
     this.forceUpdate = true;
     this.forceFlip = flip;
   }
 
+  refreshText (flip = true) {
+    this.forceUpdate = true;
+    this.forceFlip = flip;
+    this.forceText = true;
+  }
+
+  refreshSprites (flip = true) {
+    this.forceUpdate = true;
+    this.forceFlip = flip;
+    this.forceSprites = true;
+  }
+
   clear () {
     _vm.fill(this.screen, 0, this.screen_size);
+    _vm.fill(this.text_buffer, 0, this.text_size);
     this.refresh();
   }
 
@@ -592,7 +692,7 @@ class Video extends Port {
         this.RGBAToMem(_vm.mem, pi, r, g, b, a);
       }
       else {
-        _vm.mem.writeUInt32LE(r, pi)
+        _vm.mem.writeUInt32LE(r, pi);
       }
     }
     return _vm.mem.readUInt32LE(pi);
@@ -613,7 +713,7 @@ class Video extends Port {
       g = r >> 16 & 0xFF;
       b = r >> 8 & 0xFF;
       a = r & 0xFF;
-      r = r >> 16 & 0xFF;
+      r = r >> 24 & 0xFF;
     }
     mem[i]     = r;
     mem[i + 1] = g;
@@ -640,19 +740,19 @@ class Video extends Port {
         return;
     }
     var { x, y } = this.pos();
-    var px = (x - 1) * this.char_width;
-    var py = (y - 1) * this.char_height;
-    var ptr = this.fonts + (ch.charCodeAt(0) * this.font_size);
-    for (var by = 0; by < this.char_height; by++) {
-      var i = (py + by) * this.width + px;
-      for (var bx = 0; bx < this.char_width; bx++) {
-        this.pixel(i++, _vm.mem[ptr++] ? fg : bg);
-      }
-    }
-    this.overlays.cursor.x++;
-    if (this.overlays.cursor.x > this.text_width) {
+
+    var tidx = this.text_buffer + ((y - 1) * this.text_width + (x - 1)) * 3;
+    _vm.mem[tidx] = ch.charCodeAt(0);
+    _vm.mem[tidx + 1] = fg;
+    _vm.mem[tidx + 2] = bg;
+
+    this.overlays.cursor.text.x++;
+    if (this.overlays.cursor.text.x > this.text_width) {
       this.cr();
     }
+
+    this.refreshText();
+
     return this;
   }
 
@@ -663,7 +763,7 @@ class Video extends Port {
     return this;
   }
 
-  pos () { return { x: this.overlays.cursor.x, y: this.overlays.cursor.y } }
+  pos () { return { x: this.overlays.cursor.text.x, y: this.overlays.cursor.text.y } }
 
   moveTo (x, y) {
     if (x > this.text_width) {
@@ -678,16 +778,16 @@ class Video extends Port {
     else if (y < 1) {
       y = 1;
     }
-    this.overlays.cursor.x = x;
-    this.overlays.cursor.y = y;
+    this.overlays.cursor.text.x = x;
+    this.overlays.cursor.text.y = y;
     this.refresh();
   }
 
-  moveBy (x, y) { return this.moveTo(this.overlays.cursor.x + x, this.overlays.cursor.y + y); }
+  moveBy (x, y) { return this.moveTo(this.overlays.cursor.text.x + x, this.overlays.cursor.text.y + y); }
 
-  moveBol () { return this.moveTo(1, this.overlays.cursor.y); }
+  moveBol () { return this.moveTo(1, this.overlays.cursor.text.y); }
 
-  moveEol () { return this.moveTo(this.text_width, this.overlays.cursor.y); }
+  moveEol () { return this.moveTo(this.text_width, this.overlays.cursor.text.y); }
 
   moveBos () { return this.moveTo(1, 1); }
 
@@ -695,17 +795,17 @@ class Video extends Port {
 
   bs () { this.left(); this.putChar(' '); return this.left(); }
 
-  cr () { return this.moveTo(0, this.overlays.cursor.y + 1); }
+  cr () { return this.moveTo(1, this.overlays.cursor.text.y + 1); }
 
-  lf () { return this.moveTo(this.overlays.cursor.x, this.overlays.cursor.y + 1); }
+  lf () { return this.moveTo(this.overlays.cursor.text.x, this.overlays.cursor.text.y + 1); }
 
-  up () { return this.moveTo(this.overlays.cursor.x, this.overlays.cursor.y - 1); }
+  up () { return this.moveTo(this.overlays.cursor.text.x, this.overlays.cursor.text.y - 1); }
 
-  left () { return this.moveTo(this.overlays.cursor.x - 1, this.overlays.cursor.y); }
+  left () { return this.moveTo(this.overlays.cursor.text.x - 1, this.overlays.cursor.text.y); }
 
-  down () { return this.moveTo(this.overlays.cursor.x, this.overlays.cursor.y + 1); }
+  down () { return this.moveTo(this.overlays.cursor.text.x, this.overlays.cursor.text.y + 1); }
 
-  right () { return this.moveTo(this.overlays.cursor.x + 1, this.overlays.cursor.y); }
+  right () { return this.moveTo(this.overlays.cursor.text.x + 1, this.overlays.cursor.text.y); }
 
   scroll (x, y) {
     _vm.mem.copy(this.mem, this.screen, this.screen + y * this.width, (this.height - y) * this.width);
@@ -731,6 +831,65 @@ class Video extends Port {
   cbs () {
 
   }
+
+  _spr_find (id) {
+    for (var s of this._sprites) {
+      if (s.id === id) {
+        return s;
+      }
+    }
+    return null;
+  }
+
+  spr_add (id, sprite, x, y, z) {
+    this._sprites.push({ id, sprite, x, y, z, index: this._sprite.length });
+  }
+
+  spr_del (id) {
+    var s = this._spr_find(id);
+    if (s) {
+      this._sprites.splice(i, s.index);
+    }
+  }
+
+  spr_move (id, x, y, z) {
+    var s = this._spr_find(id);
+    if (s) {
+      s.x = x;
+      s.y = y;
+      if (z) {
+        s.z = z;
+      }
+      this.refresh();
+    }
+  }
+
+  spr_move_by (id, x, y) {
+    var s = this._spr_find(id);
+    if (s) {
+      s.x = x;
+      s.y = y;
+      this.refresh();
+    }
+  }
+
+  draw_sprites () {
+    var sw = this.sprite_width;
+    var sh = this.sprite_height;
+    var sl = this.sprites;
+    var ss = this.sprite_size;
+
+    for (var s of _.sortBy(this._sprites, 'z')) {
+      var ptr = sl + (s.sprite * ss);
+      for (var by = 0; by < sh; by++) {
+        var pi = (s.y + by) * this.width + s.x;
+        for (var bx = 0; bx < sw; bx++) {
+          this.pixel(pi++, _vm.mem[ptr++]);
+        }
+      }
+    }
+  }
+
 }
 
 export default Video

@@ -30,34 +30,161 @@ class Tokenizer {
       open_paren: /\(/,
       close_paren: /\)/,
 
+      include: {
+        match: /\.include\s/i,
+        include: true,
+      },
+
       comp: /\>|\<|\>\=|\<\=|\!\=|\=\=/,
-      math: /[\+\-\*\\\%\^]/,
+      math: /[\+\-\*\/\%\^]/,
       logic: /[\!\&\|]/,
 
       assign: /^([\=])[^\=]/,
 
       comment: /\;([^\n]*)/,
 
-      constant: /\#([A-Z_][A-Z_0-9]*)/i,
+      constant_def: /\:\:([A-Z_][A-Z_0-9]*)/i,
 
-      label: /\:([A-Z_][A-Z_0-9]*)(?=\s+db|\s+dw|\s+dd|\s*\=)/i,
+      label_def: /\:([A-Z_][A-Z_0-9]*)(?=\s+db|\s+dw|\s+dd|\s*\=)/i,
 
-      struct: /\:([A-Z_][A-Z_0-9]*)(?=\s+struct)/i,
-
-      func: /\:([A-Z_][A-Z_0-9]+)(?=\s*\()/i,
-
-      portFunc: /\#([0-9]+\:[A-Z_][A-Z_0-9]+)/i,
-
-      include: {
-        match: /\.include\s/i,
-        include: true,
+      label_indirect: {
+        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
+        value (v, d) {
+          var i = 0;
+          while (v[0] === '@') {
+            i++;
+            v = v.substr(1);
+          }
+          d.count = i;
+          return v;
+        },
       },
 
-      indirect: /\@([A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
+      struct_def: /\:([A-Z_][A-Z_0-9]*)(?=\s+struct)/i,
 
-      indirectsym: /(\@)[^A-Z_]/i,
+      func_def: /\:([A-Z_][A-Z_0-9]+)(?=\s*\()/i,
+
+      port: /\#([0-9]+)(?!\:)/i,
+
+      port_name: {
+        match: /\#(\b[A-Z]+\b)(?!\:)/i,
+        value (v) {
+          v = v.toLowerCase();
+          for (var k in _vm.ports) {
+            if (_vm.ports[k].constructor.name.toLowerCase() === v) {
+              return k;
+            }
+          }
+          return '0';
+        },
+        type (k, v) {
+          return 'port';
+        },
+      },
+
+      port_call: /\#([0-9]+\:[A-Z_][A-Z_0-9]+)/i,
+
+      port_name_call: {
+        match: /\#([A-Z]+\:[A-Z_][A-Z_0-9]+)/i,
+        value (v) {
+          var parts = v.split(':');
+          var p = parts[0].toLowerCase();
+          var f = parts[1];
+          for (var k in _vm.ports) {
+            if (_vm.ports[k].constructor.name.toLowerCase() === p) {
+              return k + ':' + f;
+            }
+          }
+          return '0:' + f;
+        },
+        type (k, v) {
+          return 'port_call';
+        },
+      },
+
+      port_indirect: {
+        match: /(\@\#[0-9]+)(?!\:)/i,
+        value (v, d) {
+          var i = 0;
+          while (v[0] === '@') {
+            i++;
+            v = v.substr(1);
+          }
+          if (v[0] === '#') {
+            v = v.substr(1);
+          }
+          d.count = i;
+          debugger;
+          return v;
+        },
+      },
+
+      port_name_indirect: {
+        match: /(\@\#\b[A-Z]+\b)(?!\:)/i,
+        value (v, d) {
+          var i = 0;
+          while (v[0] === '@') {
+            i++;
+            v = v.substr(1);
+          }
+          if (v[0] === '#') {
+            v = v.substr(1);
+          }
+          d.count = i;
+          v = v.toLowerCase();
+          for (var k in _vm.ports) {
+            if (_vm.ports[k].constructor.name.toLowerCase() === v) {
+              return k;
+            }
+          }
+          return '0';
+        },
+        type (k, v) {
+          return 'port_indirect';
+        },
+      },
+
+      // indirect_symbol: /(\@)(?![^\#A-Z_])/i,
 
       id: /([A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
+
+      label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
+
+      label_assign_indirect: {
+        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
+        value (v, d) {
+          var i = 0;
+          while (v[0] === '@') {
+            i++;
+            v = v.substr(1);
+          }
+          d.count = i;
+          return v;
+        },
+      },
+
+      label_assign_indirect_bracket: {
+        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
+        value (v, d) {
+          var i = 0;
+          while (v[0] === '@') {
+            i++;
+            v = v.substr(1);
+          }
+          d.count = i;
+          return v;
+        },
+        type (k, v) {
+          return 'label_assign_indirect';
+        },
+      },
+
+      label_assign_bracket: {
+        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
+        type (k, v) {
+          return 'label_assign';
+        },
+      },
 
       digit: {
         match: /[0-9]+/,
@@ -66,10 +193,10 @@ class Tokenizer {
           if (v >= 0x00 && v <= 0xFF) {
             return 'byte';
           }
-          else if (v > 0xFF00 && v <= 0xFFFF) {
+          else if (v > 0xFF && v <= 0xFFFF) {
             return 'word';
           }
-          else if (v > 0xFFFF && v <= 0xFFFF0000) {
+          else if (v > 0xFFFF && v <= 0xFFFFFFFF) {
             return 'dword';
           }
           else {
@@ -106,20 +233,35 @@ class Tokenizer {
     var add_token = (k, v) => {
       var d = defs[k];
 
-      while (d && d.type) {
-        if (d.value) {
-          v = d.value(v);
-        }
+      var r = { type: k, value: v, row: row, col: (si + 1 - ls), start: si, end: i, idx: tokens.length - 1 };
+
+      while (d && (_.isFunction(d.type) || _.isFunction(d.value))) {
         var ok = k;
-        k = d.type(k, v);
-        if (k === ok) {
-          error(this, { k, row, col }, 'recursive type loop');
+
+        if (_.isFunction(d.type)) {
+          k = d.type(k, v, r);
+          if (k === ok) {
+            error(this, { k, row, col }, 'recursive type loop');
+            break;
+          }
+        }
+
+        if (_.isFunction(d.value)) {
+          v = d.value(v, r);
+        }
+
+        if (ok !== k) {
+          d = defs[k];
+        }
+        else {
           break;
         }
-        d = defs[k];
       }
 
-      tokens.push({ type: k, value: v, row: row, col: (si + 1 - ls), start: si, end: i });
+      r.type = k;
+      r.value = v;
+
+      tokens.push(r);
 
       if (k === 'eol') {
         row++;

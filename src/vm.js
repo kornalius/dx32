@@ -112,6 +112,8 @@ class VM {
     this.stacks[addr] = { top: addr, bottom: addr + (count - 1) * 4, ptr: addr, count: count };
   }
 
+  hex (value, size = 32) { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0'); }
+
   psh (addr, ...values) {
     var s = this.stacks[addr];
     for (var v of values) {
@@ -145,7 +147,6 @@ class VM {
     console.log(tokens);
     var a = new Assembler();
     this.code = a.asm('', tokens);
-    console.log(this.code);
     if (a.errors === 0) {
       this.fn = new Function(['args'], this.code);
     }
