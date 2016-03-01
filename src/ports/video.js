@@ -1,13 +1,11 @@
 import _ from 'lodash';
 import Port from '../port.js';
-import { defaults } from '../globals.js';
-import hexy from 'hexy';
 
 var crtUrl = require('file?name=[path]/[name].[ext]!../../imgs/crt.png');
 
 PIXI.Point.prototype.distance = (target) => {
-  Math.sqrt((this.x - target.x) * (this.x - target.x) + (this.y - target.y) * (this.y - target.y))
-}
+  Math.sqrt((this.x - target.x) * (this.x - target.x) + (this.y - target.y) * (this.y - target.y));
+};
 
 
 class BDF {
@@ -21,108 +19,109 @@ class BDF {
     this.meta = {};
     this.glyphs = {};
 
-    var fontLines = data.split("\n");
+    var fontLines = data.split('\n');
     var declarationStack = [];
     var currentChar = null;
 
     for (var i = 0; i < fontLines.length; i++) {
       var line = fontLines[i];
-      var data = line.split(/\s+/);
-      var declaration = data[0];
+      var line_data = line.split(/\s+/);
+      var declaration = line_data[0];
 
-      switch (declaration) {
-        case "STARTFONT":
+      switch (declaration)
+      {
+        case 'STARTFONT':
           declarationStack.push(declaration);
-          this.meta.version = data[1];
+          this.meta.version = line_data[1];
           break;
-        case "FONT":
-          this.meta.name = data[1];
+        case 'FONT':
+          this.meta.name = line_data[1];
           break;
-        case "SIZE":
+        case 'SIZE':
           this.meta.size = {
-            points: +data[1],
-            resolutionX: +data[2],
-            resolutionY: +data[3]
+            points:      line_data[1],
+            resolutionX: line_data[2],
+            resolutionY: line_data[3]
           };
           break;
-        case "FONTBOUNDINGBOX":
+        case 'FONTBOUNDINGBOX':
           this.meta.boundingBox = {
-            width: +data[1],
-            height: +data[2],
-            x: +data[3],
-            y: +data[4]
+            width:  line_data[1],
+            height: line_data[2],
+            x:      line_data[3],
+            y:      line_data[4]
           };
           break;
-        case "STARTPROPERTIES":
+        case 'STARTPROPERTIES':
           declarationStack.push(declaration);
           this.meta.properties = {};
           break;
-        case "FONT_DESCENT":
-          this.meta.properties.fontDescent = +data[1];
+        case 'FONT_DESCENT':
+          this.meta.properties.fontDescent = line_data[1];
           break;
-        case "FONT_ASCENT":
-          this.meta.properties.fontAscent = +data[1];
+        case 'FONT_ASCENT':
+          this.meta.properties.fontAscent = line_data[1];
           break;
-        case "DEFAULT_CHAR":
-          this.meta.properties.defaultChar = +data[1];
+        case 'DEFAULT_CHAR':
+          this.meta.properties.defaultChar = line_data[1];
           break;
-        case "ENDPROPERTIES":
+        case 'ENDPROPERTIES':
           declarationStack.pop();
           break;
-        case "CHARS":
-          this.meta.totalChars = +data[1];
+        case 'CHARS':
+          this.meta.totalChars = line_data[1];
           break;
-        case "STARTCHAR":
+        case 'STARTCHAR':
           declarationStack.push(declaration);
           currentChar = {
-            name: data[1],
-            bytes: [],
+            name:   line_data[1],
+            bytes:  [],
             bitmap: []
           };
           break;
-        case "ENCODING":
-          currentChar.code = +data[1];
-          currentChar.char = String.fromCharCode(+data[1]);
+        case 'ENCODING':
+          currentChar.code = line_data[1];
+          currentChar.char = String.fromCharCode(line_data[1]);
           break;
-        case "SWIDTH":
-          currentChar.scalableWidthX = +data[1];
-          currentChar.scalableWidthY = +data[2];
+        case 'SWIDTH':
+          currentChar.scalableWidthX = line_data[1];
+          currentChar.scalableWidthY = line_data[2];
           break;
-        case "DWIDTH":
-          currentChar.deviceWidthX = +data[1];
-          currentChar.deviceWidthY = +data[2];
+        case 'DWIDTH':
+          currentChar.deviceWidthX = line_data[1];
+          currentChar.deviceWidthY = line_data[2];
           break;
-        case "BBX":
+        case 'BBX':
           currentChar.boundingBox = {
-            x: +data[3],
-            y: +data[4],
-            width: +data[1],
-            height: +data[2]
+            x:      line_data[3],
+            y:      line_data[4],
+            width:  line_data[1],
+            height: line_data[2]
           };
           break;
-        case "BITMAP":
+        case 'BITMAP':
           for (var row = 0; row < currentChar.boundingBox.height; row++, i++) {
             var byte = parseInt(fontLines[i + 1], 16);
             currentChar.bytes.push(byte);
             currentChar.bitmap[row] = [];
             for (var bit = 7; bit >= 0; bit--) {
-              currentChar.bitmap[row][7 - bit] = byte & (1 << bit) ? 1 : 0;
+              currentChar.bitmap[row][7 - bit] = byte & 1 << bit ? 1 : 0;
             }
           }
           break;
-        case "ENDCHAR":
+        case 'ENDCHAR':
           declarationStack.pop();
           this.glyphs[currentChar.code] = currentChar;
           currentChar = null;
           break;
-        case "ENDFONT":
+        case 'ENDFONT':
           declarationStack.pop();
           break;
       }
     }
 
     if (declarationStack.length) {
-      throw "Couldn't correctly parse font at: " + path;
+      throw "Couldn't correctly parse font";
     }
   }
 }
@@ -155,19 +154,20 @@ class Video extends Port {
     var pixels = data.data;
     var sz = cursor.sprite.width * 4;
     var c = this.paletteRGBA(color);
+    var i;
     if (style === 'block') {
-      for (var i = 0; i < pixels.length; i += 4) {
+      for (i = 0; i < pixels.length; i += 4) {
         this.RGBAToMem(pixels, i, c);
       }
     }
     else if (style === 'underline') {
-      for (var i = pixels.length - (3 * sz); i < pixels.length; i += 4) {
+      for (i = pixels.length - 3 * sz; i < pixels.length; i += 4) {
         this.RGBAToMem(pixels, i, c);
       }
     }
     else if (style === 'line') {
       for (var y = 0; y < cursor.sprite.height; y++) {
-        var i = y * sz;
+        i = y * sz;
         for (var x = 0; x < 2 * 4; x++) {
           this.RGBAToMem(pixels, i + x, c);
         }
@@ -200,7 +200,7 @@ class Video extends Port {
     var crt = this.overlays.crt;
     crt.context.globalCompositeOperation = 'darker';
     var grd = crt.context.createRadialGradient(crt.width / 2, crt.height / 2, crt.height / 2, crt.width / 2, crt.height / 2, crt.height / radius);
-    grd.addColorStop(0, 'rgba(255, 255, 255, ' +  inside_alpha + ')');
+    grd.addColorStop(0, 'rgba(255, 255, 255, ' + inside_alpha + ')');
     grd.addColorStop(1, 'rgba(0, 0, 0, ' + outside_alpha + ')');
     crt.context.fillStyle = grd;
     crt.context.fillRect(0, 0, crt.width, crt.height);
@@ -248,7 +248,6 @@ class Video extends Port {
     var rgb = this.overlays.rgb;
     var data = rgb.context.getImageData(0, 0, rgb.width, rgb.height);
     var pixels = data.data;
-    var sz = rgb.width * 4;
     for (var i = 0; i < pixels.length; i += 16) {
       pixels[i] = 100;
       pixels[i + 1] = 100;
@@ -281,12 +280,12 @@ class Video extends Port {
       this.stage = new PIXI.Container();
 
       this.renderer = new PIXI.autoDetectRenderer(this.width * this.scale + this.offset.x * 2, this.height * this.scale + this.offset.y * 2, null, { });
-      this.renderer.view.style.position = "absolute";
-      this.renderer.view.style.top = "0px";
-      this.renderer.view.style.left = "0px";
+      this.renderer.view.style.position = 'absolute';
+      this.renderer.view.style.top = '0px';
+      this.renderer.view.style.left = '0px';
       this._resize();
       document.body.appendChild(this.renderer.view);
-      window.addEventListener("resize", this._resize.bind(this));
+      window.addEventListener('resize', this._resize.bind(this));
 
       this.overlays = {};
 
@@ -297,7 +296,7 @@ class Video extends Port {
       var noiseKeys = _.keys(noises);
 
       var that = this;
-      PIXI.ticker.shared.add( (time) => {
+      PIXI.ticker.shared.add((time) => {
         var t = performance.now();
 
         if (t - that.lastNoises >= 250) {
@@ -485,7 +484,7 @@ class Video extends Port {
 
     this.text_width = Math.round(this.width / this.char_width);
     this.text_height = Math.round(this.height / this.char_height);
-    this.text_size = (this.text_width * this.text_height) * 3;
+    this.text_size = this.text_width * this.text_height * 3;
 
     this.font_size = this.char_width * this.char_height;
     this.fonts_size = this.char_count * this.font_size;
@@ -528,26 +527,26 @@ class Video extends Port {
     }
   }
 
-  _resize() {
+  _resize () {
     // var ratio = Math.min(window.innerWidth / this.width, window.innerHeight / this.height);
     // this.stage.scale.x = this.stage.scale.y = ratio;
     // this.renderer._resize(Math.ceil(this.width * ratio), Math.ceil(this.height * ratio));
-    this.renderer.view.style.left = window.innerWidth * 0.5 - this.renderer.width * 0.5 + "px";
-    this.renderer.view.style.top = window.innerHeight * 0.5 - this.renderer.height * 0.5 + "px";
+    this.renderer.view.style.left = window.innerWidth * 0.5 - this.renderer.width * 0.5 + 'px';
+    this.renderer.view.style.top = window.innerHeight * 0.5 - this.renderer.height * 0.5 + 'px';
     this.refresh();
   }
 
   _setupPalette () {
-    this.paletteRGBA(0,  0x000000ff);
-    this.paletteRGBA(1,  0xffffffff);
-    this.paletteRGBA(2,  0x120723ff);
-    this.paletteRGBA(3,  0x080e41ff);
-    this.paletteRGBA(4,  0x12237aff);
-    this.paletteRGBA(5,  0x4927a1ff);
-    this.paletteRGBA(6,  0x7f65d0ff);
-    this.paletteRGBA(7,  0x60c8d0ff);
-    this.paletteRGBA(8,  0xaad7dfff);
-    this.paletteRGBA(9,  0x331a36ff);
+    this.paletteRGBA(0, 0x000000ff);
+    this.paletteRGBA(1, 0xffffffff);
+    this.paletteRGBA(2, 0x120723ff);
+    this.paletteRGBA(3, 0x080e41ff);
+    this.paletteRGBA(4, 0x12237aff);
+    this.paletteRGBA(5, 0x4927a1ff);
+    this.paletteRGBA(6, 0x7f65d0ff);
+    this.paletteRGBA(7, 0x60c8d0ff);
+    this.paletteRGBA(8, 0xaad7dfff);
+    this.paletteRGBA(9, 0x331a36ff);
     this.paletteRGBA(10, 0x993dadff);
     this.paletteRGBA(11, 0xdf8085ff);
     this.paletteRGBA(12, 0xf2d5e8ff);
@@ -577,16 +576,16 @@ class Video extends Port {
     var f = require('raw!../../fonts/ctrld-fixed-10r.bdf');
     b.load(f);
 
-    var points = b.meta.size.points;
+    // var points = b.meta.size.points;
     var fontAscent = b.meta.properties.fontAscent;
-    var fontDescent = b.meta.properties.fontDescent;
+    // var fontDescent = b.meta.properties.fontDescent;
     var baseline = fontAscent + this.char_offset_y;
 
     for (var k in b.glyphs) {
       var g = b.glyphs[k];
       var bb = g.boundingBox;
       var dsc = baseline - bb.height - bb.y;
-      var ptr = this.fonts + (g.code * this.font_size);
+      var ptr = this.fonts + g.code * this.font_size;
 
       for (var y = 0; y < bb.height; y++) {
         var p = ptr + (y + dsc) * this.char_width;
@@ -629,7 +628,7 @@ class Video extends Port {
           var px = x * cw;
           var py = y * ch;
 
-          var ptr = this.fonts + (c * this.font_size);
+          var ptr = this.fonts + c * this.font_size;
           for (var by = 0; by < ch; by++) {
             var pi = (py + by) * this.width + px;
             for (var bx = 0; bx < cw; bx++) {
@@ -665,7 +664,7 @@ class Video extends Port {
     this.refresh();
   }
 
-  pixelToIndex (x, y) { return y * this.width + x }
+  pixelToIndex (x, y) { return y * this.width + x; }
 
   indexToPixel (i) {
     var y = Math.trunc(i / this.width);
@@ -673,20 +672,20 @@ class Video extends Port {
     return { x, y };
   }
 
-  splitRGBA (rgba) { return { r: rgba >> 24 & 0xFF, g: rgba >> 16 & 0xFF, b: rgba >> 8 & 0xFF, a: rgba >> 0xFF } }
+  splitRGBA (rgba) { return { r: rgba >> 24 & 0xFF, g: rgba >> 16 & 0xFF, b: rgba >> 8 & 0xFF, a: rgba >> 0xFF }; }
 
-  red (rgba) { return rgba >> 24 & 0xFF }
+  red (rgba) { return rgba >> 24 & 0xFF; }
 
-  green (rgba) { return rgba >> 16 & 0xFF }
+  green (rgba) { return rgba >> 16 & 0xFF; }
 
-  blue (rgba) { return rgba >> 8 & 0xFF }
+  blue (rgba) { return rgba >> 8 & 0xFF; }
 
-  alpha (rgba) { return rgba >> 0xFF }
+  alpha (rgba) { return rgba >> 0xFF; }
 
-  RGBAToNum (r, g, b, a) { return r << 24 | g << 16 | b << 8 | a }
+  RGBAToNum (r, g, b, a) { return r << 24 | g << 16 | b << 8 | a; }
 
   paletteRGBA (c, r, g, b, a) {
-    var pi = this.palette + (c * 4);
+    var pi = this.palette + c * 4;
     if (r) {
       if (r && g && b) {
         this.RGBAToMem(_vm.mem, pi, r, g, b, a);
@@ -705,7 +704,7 @@ class Video extends Port {
         return c;
       }
     }
-    return - 1;
+    return -1;
   }
 
   RGBAToMem (mem, i, r, g, b, a) {
@@ -715,7 +714,7 @@ class Video extends Port {
       a = r & 0xFF;
       r = r >> 24 & 0xFF;
     }
-    mem[i]     = r;
+    mem[i] = r;
     mem[i + 1] = g;
     mem[i + 2] = b;
     mem[i + 3] = a;
@@ -730,7 +729,8 @@ class Video extends Port {
   }
 
   putChar (ch, fg = 1, bg = 0) {
-    switch(ch.charCodeAt(0)) {
+    switch (ch.charCodeAt(0))
+    {
       case 13:
       case 10:
         this.cr();
@@ -752,8 +752,6 @@ class Video extends Port {
     }
 
     this.refreshText();
-
-    return this;
   }
 
   print (text, fg, bg) {
@@ -763,7 +761,7 @@ class Video extends Port {
     return this;
   }
 
-  pos () { return { x: this.overlays.cursor.text.x, y: this.overlays.cursor.text.y } }
+  pos () { return { x: this.overlays.cursor.text.x, y: this.overlays.cursor.text.y }; }
 
   moveTo (x, y) {
     if (x > this.text_width) {
@@ -791,7 +789,7 @@ class Video extends Port {
 
   moveBos () { return this.moveTo(1, 1); }
 
-  moveBos () { return this.moveTo(this.text_width, this.text_height); }
+  moveEos () { return this.moveTo(this.text_width, this.text_height); }
 
   bs () { this.left(); this.putChar(' '); return this.left(); }
 
@@ -848,7 +846,7 @@ class Video extends Port {
   spr_del (id) {
     var s = this._spr_find(id);
     if (s) {
-      this._sprites.splice(i, s.index);
+      this._sprites.splice(s.index, 1);
     }
   }
 
@@ -880,7 +878,7 @@ class Video extends Port {
     var ss = this.sprite_size;
 
     for (var s of _.sortBy(this._sprites, 'z')) {
-      var ptr = sl + (s.sprite * ss);
+      var ptr = sl + s.sprite * ss;
       for (var by = 0; by < sh; by++) {
         var pi = (s.y + by) * this.width + s.x;
         for (var bx = 0; bx < sw; bx++) {
@@ -892,4 +890,4 @@ class Video extends Port {
 
 }
 
-export default Video
+export default Video;

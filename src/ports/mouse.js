@@ -1,5 +1,4 @@
 import Port from '../port.js';
-import { defaults } from '../globals.js';
 
 
 class Mouse extends Port {
@@ -45,7 +44,7 @@ class Mouse extends Port {
     for (var v of value) {
       if (this.stack_ptr < this.stack + this.stack_size) {
         this.stack_ptr += 2;
-        _vm.mem.writeUInt16LE(value, this.stack_ptr);
+        _vm.mem.writeUInt16LE(v, this.stack_ptr);
       }
     }
     this.updateInfo();
@@ -61,11 +60,11 @@ class Mouse extends Port {
 
   size () { return this.stack_ptr - this.stack; }
 
-  onLeftButtonDown (e) {
+  onLeftButtonDown () {
     this.push(1);
   }
 
-  onRightButtonDown (e) {
+  onRightButtonDown () {
     this.push(2);
   }
 
@@ -73,9 +72,9 @@ class Mouse extends Port {
     this.push(3, e.data.global.x, e.data.global.y);
   }
 
-  onButtonUp (e) {
+  onButtonUp () {
     this.push(4);
   }
 }
 
-export default Mouse
+export default Mouse;

@@ -1,5 +1,3 @@
-import _ from 'lodash';
-import { defaults, error } from './globals.js';
 import hexy from 'hexy';
 
 
@@ -9,9 +7,10 @@ class MemoryManager {
     this.blocks = [];
     this.vm = vm;
 
-    setInterval( (() => {
-      this.collect();
-    }).bind(this), 30 * 1024);
+    var that = this;
+    setInterval(() => {
+      that.collect();
+    }, 30 * 1024);
   }
 
   alloc (sz) {
@@ -41,7 +40,7 @@ class MemoryManager {
 
     if (n + 1 + sz > this.vm.bottom) {
       this.vm.hlt();
-      return;
+      return 0;
     }
 
     this.blocks.push({ top: n + 1, bottom: n + 1 + sz, size: sz, used: true });

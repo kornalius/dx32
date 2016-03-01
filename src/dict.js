@@ -1,6 +1,4 @@
 import _ from 'lodash';
-import { defaults, error } from './globals.js';
-import hexy from 'hexy';
 
 
 class Dict {
@@ -17,7 +15,7 @@ class Dict {
         size += _.isObject(value) ? find_size(value) : 8;
       }
       return size;
-    }
+    };
 
     var addr = this.vm.mm.alloc(find_size(d));
     var a = addr;
@@ -38,7 +36,7 @@ class Dict {
           a += 8;
         }
       }
-    }
+    };
 
     gen(d);
 

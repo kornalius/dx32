@@ -1,5 +1,4 @@
 import Port from '../port.js';
-import { defaults } from '../globals.js';
 
 
 class Keyboard extends Port {
@@ -37,7 +36,7 @@ class Keyboard extends Port {
     for (var v of value) {
       if (this.stack_ptr < this.stack + this.stack_size) {
         this.stack_ptr += 2;
-        _vm.mem.writeUInt16LE(value, this.stack_ptr);
+        _vm.mem.writeUInt16LE(v, this.stack_ptr);
       }
     }
     this.updateInfo();
@@ -74,4 +73,4 @@ class Keyboard extends Port {
 
 }
 
-export default Keyboard
+export default Keyboard;

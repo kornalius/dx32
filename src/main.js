@@ -1,10 +1,8 @@
 require('file?name=[name].[ext]!../node_modules/pixi.js/bin/pixi.js');
 require('file?name=[name].[ext]!../bower_components/Wad/build/wad.min.js');
 
-import css from '../style/main.css';
-import t from '../html/main.html';
-
-import hexy from 'hexy';
+// import css from '../style/main.css';
+// import t from '../html/main.html';
 
 import VM from './vm.js';
 

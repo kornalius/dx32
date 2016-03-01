@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { defaults, opcodes, comma_array, codify, is_eos, is_opcode, is_symbol, is_value, is_string, is_digit, expected, peek_at, peeks_at, error } from './globals.js';
+import { opcodes, comma_array, codify, is_eos, is_opcode, is_string, is_digit, expected, peek_at, peeks_at, error } from './globals.js';
 
 
 var indent = 0;
@@ -62,6 +62,87 @@ class Assembler {
 
     var contants = {};
 
+    var expr;
+    var exprs;
+    var subexpr;
+    var parameters;
+    var block;
+    var statements;
+    var statement;
+    var constant;
+    var label;
+    var label_def;
+    var func;
+    var func_def;
+    var dict;
+    var extract_dict;
+    var port;
+    var port_call;
+    var indexed;
+    var opcode;
+    var bracket_def;
+    var indirect;
+    var assign;
+    var label_assign;
+    var struct_def;
+    var constant_def;
+
+    var js_name = (name) => { return _.camelCase(name.replace('.', '-')); };
+
+    var next = () => { t = tokens[++i]; return t; };
+
+    var prev = () => { t = tokens[--i]; return t; };
+
+    var next_if = (type) => { return peek_at(i + 1, type, tokens) ? t = tokens[++i] : false; };
+
+    var peek = (type) => { return peek_at(i + 1, type, tokens); };
+
+    var is_type = (type) => { return peek_at(i, type, tokens); };
+
+    var isToken = (o) => { return _.isObject(o) && o.type && o.value; };
+
+    var peeks = (arr) => { return peeks_at(i + 1, arr, tokens); };
+
+    var expected_next = (self, t, type) => {
+      if (expected(self, t, type)) {
+        next();
+      }
+    };
+
+    var readUInt8LE = (offset) => {
+      return ['_vm.mem[' + offset + ']'];
+    };
+
+    var readUInt16LE = (offset) => {
+      return ['_vm.mem.readUInt16LE', '(', offset, ')'];
+    };
+
+    var readUInt32LE = (offset) => {
+      return ['_vm.mem.readUInt32LE', '(', offset, ')'];
+    };
+
+    var writeUInt8LE = (value, offset) => {
+      return ['_vm.mem[' + offset + ']', '=', value];
+    };
+
+    var writeUInt16LE = (value, offset) => {
+      return ['_vm.mem.writeUInt16LE', '(', value, ',', offset, ')'];
+    };
+
+    var writeUInt32LE = (value, offset) => {
+      return ['_vm.mem.writeUInt32LE', '(', value, ',', offset, ')'];
+    };
+
+    var write = (value, offset, size = 4) => {
+      switch (size)
+      {
+        case 1: return ['_vm.mem.writeUInt8LE', '(', value, ',', offset, ')'];
+        case 2: return ['_vm.mem.writeUInt16LE', '(', value, ',', offset, ')'];
+        case 4: return ['_vm.mem.writeUInt32LE', '(', value, ',', offset, ')'];
+        default: return [];
+      }
+    };
+
     var find_label = (name) => {
       name = js_name(name);
       var l = frame.labels[name];
@@ -69,13 +150,13 @@ class Assembler {
         l = frames[0].labels[name];
       }
       return l;
-    }
+    };
 
     var new_label = (name, fn = false, unit_size = 4, sizes = []) => {
       name = js_name(name);
       var l = find_label(name);
       if (!l) {
-        l = { fn: fn, local: !frame.global, frame: frame, unit_size: unit_size, sizes: sizes };
+        l = { fn, local: !frame.global, frame, unit_size, sizes };
         frame.labels[name] = l;
       }
       else {
@@ -83,9 +164,9 @@ class Assembler {
         next();
       }
       return l;
-    }
+    };
 
-    var find_constant = (name) => { return contants[name]; }
+    var find_constant = (name) => { return contants[name]; };
 
     var new_constant = (name, args) => {
       if (!find_constant(name)) {
@@ -97,100 +178,47 @@ class Assembler {
         next();
         return null;
       }
-    }
+    };
 
     var new_frame = (name) => {
       if (frame) {
         frames.push(frame);
       }
-      frame = { name: name, labels: {}, global: frames.length === 0 };
-    }
+      frame = { name, labels: {}, global: frames.length === 0 };
+    };
 
     var end_frame = () => {
       if (frame) {
         code.line_s(['_vm.mm.free', '(', comma_array(_.keys(frame.labels)), ')']);
         frame = frames.pop();
       }
-    }
+    };
 
-    var next = () => { return t = tokens[++i]; }
-
-    var prev = () => { return t = tokens[--i]; }
-
-    var next_if = (type) => { return peek_at(i + 1, type, tokens) ? t = tokens[++i] : false; }
-
-    var peek = (type) => { return peek_at(i + 1, type, tokens); }
-
-    var is_type = (type) => { return peek_at(i, type, tokens); }
-
-    var isToken = (o) => { return _.isObject(o) && o.type && o.value }
-
-    var peeks = (arr) => { return peeks_at(i + 1, arr, tokens); }
-
-    var expected_next = (self, t, type) => {
-      if (expected(self, t, type)) {
-        next();
-      }
-    }
-
-    var readUInt8LE = (offset) => {
-      return ['_vm.mem[' + offset + ']'];
-    }
-
-    var readUInt16LE = (offset) => {
-      return ['_vm.mem.readUInt16LE', '(', offset, ')'];
-    }
-
-    var readUInt32LE = (offset) => {
-      return ['_vm.mem.readUInt32LE', '(', offset, ')'];
-    }
-
-    var writeUInt8LE = (value, offset) => {
-      return ['_vm.mem[' + offset + ']', '=', value];
-    }
-
-    var writeUInt16LE = (value, offset) => {
-      return ['_vm.mem.writeUInt16LE', '(', value, ',', offset, ')'];
-    }
-
-    var writeUInt32LE = (value, offset) => {
-      return ['_vm.mem.writeUInt32LE', '(', value, ',', offset, ')'];
-    }
-
-    var write = (value, offset, size = 4) => {
-      switch(size) {
-        case 1: return ['_vm.mem.writeUInt8LE', '(', value, ',', offset, ')'];
-        case 2: return ['_vm.mem.writeUInt16LE', '(', value, ',', offset, ')'];
-        case 4: return ['_vm.mem.writeUInt32LE', '(', value, ',', offset, ')'];
-      }
-    }
     var check_constant = () => {
       if (find_constant(t.value)) {
         constant(false);
         return true;
       }
       return false;
-    }
-
-    var js_name = (name) => { return _.camelCase(name.replace('.', '-')); }
+    };
 
     var check_label = () => {
       var l = find_label(t.value);
       return l && !l.fn ? l : null;
-    }
+    };
 
     var check_port = () => {
       return t.type === 'port' || t.type === 'port_indirect';
-    }
+    };
 
     var check_func = () => {
       var l = find_label(t.value);
       return l && l.fn ? l : null;
-    }
+    };
 
     var check_port_call = () => {
       return t.type === 'port_call';
-    }
+    };
 
     var term = () => {
       var r = [];
@@ -200,7 +228,7 @@ class Assembler {
         r = r.concat(expr());
       }
       return r;
-    }
+    };
 
     var factor = () => {
       var r = [];
@@ -210,7 +238,7 @@ class Assembler {
         r = r.concat(expr());
       }
       return r;
-    }
+    };
 
     var conditional = () => {
       var r = [];
@@ -220,7 +248,7 @@ class Assembler {
         r = r.concat(expr());
       }
       return r;
-    }
+    };
 
     var junction = () => {
       var r = [];
@@ -230,7 +258,7 @@ class Assembler {
         r = r.concat(expr());
       }
       return r;
-    }
+    };
 
     var simple_expr = () => {
       check_constant();
@@ -272,9 +300,9 @@ class Assembler {
       }
 
       return r;
-    }
+    };
 
-    var expr = () => {
+    expr = () => {
       var r = simple_expr();
       if (r.length) {
         var tm = term();
@@ -306,17 +334,17 @@ class Assembler {
       // }
 
       return r;
-    }
+    };
 
-    var exprs = () => {
+    exprs = () => {
       return parameters(t.type === 'open_paren' ? 'open_paren' : null, t.type === 'open_paren' ? 'close_paren' : null, false, -1, true);
-    }
+    };
 
-    var subexpr = () => {
+    subexpr = () => {
       return parameters('open_paren', 'close_paren', false, 1, true);
-    }
+    };
 
-    var parameters = (open = null, close = null, single_term = false, limit = -1, allow_ws = true) => {
+    parameters = (open = null, close = null, single_term = false, limit = -1, allow_ws = true) => {
       var r = [];
 
       if (open) {
@@ -362,11 +390,10 @@ class Assembler {
       }
 
       return r;
-    }
+    };
 
-    var dict = () => {
+    dict = () => {
       var genvars = assign_name !== null;
-      var aa = [];
       var offset = 0;
 
       var gen = (dd, name) => {
@@ -386,15 +413,15 @@ class Assembler {
           }
         }
         return comma_array(a);
-      }
+      };
 
       var d = extract_dict();
       var aa = gen(d, assign_name);
 
       return ['_vm.dict.make', '(', '{', aa, '}', ')'];
-    }
+    };
 
-    var extract_dict = () => {
+    extract_dict = () => {
       var d = {};
 
       extracting_dict = true;
@@ -409,7 +436,7 @@ class Assembler {
           expected_next(this, t, 'assign');
         }
         else if (key) {
-          d[key.value] = t.type === 'open_curly' ?  extract_dict() : expr();
+          d[key.value] = t.type === 'open_curly' ? extract_dict() : expr();
           key = null;
           expected(this, t, ['comma', 'close_curly']);
           if (t.type === 'comma') {
@@ -428,35 +455,36 @@ class Assembler {
       extracting_dict = false;
 
       return d;
-    }
+    };
 
-    var port = () => {
-      return indirect('_vm.ports[' + t.value + '].top')
-    }
+    port = () => {
+      return indirect('_vm.ports[' + t.value + '].top');
+    };
 
-    var port_call = () => {
+    port_call = () => {
       var parts = t.value.split(':');
       next();
       return ['_vm.ports[' + parts[0] + '].' + parts[1], '(', comma_array(exprs()), ')'];
-    }
+    };
 
-    var bracket_def = () => {
-      return parameters('open_bracket', 'close_bracket', false, -1, false)
-    }
+    bracket_def = () => {
+      return parameters('open_bracket', 'close_bracket', false, -1, false);
+    };
 
-    var indexed = () => {
+    indexed = () => {
       var r = ['+'];
       r = r.concat(parameters('open_bracket', 'close_bracket', false, 1, false));
       return r;
-    }
+    };
 
-    var indirect = (value) => {
+    indirect = (value) => {
       var r = [];
+      var i;
 
       var _ind = _.endsWith(t.type, '_indirect');
 
       if (_ind) {
-        for (var i = 0; i < t.count; i++) {
+        for (i = 0; i < t.count; i++) {
           r = r.concat(['_vm.mem.readUInt32LE', '(']);
         }
       }
@@ -464,7 +492,7 @@ class Assembler {
       r.push(value);
 
       if (_ind) {
-        for (var i = 0; i < t.count; i++) {
+        for (i = 0; i < t.count; i++) {
           r.push(')');
         }
       }
@@ -472,13 +500,13 @@ class Assembler {
       next();
 
       return r;
-    }
+    };
 
-    var assign = (name, alloc, value) => {
+    assign = (name, alloc, value) => {
       return ['var', name, '=', '_vm.mm.' + alloc, '(', codify(value), ')'];
-    }
+    };
 
-    var label_def = () => {
+    label_def = () => {
       var name = js_name(t.value);
       if (structs.length) {
         name = js_name(structs.join('.') + '.' + name);
@@ -519,7 +547,8 @@ class Assembler {
       else {
         var sz = 1;
         var szfn = t.value;
-        switch(t.value) {
+        switch (t.value)
+        {
           case 'db':
             sz = 1;
             break;
@@ -561,12 +590,13 @@ class Assembler {
       }
 
       assign_name = null;
-    }
+    };
 
-    var label_assign = () => {
+    label_assign = () => {
       var name = t.value;
       var _ind = _.endsWith(t.type, '_indirect');
       var count = t.count;
+      var i;
 
       var l = find_label(name);
       if (!l) {
@@ -588,13 +618,13 @@ class Assembler {
 
       var r = [];
       if (_ind) {
-        for (var i = 0; i < count; i++) {
+        for (i = 0; i < count; i++) {
           r = r.concat(['_vm.mem.readUInt32LE', '(']);
         }
 
         r.push(name);
 
-        for (var i = 0; i < count; i++) {
+        for (i = 0; i < count; i++) {
           r.push(')');
         }
       }
@@ -603,22 +633,22 @@ class Assembler {
       }
 
       code.line_s(...write(v, r.concat(br).join(' '), l.unit_size));
-    }
+    };
 
-    var label = () => { return indirect(js_name(t.value)); }
+    label = () => { return indirect(js_name(t.value)); };
 
-    var struct_def = () => {
+    struct_def = () => {
       structs.push(t.value);
       next();
       expected_next(this, t, 'struct');
       block('end');
       structs.pop();
-    }
+    };
 
-    var func_def = () => {
+    func_def = () => {
       var name = js_name(t.value);
 
-      var fct = new_label(name, true);
+      new_label(name, true);
 
       next();
 
@@ -629,17 +659,17 @@ class Assembler {
       end_frame();
       indent--;
       code.line_s('}');
-    }
+    };
 
-    var func = () => {
+    func = () => {
       var name = js_name(t.value);
 
       next();
 
       return [name, '(', comma_array(exprs()), ')'];
-    }
+    };
 
-    var constant_def = () => {
+    constant_def = () => {
       var name = t.value;
 
       next();
@@ -660,9 +690,9 @@ class Assembler {
       next();
 
       return new_constant(name, a);
-    }
+    };
 
-    var constant = () => {
+    constant = () => {
       var name = t.value;
 
       var c = find_constant(name);
@@ -680,9 +710,9 @@ class Assembler {
 
       t = tokens[i];
       len = tokens.length;
-    }
+    };
 
-    var opcode = (expr = false) => {
+    opcode = (expr = false) => {
       var r = [];
 
       var name = is_opcode(t);
@@ -716,9 +746,9 @@ class Assembler {
       }
 
       return r;
-    }
+    };
 
-    var statements = () => {
+    statements = () => {
       while (i < len) {
         if (!is_eos(t)) {
           statement();
@@ -727,9 +757,9 @@ class Assembler {
           next();
         }
       }
-    }
+    };
 
-    var block = (end = 'end') => {
+    block = (end = 'end') => {
       while (i < len && !is_type(end)) {
         if (!is_eos(t)) {
           statement();
@@ -739,12 +769,14 @@ class Assembler {
         }
       }
       expected_next(this, t, end);
-    }
+    };
 
-    var statement = () => {
+    statement = () => {
       // while (i < len && is_eos(t)) {
         // next();
       // }
+
+      var l;
 
       if (structs.length > 0) {
         if (t.type === 'label_def') {
@@ -758,81 +790,77 @@ class Assembler {
           next();
         }
       }
-
+      else if (t.type === 'label_assign' || t.type === 'label_assign_indirect') {
+        label_assign();
+      }
+      else if (t.type === 'label_def') {
+        label_def();
+      }
+      else if (t.type === 'struct_def') {
+        struct_def();
+      }
+      else if (t.type === 'func_def') {
+        func_def();
+      }
+      else if (t.type === 'constant_def') {
+        constant_def();
+      }
+      else if (t.value === 'if') {
+        next();
+        code.line('if', '(', expr(), ')', '{');
+        indent++;
+        block('end');
+        indent--;
+        code.line('}');
+      }
+      else if (t.value === 'elif') {
+        next();
+        indent--;
+        code.line('}', 'else', 'if', '(', expr(), ')', '{');
+        indent++;
+        block(['elif', 'else']);
+      }
+      else if (t.value === 'else') {
+        next();
+        indent--;
+        code.line('}', 'else', '{');
+        indent++;
+        block('end');
+        prev();
+      }
+      else if (t.value === 'whl') {
+        next();
+        code.line('while', '(', expr(), ')', '{');
+        indent++;
+        block('end');
+        indent--;
+        code.line_s('}');
+      }
+      else if (is_opcode(t)) {
+        code.line_s(opcode());
+      }
       else {
-        if (t.type === 'label_assign' || t.type === 'label_assign_indirect') {
-          label_assign();
+        l = find_label(t.value);
+        if (l && l.fn) {
+          code.line_s(func());
         }
-        else if (t.type === 'label_def') {
-          label_def();
-        }
-        else if (t.type === 'struct_def') {
-          struct_def();
-        }
-        else if (t.type === 'func_def') {
-          func_def();
-        }
-        else if (t.type === 'constant_def') {
-          constant_def();
-        }
-        else if (t.value === 'if') {
-          next();
-          code.line('if', '(', expr(), ')', '{');
-          indent++;
-          block('end');
-          indent--;
-          code.line('}');
-        }
-        else if (t.value === 'elif') {
-          next();
-          indent--;
-          code.line('}', 'else', 'if', '(', expr(), ')', '{');
-          indent++;
-          block(['elif', 'else']);
-        }
-        else if (t.value === 'else') {
-          next();
-          indent--;
-          code.line('}', 'else', '{');
-          indent++;
-          block('end');
-          prev();
-        }
-        else if (t.value === 'whl') {
-          next();
-          code.line('while', '(', expr(), ')', '{');
-          indent++;
-          block('end');
-          indent--;
-          code.line_s('}');
-        }
-        else if (is_opcode(t)) {
-          code.line_s(opcode());
+        else if (check_port_call()) {
+          code.line_s(port_call());
         }
         else {
-          var l = find_label(t.value);
-          if (l && l.fn) {
-            code.line_s(func());
-          }
-          else if (check_port_call()) {
-            code.line_s(port_call());
-          }
-          else {
-            debugger;
-            error(this, t, 'syntax error');
-            next();
-          }
+          debugger;
+          error(this, t, 'syntax error');
+          next();
         }
       }
 
       if (extra_statement_lines.length) {
-        for (var l of extra_statement_lines) {
+        for (l of extra_statement_lines) {
           code.line_s(...l);
         }
         extra_statement_lines = [];
       }
-
-    }
+    };
 
     new_frame();
     statements();
@@ -844,4 +872,4 @@ class Assembler {
 
 }
 
-export default Assembler
+export default Assembler;

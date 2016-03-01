@@ -1,5 +1,4 @@
 import Port from '../port.js';
-import { defaults } from '../globals.js';
 
 
 /*
@@ -58,23 +57,26 @@ class Sound extends Port {
       source: 'sine',
     };
 
+    var r;
+
     var cmd = _vm.mem[addr++];
     while (cmd !== 0) {
-      switch(cmd) {
+      switch (cmd)
+      {
         case 1:  // shape
           var value = _vm.ldb(addr);
           addr++;
           if (value === 1) {
-            note.source = 'sine'
+            note.source = 'sine';
           }
           else if (value === 2) {
-            note.source = 'square'
+            note.source = 'square';
           }
           else if (value === 3) {
-            note.source = 'triangle'
+            note.source = 'triangle';
           }
           else if (value === 4) {
-            note.source = 'sawtooth'
+            note.source = 'sawtooth';
           }
           else if (value === 5) {
             note.source = _vm.lds(addr);
@@ -113,31 +115,31 @@ class Sound extends Port {
           break;
 
         case 8:  // envelop
-          var r = this._process_envelop(addr);
+          r = this._process_envelop(addr);
           note.env = r.envelop;
           addr = r.addr;
           break;
 
         case 9:  // filter
-          var r = this._process_filter(addr);
+          r = this._process_filter(addr);
           note.filter = r.filter;
           addr = r.addr;
           break;
 
         case 10:  // delay
-          var r = this._process_delay(addr);
+          r = this._process_delay(addr);
           note.delay = r.delay;
           addr = r.addr;
           break;
 
         case 11:  // vibrato
-          var r = this._process_vibrato(addr);
+          r = this._process_vibrato(addr);
           note.vibrato = r.vibrato;
           addr = r.addr;
           break;
 
         case 12:  // tremolo
-          var r = this._process_tremolo(addr);
+          r = this._process_tremolo(addr);
           note.tremolo = r.tremolo;
           addr = r.addr;
           break;
@@ -157,7 +159,8 @@ class Sound extends Port {
 
     var cmd = _vm.mem[addr++];
     while (cmd !== 0) {
-      switch(cmd) {
+      switch (cmd)
+      {
         case 20:  // sustain
           envelop.sustain = _vm.ldb(addr) / 100;
           addr++;
@@ -198,7 +201,8 @@ class Sound extends Port {
 
     var cmd = _vm.mem[addr++];
     while (cmd !== 0) {
-      switch(cmd) {
+      switch (cmd)
+      {
         case 30:  // type (L H)
           var value = _vm.ldb(addr);
           addr++;
@@ -245,7 +249,8 @@ class Sound extends Port {
 
     var cmd = _vm.mem[addr++];
     while (cmd !== 0) {
-      switch(cmd) {
+      switch (cmd)
+      {
         case 40:  // time
           delay.time = _vm.ldw(addr);
           addr += 2;
@@ -276,21 +281,22 @@ class Sound extends Port {
 
     var cmd = _vm.mem[addr++];
     while (cmd !== 0) {
-      switch(cmd) {
+      switch (cmd)
+      {
         case 50:  // time
           var value = _vm.ldb(addr);
           addr++;
           if (value === 1) {
-            vibrato.shape = 'sine'
+            vibrato.shape = 'sine';
           }
           else if (value === 2) {
-            vibrato.shape = 'square'
+            vibrato.shape = 'square';
           }
           else if (value === 3) {
-            vibrato.shape = 'triangle'
+            vibrato.shape = 'triangle';
           }
           else if (value === 4) {
-            vibrato.shape = 'sawtooth'
+            vibrato.shape = 'sawtooth';
           }
           break;
 
@@ -324,21 +330,22 @@ class Sound extends Port {
 
     var cmd = _vm.mem[addr++];
     while (cmd !== 0) {
-      switch(cmd) {
+      switch (cmd)
+      {
         case 60:  // shape
           var value = _vm.ldb(addr);
           addr++;
           if (value === 1) {
-            tremolo.shape = 'sine'
+            tremolo.shape = 'sine';
           }
           else if (value === 2) {
-            tremolo.shape = 'square'
+            tremolo.shape = 'square';
           }
           else if (value === 3) {
-            tremolo.shape = 'triangle'
+            tremolo.shape = 'triangle';
           }
           else if (value === 4) {
-            tremolo.shape = 'sawtooth'
+            tremolo.shape = 'sawtooth';
           }
           break;
 
@@ -399,4 +406,4 @@ class Sound extends Port {
 
 }
 
-export default Sound
+export default Sound;

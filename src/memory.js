@@ -1,4 +1,3 @@
-import { defaults, runtime_error } from './globals.js';
 import hexy from 'hexy';
 
 class Memory {
@@ -115,4 +114,4 @@ class Memory {
 
 }
 
-export default Memory
+export default Memory;

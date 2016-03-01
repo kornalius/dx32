@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { defaults, error } from './globals.js';
+import { error } from './globals.js';
 
 class Tokenizer {
 
@@ -21,22 +21,22 @@ class Tokenizer {
 
       comma: /\,/,
 
-      open_bracket: /\[/,
+      open_bracket:  /\[/,
       close_bracket: /\]/i,
 
-      open_curly: /\{/,
+      open_curly:  /\{/,
       close_curly: /\}/,
 
-      open_paren: /\(/,
+      open_paren:  /\(/,
       close_paren: /\)/,
 
       include: {
-        match: /\.include\s/i,
+        match:   /\.include\s/i,
         include: true,
       },
 
-      comp: /\>|\<|\>\=|\<\=|\!\=|\=\=/,
-      math: /[\+\-\*\/\%\^]/,
+      comp:  /\>|\<|\>\=|\<\=|\!\=|\=\=/,
+      math:  /[\+\-\*\/\%\^]/,
       logic: /[\!\&\|]/,
 
       assign: /^([\=])[^\=]/,
@@ -77,9 +77,7 @@ class Tokenizer {
           }
           return '0';
         },
-        type (k, v) {
-          return 'port';
-        },
+        type () { return 'port'; },
       },
 
       port_call: /\#([0-9]+\:[A-Z_][A-Z_0-9]+)/i,
@@ -97,9 +95,7 @@ class Tokenizer {
           }
           return '0:' + f;
         },
-        type (k, v) {
-          return 'port_call';
-        },
+        type () { return 'port_call'; },
       },
 
       port_indirect: {
@@ -139,9 +135,7 @@ class Tokenizer {
           }
           return '0';
         },
-        type (k, v) {
-          return 'port_indirect';
-        },
+        type () { return 'port_indirect'; },
       },
 
       // indirect_symbol: /(\@)(?![^\#A-Z_])/i,
@@ -174,16 +168,12 @@ class Tokenizer {
           d.count = i;
           return v;
         },
-        type (k, v) {
-          return 'label_assign_indirect';
-        },
+        type () { return 'label_assign_indirect'; },
       },
 
       label_assign_bracket: {
         match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
-        type (k, v) {
-          return 'label_assign';
-        },
+        type () { return 'label_assign'; },
       },
 
       digit: {
@@ -201,6 +191,7 @@ class Tokenizer {
           }
           else {
             error(this, { v, row, col }, 'value out of bounds');
+            return null;
           }
         },
       },
@@ -216,16 +207,16 @@ class Tokenizer {
 
       hex: {
         match: /\$([0-9A-F]+)/i,
-        type (k, v) { return 'digit' },
-        value (v) { return parseInt('0x' + v, 16).toString() },
+        type () { return 'digit'; },
+        value (v) { return parseInt('0x' + v, 16).toString(); },
       },
 
       string: /\"([^"]*)\"/i,
 
       char: {
         match: /\'(.)\'/i,
-        type (k, v) { return 'digit' },
-        value (v) { return v.charCodeAt(0) },
+        type () { return 'digit'; },
+        value (v) { return v.charCodeAt(0); },
       },
 
     };
@@ -233,7 +224,7 @@ class Tokenizer {
     var add_token = (k, v) => {
       var d = defs[k];
 
-      var r = { type: k, value: v, row: row, col: (si + 1 - ls), start: si, end: i, idx: tokens.length - 1 };
+      var r = { type: k, value: v, row, col: si + 1 - ls, start: si, end: i, idx: tokens.length - 1 };
 
       while (d && (_.isFunction(d.type) || _.isFunction(d.value))) {
         var ok = k;
@@ -267,7 +258,7 @@ class Tokenizer {
         row++;
         ls = i;
       }
-    }
+    };
 
     var rx;
     var _include = false;
@@ -325,4 +316,4 @@ class Tokenizer {
 
 }
 
-export default Tokenizer
+export default Tokenizer;

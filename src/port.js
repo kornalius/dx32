@@ -1,6 +1,3 @@
-import _ from 'lodash';
-import { defaults, error } from './globals.js';
-
 
 class Port {
 
@@ -24,7 +21,7 @@ class Port {
   shut () {
     this.reset();
     // _vm.mm.free(this.top);
-    _vm.ports[port_number] = null;
+    _vm.ports[this.port_number] = null;
   }
 
   tick () {
@@ -35,4 +32,4 @@ class Port {
 
 }
 
-export default Port
+export default Port;

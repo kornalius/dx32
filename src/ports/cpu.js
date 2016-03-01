@@ -1,5 +1,4 @@
 import Port from '../port.js';
-import { defaults } from '../globals.js';
 
 
 class CPU extends Port {
@@ -26,4 +25,4 @@ class CPU extends Port {
 
 }
 
-export default CPU
+export default CPU;

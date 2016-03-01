@@ -21,10 +21,11 @@ class Label {
   free () {
   }
 
-  isFn () { return _.isFunction(addr); }
+  isFn () { return _.isFunction(this.addr); }
 
   get () {
-    switch (this._sz) {
+    switch (this._sz)
+    {
       case 1:
         return _vm.rb(this.addr);
       case 2:
@@ -39,7 +40,8 @@ class Label {
   }
 
   set (value) {
-    switch (this._sz) {
+    switch (this._sz)
+    {
       case 1:
         return _vm.wb(this.addr, value);
       case 2:
@@ -56,7 +58,7 @@ class Label {
     if (!_vm.halted && !_vm.paused) {
       this._last_tick = Date.now();
       if (_.isFunction(this.addr)) {
-        this.addr.call(this, ...args);
+        this.addr(...args);
       }
       else {
         _vm.hlt(this, 0x04);
@@ -66,4 +68,4 @@ class Label {
 
 }
 
-export default Label
+export default Label;

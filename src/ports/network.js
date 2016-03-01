@@ -1,5 +1,4 @@
 import Port from '../port.js';
-import { defaults } from '../globals.js';
 
 
 class Network extends Port {
@@ -10,4 +9,4 @@ class Network extends Port {
 
 }
 
-export default Network
+export default Network;

@@ -3,28 +3,112 @@
 	{
 		"selected_items":
 		[
+			[
+				"_opera",
+				"_operations"
+			],
+			[
+				"ra",
+				"random"
+			],
+			[
+				"_oper",
+				"_operations"
+			],
+			[
+				"parent",
+				"parent_uid"
+			],
+			[
+				"write",
+				"writeUInt32LE"
+			],
+			[
+				"comma_",
+				"comma_array"
+			]
 		]
 	},
 	"buffers":
 	[
+		{
+			"file": "src/io.js",
+			"settings":
+			{
+				"buffer_size": 1510,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/ports/drive.js",
+			"settings":
+			{
+				"buffer_size": 11642,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/floppy.js",
+			"settings":
+			{
+				"buffer_size": 7755,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/globals.js",
+			"settings":
+			{
+				"buffer_size": 8970,
+				"line_ending": "Unix"
+			}
+		}
 	],
-	"build_system": "",
+	"build_system": "Packages/User/Gulp.sublime-build",
 	"build_system_choices":
 	[
+		[
+			[
+				[
+					"Packages/User/Gulp.sublime-build",
+					""
+				],
+				[
+					"Packages/User/npm_start.sublime-build",
+					""
+				]
+			],
+			[
+				"Packages/User/Gulp.sublime-build",
+				""
+			]
+		]
 	],
 	"build_varint": "",
 	"command_palette":
 	{
-		"height": 0.0,
+		"height": 32.0,
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"alig",
+				"AlignTab"
+			],
+			[
+				"",
+				"AutoBackups: Open file backup"
+			],
+			[
+				"backu",
+				"AutoBackups: Open file backup"
+			]
 		],
-		"width": 0.0
+		"width": 754.0
 	},
 	"console":
 	{
-		"height": 0.0,
+		"height": 298.0,
 		"history":
 		[
 		]
@@ -40,18 +124,59 @@
 	},
 	"expanded_folders":
 	[
-		"/Volumes/hd2/sources/DX32"
+		"/Volumes/hd2/sources/DX32",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/src",
+		"/Volumes/hd2/sources/DX32/node_modules",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/bin",
+		"/Volumes/hd2/sources/DX32/src",
+		"/Volumes/hd2/sources/DX32/src/ports"
 	],
 	"file_history":
 	[
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/bin/pixi.js",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/interaction/index.js",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/extras/index.js",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/core/const.js",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/core/ticker/index.js",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/core/utils/index.js",
+		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/core/ticker/Ticker.js",
+		"/Volumes/hd2/sources/DX32/src/vm.js",
+		"/Users/alain/sublime_backups/2016-02-28/Volumes/hd2/sources/DX32/src/ports/drive_163635.js",
+		"/Volumes/hd2/sources/DX32/src/memory.js",
+		"/Volumes/hd2/sources/DX32/src/memorymanager.js",
+		"/Volumes/hd2/sources/DX32/src/main.js",
+		"/Volumes/hd2/sources/DX32/src/ports/cpu.js",
+		"/Users/alain/sublime_backups/2016-02-28/Volumes/hd2/sources/DX32/src/ports/drive_142811.js",
+		"/Volumes/hd2/sources/DX32/src/ports/video.js",
+		"/Volumes/hd2/sources/DX32/src/assembler.js",
+		"/Volumes/hd2/sources/DX32/src/tokenizer.js",
+		"/Volumes/hd2/sources/DX32/src/dict.js",
+		"/Volumes/hd2/sources/DX32/src/globals.js",
+		"/Volumes/hd2/sources/DX32/src/port.js",
+		"/Volumes/hd2/sources/DX32/src/ports/sound.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/src/wad.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/README.md",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/init.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/domReady.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/beatBoxes.jade",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/trackActions.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/templates.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/loopTracks.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/looper.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/instruments.js",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/audio/cowbell.wav",
+		"/Volumes/hd2/sources/DX32/bower_components/Wad/example/randomwalk.html",
+		"/Volumes/hd2/sources/DX32/webpack.config.js"
 	],
 	"find":
 	{
-		"height": 0.0
+		"height": 36.0
 	},
 	"find_in_files":
 	{
-		"height": 0.0,
+		"height": 112.0,
 		"where_history":
 		[
 		]
@@ -61,6 +186,89 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"performance",
+			"time",
+			"1000",
+			"rnd(",
+			"max_sounds",
+			"random",
+			"qs",
+			"_sounds",
+			"playSound",
+			"eject",
+			"_playSound",
+			"_sound_name",
+			"_sounds_queue",
+			"elapse",
+			"_elapse",
+			"_sound_queue",
+			"_queue",
+			"_playSound",
+			"_operations_stack",
+			"_queueOperation",
+			"_queueSound",
+			"_randomSound",
+			"max_s",
+			"sounds",
+			"this.sounds",
+			"_sound_queue",
+			"stack",
+			"queue_size",
+			"sounds",
+			"queue_size",
+			"write: true, ",
+			"read: true, ",
+			"read",
+			"}",
+			"lock",
+			"}",
+			" },",
+			"max:",
+			"_elapses",
+			"read",
+			": ",
+			"stopSpinBound",
+			"insert",
+			"Memory",
+			"memory",
+			"Memory",
+			"entries",
+			"blocks_table_top",
+			"hex",
+			"stl",
+			"_findById",
+			"parents",
+			".path(",
+			"_findEntry",
+			"entries",
+			"basename",
+			".path",
+			"_findById",
+			"create",
+			"_queueSound",
+			"_write_operations",
+			"_read_operations",
+			"spinning",
+			"startSpin",
+			"stopSpin",
+			"t.count",
+			"peek",
+			"label()",
+			"label",
+			"find_label",
+			"new_label",
+			"cs",
+			"this",
+			"_checkSpinning",
+			"spinning",
+			"checkSp",
+			"source",
+			"audioContext",
+			"import",
+			"loop",
+			"{\n",
+			"loop",
+			"drive"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -78,18 +286,175 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "src/io.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1510,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								497,
+								497
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"open_with_edit": true,
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1456754762.1,
+							"tabs_extra_last_activated_sheet_index": 0,
+							"tabs_extra_moving":
+							[
+								2,
+								0
+							],
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/ports/drive.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11642,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3361,
+								3361
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1456754670.78,
+							"tabs_extra_last_activated_sheet_index": 1,
+							"tabs_extra_moving":
+							[
+								2,
+								0
+							],
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 866.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/floppy.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7755,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								7181,
+								7181
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1456754606.24,
+							"tabs_extra_last_activated_sheet_index": 2,
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 7018.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "src/globals.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8970,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								8962,
+								8962
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1456754595.89,
+							"tabs_extra_last_activated_sheet_index": 3,
+							"tabs_extra_moving":
+							[
+								2,
+								0
+							],
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 9236.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				}
 			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 0.0
+		"height": 31.0
 	},
 	"input":
 	{
-		"height": 0.0
+		"height": 35.0
 	},
 	"layout":
 	{
@@ -114,15 +479,19 @@
 		]
 	},
 	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 293.0
+	},
 	"output.find_results":
 	{
 		"height": 0.0
 	},
-	"pinned_build_system": "",
+	"pinned_build_system": "Packages/User/npm_start.sublime-build",
 	"project": "DX32.sublime-project",
 	"replace":
 	{
-		"height": 0.0
+		"height": 58.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -160,7 +529,7 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 281.0,
+	"side_bar_width": 302.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

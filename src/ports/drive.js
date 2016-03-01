@@ -1,34 +1,45 @@
 import _ from 'lodash';
 import Port from '../port.js';
-import { Floppy, Entry, Block } from '../floppy.js';
-import { defaults, io_error } from '../globals.js';
+import IO from '../io.js';
+import { Floppy, Entry, _OPEN, _LOCK } from '../floppy.js';
+import { mixin, rnd, io_error } from '../globals.js';
 
-
-var queue_size = 0;
 
 class Drive extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number);
 
-    this._read_operations = {
-      seek_by: 100,
-      seek: 100,
-      read: 500,
-      cd: 100,
-      fopen: 250,
-      fclose: 100,
-    };
+    this._operations_queue = [];
 
-    this._write_operations = {
-      write: 1000,
-      create: 2000,
-      append: 1000,
-      flush: 1000,
-      delete: 2000,
-      format: 5000,
-      lock: 500,
-      unlock: 500,
+    this._loadSound({ name: 'insert', path: 'disk_insert.wav', loop: false, });
+    this._loadSound({ name: 'eject', path: 'disk_eject.wav', loop: false, });
+    this._loadSound({ name: 'spin', path: 'disk_spin.wav', loop: true, });
+    this._loadSound({ name: 'read1', path: 'disk_read1.wav', loop: false, });
+    this._loadSound({ name: 'read2', path: 'disk_read2.wav', loop: false, });
+    this._loadSound({ name: 'read3', path: 'disk_read3.wav', loop: false, });
+    this._loadSound({ name: 'read4', path: 'disk_read4.wav', loop: false, });
+    this._loadSound({ name: 'write1', path: 'disk_write1.wav', loop: false, });
+    this._loadSound({ name: 'write2', path: 'disk_write2.wav', loop: false, });
+
+    this._operations = {
+      insert:  { min_time: 1000, max_time: 2000 },
+      eject:   { min_time: 1000, max_time: 2000 },
+      spin:    { min_time: 1000, max_time: 2000 },
+      seek_by: { min_time: 100, max_time: 250, sound: 'read', min_sounds: 1, max_sounds: 1, random_sound: true },
+      seek:    { min_time: 100, max_time: 250, sound: 'read', min_sounds: 1, max_sounds: 1, random_sound: true },
+      read:    { min_time: 100, max_time: 500, sound: 'read', min_sounds: 1, max_sounds: 5, random_sound: true },
+      cd:      { min_time: 100, max_time: 100, sound: 'read', min_sounds: 1, max_sounds: 1, random_sound: true },
+      fopen:   { min_time: 100, max_time: 250, sound: 'read', min_sounds: 1, max_sounds: 1, random_sound: true },
+      fclose:  { min_time: 100, max_time: 100, sound: 'read', min_sounds: 1, max_sounds: 1, random_sound: true },
+      write:   { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 1, max_sounds: 3, random_sound: true },
+      create:  { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 1, max_sounds: 3, random_sound: true },
+      append:  { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 1, max_sounds: 3, random_sound: true },
+      flush:   { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 1, max_sounds: 3, random_sound: true },
+      delete:  { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 1, max_sounds: 3, random_sound: true },
+      format:  { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 5, max_sounds: 10, random_sound: true },
+      lock:    { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 1, max_sounds: 2, random_sound: true },
+      unlock:  { min_time: 250, max_time: 1500, sound: 'write', min_sounds: 1, max_sounds: 2, random_sound: true },
     };
 
     this.current = null;
@@ -36,21 +47,7 @@ class Drive extends Port {
     this.pos = 0;
 
     this._spinning = null;
-    this.stopSpinBound = this._stopSpin.bind(this);
-
-    this.sounds = {};
-    this.sounds.insert = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/disk_insert.wav') });
-    this.sounds.eject = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/disk_eject.wav') });
-    this.sounds.spin = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/disk_spin.wav'), loop: true });
-    this.sounds.read1 = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/disk_read1.wav') });
-    this.sounds.read2 = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/disk_read2.wav') });
-    this.sounds.write1 = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/disk_write1.wav') });
-    this.sounds.write2 = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/disk_write2.wav') });
-
-    this.stack = [];
-
-    // this._startSpin();
-    // this._randomSound('read', 10);
+    this._stopSpinBound = this._stopSpin.bind(this);
 
     var f = new Floppy(this);
     this.insert(f);
@@ -68,8 +65,8 @@ class Drive extends Port {
   reset () {
     super.reset();
 
-    for (var k in this.sounds) {
-      var s = this.sounds[k];
+    for (var k in this._sounds) {
+      var s = this._sounds[k];
       if (s.playable) {
         s.stop();
       }
@@ -78,55 +75,46 @@ class Drive extends Port {
 
   shut () {
     super.shut();
-    this.sounds = {};
+    this._sounds = {};
   }
 
-  _queueOperation (op) {
-    this.stack.push(op);
-    var t = this._read_operations[op.name];
-    if (!t) {
-      t = this._write_operations[op.name]
+  _operation (op) {
+    var tt = 0;
+    for (var o of this._operations_queue) {
+      tt += o.elapse;
     }
-    if (!t) {
-      t = 500;
-    }
+
+    op.elapse = rnd(this._operations[op.name].min_time || 500, this._operations[op.name].max_time || 500);
+    this._operations_queue.push(op);
+
     var that = this;
     setTimeout(() => {
       that._next_operation();
-    }, this.stack.length * Math.trunc(Math.random() * t));
+    }, tt);
   }
 
   _next_operation () {
-    var op = this.stack.shift();
+    var op = this._operations_queue.shift();
 
-    this._startSpin();
-
-    if (op.name !== 'insert' && op.name !== 'eject' && !this._checkFloppy()) {
-      return;
+    if (op.name !== 'insert' && op.name !== 'eject') {
+      this._startSpin();
+      if (!this._checkFloppy()) {
+        return;
+      }
     }
 
-    if (this._read_operations[op.name]) {
-      this._randomSound('read', (op.size ? Math.trunc(op.size / 128) : 1));
+    var _op = this._operations[op.name];
+    if (_op.sound) {
+      this._playSound(_op.sound, {}, _op.min_time, _op.max_time, _op.min_sounds || 1, op.size ? Math.max(Math.trunc(op.size / 128), 1) : _op.max_sounds || 1, _op.random_sound, true);
     }
 
-    if (this._write_operations[op.name]) {
-      this._randomSound('read', (op.size ? Math.trunc(op.size / 128) : 1));
-    }
+    var entry;
+    var b;
+    var start;
+    var parent;
 
-    switch(op.name) {
-      case 'eject':
-        if (this.loaded()) {
-          this.floppy.eject();
-          this.current = null;
-          this.floppy = null;
-        }
-        else {
-          io_error(this, 0x08);
-          return;
-        }
-        this._playSound('eject');
-        break;
-
+    switch (op.name)
+    {
       case 'insert':
         if (!this.loaded()) {
           this.floppy = op.floppy;
@@ -137,7 +125,20 @@ class Drive extends Port {
           io_error(this, 0x07);
           return;
         }
-        this._playSound('insert');
+        this._playSound('insert', {}, this._operations.insert.min_time, this._operations.insert.max_time);
+        break;
+
+      case 'eject':
+        if (this.loaded()) {
+          this.floppy.eject();
+          this.current = null;
+          this.floppy = null;
+        }
+        else {
+          io_error(this, 0x08);
+          return;
+        }
+        this._playSound('eject', {}, this._operations.eject.min_time, this._operations.eject.max_time);
         break;
 
       case 'format':
@@ -155,8 +156,7 @@ class Drive extends Port {
         break;
 
       case 'read':
-        var b;
-        var start = 0;
+        start = 0;
         if (op.addr) {
           b = _vm.mem;
           start = op.addr;
@@ -165,13 +165,13 @@ class Drive extends Port {
           b = new Buffer(op.size);
         }
         this.floppy.mem.copy(b, start, this.pos, this.pos + op.size);
-        this._queueOperation({ name: 'seek_by', offset: op.size });
+        this._operation({ name: 'seek_by', offset: op.size });
         break;
 
       case 'write':
         op.buffer.copy(this.floppy.mem, this.pos, op.addr, op.size);
-        this._queueOperation({ name: 'seek_by', offset: op.size });
-        this._queueOperation({ name: 'flush' });
+        this._operation({ name: 'seek_by', offset: op.size });
+        this._operation({ name: 'flush' });
         break;
 
       case 'flush':
@@ -183,18 +183,18 @@ class Drive extends Port {
         break;
 
       case 'create':
-        var parent = this.floppy._findByName(this.floppy.dirname(op.path));
-        var entry = new Entry(this.floppy, this.floppy.entries.length, 0, parent ? parent_uid : 0, this.floppy.basename(op.path), this.floppy.extname(op.path), op.created, op.modified, op.attrs);
+        parent = this.floppy._findByName(this.floppy.dirname(op.path));
+        entry = new Entry(this.floppy, this.floppy.entries.length, 0, parent ? parent._uid : 0, this.floppy.basename(op.path), this.floppy.extname(op.path), op.created, op.modified, op.attrs);
         this.floppy.entries.push(entry);
-        this._queueOperation({ name: 'flush' });
+        this._operation({ name: 'flush' });
         break;
 
       case 'fopen':
-        var entry = this._findEntry(op.path);
+        entry = this._findEntry(op.path);
         if (entry) {
           if (!entry._isOpened()) {
             entry.attrs |= _OPEN;
-            this._queueOperation({ name: 'flush' });
+            this._operation({ name: 'flush' });
           }
           else {
             io_error(this, 0x02);
@@ -203,31 +203,31 @@ class Drive extends Port {
         break;
 
       case 'fread':
-        var entry = this._findEntry(op.id);
+        entry = this._findEntry(op.id);
         if (entry) {
-          this._queueOperation({ name: 'read', addr: op.addr, size: op.size });
+          this._operation({ name: 'read', addr: op.addr, size: op.size });
         }
         break;
 
       case 'fwrite':
-        var entry = this._findEntry(op.id);
+        entry = this._findEntry(op.id);
         if (entry) {
-          this._queueOperation({ name: 'write', addr: op.addr, size: op.size });
+          this._operation({ name: 'write', addr: op.addr, size: op.size });
         }
         break;
 
       case 'append':
-        var entry = this._findEntry(op.id);
+        entry = this._findEntry(op.id);
         if (entry) {
         }
         break;
 
       case 'fclose':
-        var entry = this._findEntry(op.id);
+        entry = this._findEntry(op.id);
         if (entry) {
           if (entry._isOpened()) {
             entry.attrs ^= _OPEN;
-            this._queueOperation({ name: 'flush' });
+            this._operation({ name: 'flush' });
           }
           else {
             io_error(this, 0x03);
@@ -236,14 +236,13 @@ class Drive extends Port {
         break;
 
       case 'delete':
-        var entry = this._findEntry(op.path);
+        entry = this._findEntry(op.path);
         if (entry) {
           if (!entry._isLocked()) {
-            this._writeSound(2);
             entry.uid = 0;
             entry.parent_uid = 0;
             entry.parent = null;
-            this._queueOperation({ name: 'flush' });
+            this._operation({ name: 'flush' });
           }
           else {
             io_error(entry, 0x09);
@@ -252,78 +251,50 @@ class Drive extends Port {
         break;
 
       case 'lock':
-        var entry = this._findEntry(op.path);
+        entry = this._findEntry(op.path);
         if (entry) {
           if (!entry._isLocked()) {
-            this._writeSound(2);
             entry.attrs |= _LOCK;
-            this._queueOperation({ name: 'flush' });
+            this._operation({ name: 'flush' });
           }
           else {
             io_error(entry, 0x04);
           }
+        }
         break;
-      }
 
       case 'unlock':
-        var entry = this._findEntry(op.path);
+        entry = this._findEntry(op.path);
         if (entry) {
           if (!entry._isLocked()) {
-            this._writeSound(2);
             entry.attrs ^= _LOCK;
-            this._queueOperation({ name: 'flush' });
+            this._operation({ name: 'flush' });
           }
           else {
             io_error(entry, 0x05);
           }
+        }
         break;
 
-      }
-    }
-  }
-
-  _playSound (name, options = {}) {
-    var s = this.sounds[name];
-    if (s) {
-      s.play(_.defaultsDeep({}, options, { env: { hold: 500 } }));
-    }
-  }
-
-  _queueSound (name, options = {}) {
-    var that = this;
-    queue_size++;
-    setTimeout(() => {
-      that._playSound(name, options);
-      queue_size--;
-    }, queue_size * Math.trunc(Math.random() * 250 + 500));
-  }
-
-  _randomSound (name, max = 1) {
-    max = Math.trunc(Math.random() * max + 1);
-    while (max > 0) {
-      var c = _.reduce(this.sounds, (r, v, k) => { return r + (_.startsWith(k, name) ? 1 : 0) }, 0);
-      var r = Math.trunc(Math.random() * c + 1);
-      this._queueSound(name + r);
-      max--;
     }
   }
 
   _startSpin () {
     if (!this._spinning) {
-      this._playSound('spin', { loop: true });
+      this._playSound('spin', { loop: true }, this._operations.spin.min_time, this._operations.spin.max_time);
     }
     clearTimeout(this._spinning);
-    this._spinning = setTimeout(this.stopSpinBound, 2500);
+    this._spinning = setTimeout(this._stopSpinBound, rnd(this._operations.spin.min_time, this._operations.spin.max_time));
   }
 
   _stopSpin () {
     clearTimeout(this._spinning);
     this._spinning = null;
-    if (this.stack.length || queue_size) {
-      this._spinning = setTimeout(this.stopSpinBound, 2500);
+    if (this._operations_queue.length || this._sounds_queue.length) {
+      this._spinning = setTimeout(this._stopSpinBound, rnd(this._operations.spin.min_time, this._operations.spin.max_time));
       return;
     }
-    this.sounds.spin.stop();
+    this._sounds.spin.stop();
   }
 
   _checkFloppy () {
@@ -338,7 +309,7 @@ class Drive extends Port {
     this._startSpin();
     var entry = null;
     if (this._checkFloppy()) {
-      this._randomSound('read', 3);
+      this._randomSound('read', {}, 1, 3);
       if (_.isNumber(x)) {
         entry = this.floppy._findById(x);
       }
@@ -355,24 +326,22 @@ class Drive extends Port {
   loaded () { return this.floppy !== null; }
 
   eject () {
-    this._queueOperation({ name: 'eject' });
+    this._operation({ name: 'eject' });
   }
 
   insert (floppy) {
-    this._queueOperation({ name: 'insert', floppy });
+    this._operation({ name: 'insert', floppy });
   }
 
   format () {
-    this._queueOperation({ name: 'format' });
+    this._operation({ name: 'format' });
   }
 
   cd (path) {
-    this._queueOperation({ name: 'cd', path });
+    this._operation({ name: 'cd', path });
   }
 
   cwd () {
-    this._startSpin();
-    this._randomSound('read', 2);
     return this.current.pathname();
   }
 
@@ -384,7 +353,7 @@ class Drive extends Port {
     var sz = 0;
     var entry = this._findEntry(id);
     if (entry) {
-      this._randomSound('read', Math.trunc(Math.random() * entry.blocks().length));
+      this._randomSound('read', {}, 1, 3);
       for (var b of entry.blocks()) {
         sz += b.end_mark;
       }
@@ -393,57 +362,59 @@ class Drive extends Port {
   }
 
   seek_by (offset) {
-    this._queueOperation({ name: 'seek_by', offset });
+    this._operation({ name: 'seek_by', offset });
   }
 
   seek (pos) {
-    this._queueOperation({ name: 'seek', pos });
+    this._operation({ name: 'seek', pos });
   }
 
   read (addr, size) {
-    this._queueOperation({ name: 'read', addr, size });
+    this._operation({ name: 'read', addr, size });
   }
 
   write (addr, size) {
-    this._queueOperation({ name: 'write', addr, size });
+    this._operation({ name: 'write', addr, size });
   }
 
   create (path, data = null, size = 0, start = 0, attrs = 0, created = Date.now(), modified = Date.now()) {
-    this._queueOperation({ name: 'create', path, attrs, size: size || (data ? data.length : 0), start, created, modified, data });
+    this._operation({ name: 'create', path, attrs, size: size || (data ? data.length : 0), start, created, modified, data });
   }
 
   fopen (path) {
-    this._queueOperation({ name: 'fopen', path });
+    this._operation({ name: 'fopen', path });
   }
 
   fread (id, size, addr) {
-    this._queueOperation({ name: 'fread', id, size, addr });
+    this._operation({ name: 'fread', id, size, addr });
   }
 
   fwrite (id, addr, size) {
-    this._queueOperation({ name: 'fwrite', id, size, addr });
+    this._operation({ name: 'fwrite', id, size, addr });
   }
 
   append (id, addr, size) {
-    this._queueOperation({ name: 'append', id, size, addr });
+    this._operation({ name: 'append', id, size, addr });
   }
 
   fclose (id) {
-    this._queueOperation({ name: 'fclose', id });
+    this._operation({ name: 'fclose', id });
   }
 
   delete (path) {
-    this._queueOperation({ name: 'delete', path });
+    this._operation({ name: 'delete', path });
   }
 
   lock (path) {
-    this._queueOperation({ name: 'lock', path });
+    this._operation({ name: 'lock', path });
   }
 
   unlock (path) {
-    this._queueOperation({ name: 'unlock', path });
+    this._operation({ name: 'unlock', path });
   }
 
 }
 
-export default Drive
+mixin(Drive.prototype, IO.prototype);
+
+export default Drive;

@@ -1,16 +1,16 @@
 import _ from 'lodash';
-import Drive from './ports/drive.js';
+import IO from './io.js';
 import Memory from './memory.js';
-import { defaults, mixin, io_error } from './globals.js';
+import { defaults, mixin } from './globals.js';
 
-const _DIR =  0x01;
-const _OPEN = 0x02;
-const _LOCK = 0x04;
+export const _DIR = 0x01;
+export const _OPEN = 0x02;
+export const _LOCK = 0x04;
 
 const _PATHSEP = '/';
-const _EXTSEP =  '.';
+const _EXTSEP = '.';
 const _CURRENT = '.';
-const _PARENT =  '..';
+const _PARENT = '..';
 
 
 export class Block {
@@ -27,7 +27,7 @@ export class Block {
   isUsed () { return this.entry_idx !== -1; }
 
   _validPos (pos) {
-    return (pos >= this.top && pos <= this.bottom)
+    return pos >= this.top && pos <= this.bottom;
   }
 
   // _read (addr) {
@@ -250,7 +250,7 @@ export class Floppy {
     this.st(this.blocks_table_top, this.blocks.length);
     var ptr = this.blocks_table_top + 4;
     for (var b of this.blocks) {
-      this.st(ptr, (b.entry_idx + 1) | (b.end_mark & 0xFF));
+      this.st(ptr, b.entry_idx + 1 | b.end_mark & 0xFF);
       ptr += 4;
     }
   }
@@ -345,5 +345,5 @@ export class Floppy {
   }
 }
 
-mixin(Floppy.prototype, Memory.prototype);
+mixin(Floppy.prototype, Memory.prototype, IO.prototype);
 
