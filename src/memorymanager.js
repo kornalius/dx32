@@ -1,16 +1,39 @@
 import hexy from 'hexy';
+import prettyBytes from 'pretty-bytes';
 
 
 class MemoryManager {
 
-  constructor (vm) {
-    this.blocks = [];
+  constructor (vm, mem, mem_size) {
     this.vm = vm;
+
+    this.mem = mem;
+    this.mem_size = mem_size;
+    this.top = 0;
+    this.bottom = this.mem_size - 1;
+
+    this.blocks = [];
 
     var that = this;
     setInterval(() => {
       that.collect();
     }, 30 * 1024);
+  }
+
+  avail_mem () { return this.mem_size; }
+
+  used_mem () {
+    var sz = 0;
+    for (var b of this.blocks) {
+      if (b.used) {
+        sz += b.size;
+      }
+    }
+    return sz;
+  }
+
+  free_mem () {
+    return this.avail_mem() - this.used_mem();
   }
 
   alloc (sz) {
@@ -66,10 +89,11 @@ class MemoryManager {
     return addr;
   }
 
-  alloc_s (str) {
-    var addr = this.alloc(str.length + 1);
+  alloc_s (str, len = 0) {
+    len = len || str.length;
+    var addr = this.alloc(len + 1);
     var a = addr;
-    for (var i = 0; i < str.length; i++) {
+    for (var i = 0; i < len; i++) {
       this.vm.mem[a++] = str.charCodeAt(i);
     }
     this.vm.mem[a] = 0;
@@ -105,7 +129,7 @@ class MemoryManager {
   }
 
   dump () {
-    console.log('memory blocks dump');
+    console.log('memory blocks dump', 'avail:', prettyBytes(this.avail_mem()), 'used:', prettyBytes(this.used_mem()), 'free:', prettyBytes(this.free_mem()));
     for (var b of this.blocks) {
       console.log(hexy.hexy(this.vm.mem, { offset: b.top, length: Math.min(255, b.size), display_offset: b.top, width: 16, caps: 'upper', indent: 2 }));
     }
