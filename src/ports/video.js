@@ -32,24 +32,24 @@ class BDF {
       {
         case 'STARTFONT':
           declarationStack.push(declaration);
-          this.meta.version = line_data[1];
+          this.meta.version = +line_data[1];
           break;
         case 'FONT':
-          this.meta.name = line_data[1];
+          this.meta.name = +line_data[1];
           break;
         case 'SIZE':
           this.meta.size = {
-            points:      line_data[1],
-            resolutionX: line_data[2],
-            resolutionY: line_data[3]
+            points:      +line_data[1],
+            resolutionX: +line_data[2],
+            resolutionY: +line_data[3]
           };
           break;
         case 'FONTBOUNDINGBOX':
           this.meta.boundingBox = {
-            width:  line_data[1],
-            height: line_data[2],
-            x:      line_data[3],
-            y:      line_data[4]
+            width:  +line_data[1],
+            height: +line_data[2],
+            x:      +line_data[3],
+            y:      +line_data[4]
           };
           break;
         case 'STARTPROPERTIES':
@@ -57,46 +57,46 @@ class BDF {
           this.meta.properties = {};
           break;
         case 'FONT_DESCENT':
-          this.meta.properties.fontDescent = line_data[1];
+          this.meta.properties.fontDescent = +line_data[1];
           break;
         case 'FONT_ASCENT':
-          this.meta.properties.fontAscent = line_data[1];
+          this.meta.properties.fontAscent = +line_data[1];
           break;
         case 'DEFAULT_CHAR':
-          this.meta.properties.defaultChar = line_data[1];
+          this.meta.properties.defaultChar = +line_data[1];
           break;
         case 'ENDPROPERTIES':
           declarationStack.pop();
           break;
         case 'CHARS':
-          this.meta.totalChars = line_data[1];
+          this.meta.totalChars = +line_data[1];
           break;
         case 'STARTCHAR':
           declarationStack.push(declaration);
           currentChar = {
-            name:   line_data[1],
+            name:   +line_data[1],
             bytes:  [],
             bitmap: []
           };
           break;
         case 'ENCODING':
-          currentChar.code = line_data[1];
-          currentChar.char = String.fromCharCode(line_data[1]);
+          currentChar.code = +line_data[1];
+          currentChar.char = String.fromCharCode(+line_data[1]);
           break;
         case 'SWIDTH':
-          currentChar.scalableWidthX = line_data[1];
-          currentChar.scalableWidthY = line_data[2];
+          currentChar.scalableWidthX = +line_data[1];
+          currentChar.scalableWidthY = +line_data[2];
           break;
         case 'DWIDTH':
-          currentChar.deviceWidthX = line_data[1];
-          currentChar.deviceWidthY = line_data[2];
+          currentChar.deviceWidthX = +line_data[1];
+          currentChar.deviceWidthY = +line_data[2];
           break;
         case 'BBX':
           currentChar.boundingBox = {
-            x:      line_data[3],
-            y:      line_data[4],
-            width:  line_data[1],
-            height: line_data[2]
+            x:      +line_data[3],
+            y:      +line_data[4],
+            width:  +line_data[1],
+            height: +line_data[2]
           };
           break;
         case 'BITMAP':
@@ -728,6 +728,25 @@ class Video extends Port {
     return _vm.mem[pi];
   }
 
+  scroll (x, y) {
+    _vm.mem.copy(_vm.mem, this.screen, this.screen + y * this.width, (this.height - y) * this.width);
+    this.refresh();
+  }
+
+  text_index (x, y) {
+    return this.text_buffer + ((y - 1) * this.text_width + (x - 1)) * 3;
+  }
+
+  text_line (y) {
+    var l = this.text_width * 3;
+    return { start: this.text_buffer + y * l, end: this.text_buffer + (y + 1) * l - 3, length: l };
+  }
+
+  charAt (x, y) {
+    var tidx = this.text_index(x, y);
+    return { ch: _vm.mem[tidx], fg: _vm.mem[tidx + 1], bg: _vm.mem[tidx + 2] };
+  }
+
   putChar (ch, fg = 1, bg = 0) {
     switch (ch.charCodeAt(0))
     {
@@ -741,7 +760,7 @@ class Video extends Port {
     }
     var { x, y } = this.pos();
 
-    var tidx = this.text_buffer + ((y - 1) * this.text_width + (x - 1)) * 3;
+    var tidx = this.text_index(x, y);
     _vm.mem[tidx] = ch.charCodeAt(0);
     _vm.mem[tidx + 1] = fg;
     _vm.mem[tidx + 2] = bg;
@@ -805,29 +824,71 @@ class Video extends Port {
 
   right () { return this.moveTo(this.overlays.cursor.text.x + 1, this.overlays.cursor.text.y); }
 
-  scroll (x, y) {
-    _vm.mem.copy(this.mem, this.screen, this.screen + y * this.width, (this.height - y) * this.width);
-    this.refresh();
-  }
-
-  cl () {
-
+  clr () {
+    _vm.mem.fill(0, this.text_buffer, this.text_buffer + this.text_size);
   }
 
   cel () {
-
+    var { x, y } = this.pos();
+    _vm.mem.fill(0, this.text_index(x, y), this.text_index(this.text_width, y));
   }
 
   ces () {
-
+    var { x, y } = this.pos();
+    _vm.mem.fill(0, this.text_index(x, y), this.text_buffer + this.text_size);
   }
 
   cbl () {
-
+    var { x, y } = this.pos();
+    _vm.mem.fill(0, this.text_index(x, y), this.text_index(1, y));
   }
 
   cbs () {
+    var { x, y } = this.pos();
+    _vm.mem.fill(0, this.text_index(x, y), this.text_buffer);
+  }
 
+  copy_text_row (sy, ty) {
+    var si = this.text_line(sy);
+    var ti = this.text_line(ty);
+    _vm.mem.copy(_vm.mem, ti.start, si.start, si.length);
+  }
+
+  copy_text_col (sx, tx) {
+    for (var y = 0; y < this.text_height; y++) {
+      var i = this.text_line(y);
+      var si = i.start + sx * 3;
+      var ti = i.start + tx * 3;
+      _vm.mem.copy(_vm.mem, ti, si, 3);
+    }
+  }
+
+  erase_text_row (y) {
+    var i = this.text_line(y);
+    _vm.mem.fill(0, i.start, i.end);
+  }
+
+  erase_text_col (x) {
+    for (var y = 0; y < this.text_height; y++) {
+      var i = this.text_line(y).start + x * 3;
+      _vm.mem.fill(0, i, i + 3);
+    }
+  }
+
+  scroll_text (dy) {
+    var i;
+    if (dy > 0) {
+      i = this.text_line(dy + 1);
+      _vm.mem.copy(_vm.mem, this.text_buffer, i.start, this.text_size - i);
+      i = this.text_line(dy);
+      _vm.mem.fill(0, this.text_buffer - i.start, this.text_buffer + this.text_size);
+    }
+    else if (dy < 0) {
+      i = this.text_line(dy + 1);
+      _vm.mem.copy(_vm.mem, this.text_buffer, i, this.text_size - i);
+      i = this.text_line(dy + 1);
+      _vm.mem.fill(0, this.text_buffer - dy * this.text_width * 3, this.text_buffer + this.text_size);
+    }
   }
 
   _spr_find (id) {
