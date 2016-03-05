@@ -1,76 +1,77 @@
 import _ from 'lodash';
-import IO from './io.js';
+import Sound from './sound.js';
 import Memory from './memory.js';
-import { defaults, mixin } from './globals.js';
+import { defaults, mixin, stringToBuffer, bufferToString } from './globals.js';
 
 export const _DIR = 0x01;
 export const _OPEN = 0x02;
 export const _LOCK = 0x04;
 
-const _PATHSEP = '/';
-const _EXTSEP = '.';
-const _CURRENT = '.';
-const _PARENT = '..';
-
-
 export class Block {
 
-  constructor (floppy, idx, entry_idx, end_mark) {
+  constructor (floppy, entry_idx, size = 0) {
     this.floppy = floppy;
     this.drive = this.floppy.drive;
-    this.idx = idx;
     this.entry_idx = entry_idx;
-    this.end_mark = end_mark;
-    this.top = this.floppy.blocks_table_top + this.idx * 4;
+    this.idx = this.floppy.blocks.length;
+    this.top = this.floppy.blocks_table_top + this.floppy.block_size * this.idx * 4;
+    this.set_size(size);
+  }
+
+  set_size (size) {
+    if (size > this.floppy.block_size) {
+      size = this.floppy.block_size;
+    }
+    if (size < 0) {
+      size = 0;
+    }
+    this.size = size;
+    this.bottom = this.top + this.size;
   }
 
   isUsed () { return this.entry_idx !== -1; }
 
-  _validPos (pos) {
-    return pos >= this.top && pos <= this.bottom;
+  validPos (pos) { return pos >= this.top && pos <= this.bottom; }
+
+  read (addr) {
+    this.drive.seek(this.top);
+    this.drive.read(addr, this.size);
+    return this.size;
   }
 
-  // _read (addr) {
-  //   this.drive.read(this.idx, addr);
-  //   return this;
-  // }
-
-  // _write (addr) {
-  //   this.drive.write(this.idx, addr);
-  //   return this;
-  // }
+  write (addr) {
+    this.drive.seek(this.top);
+    this.drive.write(addr, this.size);
+    return this.size;
+  }
 }
 
 
 export class Entry {
 
-  constructor (floppy, idx, uid, parent_uid, filename, ext, created, modified, attrs) {
+  constructor (floppy, idx, uid, parent_uid, filename, ext, size, created, modified, attrs) {
     this.floppy = floppy;
     this.drive = this.floppy.drive;
     this.idx = idx;
-    this.top = this.floppy.entries_table_top + 4 + this.idx * this.floppy.entry_size;
+    this.top = this.floppy.entries_table_top + this.idx * this.floppy.entry_size;
 
-    if (uid) {
-      this.uid = uid;
-    }
-    else {
-      this.uid = _.uniqueId();
-    }
-    this.parent_uid = parent_uid;
-    this.parent = this.floppy._findById(this.parent_uid);
-    this.filename = filename;
-    this.ext = ext;
+    this.uid = uid || _.uniqueId();
+    this.parent_uid = parent_uid || 0;
+    this.parent = this.floppy.findEntry(this.parent_uid);
+    this.filename = filename || '';
+    this.ext = ext || '';
+    this.size = size || 0;
     this.created = created || Date.now();
     this.modified = modified || Date.now();
     this.attrs = attrs;
   }
 
-  _read () {
+  read_info () {
     var ptr = this.top;
     this.uid = this.floppy.ld(ptr);
     ptr += 4;
     this.parent_uid = this.floppy.ld(ptr);
-    this.parent = this.floppy._findById(this.parent_uid);
+    this.parent = this.floppy.findEntry(this.parent_uid);
     ptr += 4;
     this.filename = this.floppy.ldl(ptr, 32).toString('ascii');
     ptr += 32;
@@ -81,29 +82,31 @@ export class Entry {
     this.modified = this.floppy.ldd(ptr);
     ptr += 8;
     this.attrs = this.floppy.ldb(ptr);
+
+    this.drive._operation('read', ptr - this.top);
+
+    return ptr;
   }
 
-  _write () {
-    var fn = new Buffer(32);
-    fn.write(this.filename, 0, Math.min(this.filename.length, 32), 'ascii');
-
-    var ext = new Buffer(3);
-    ext.write(this.ext, 0, Math.min(this.ext.length, 3), 'ascii');
-
+  write_info () {
     var ptr = this.top;
     this.floppy.st(ptr, this.uid);
     ptr += 4;
     this.floppy.st(ptr, this.parent_uid);
     ptr += 4;
-    this.floppy.stl(ptr, fn, 32);
+    this.floppy.stl(ptr, _vm.stringBuffer(this.filename, 32));
     ptr += 32;
-    this.floppy.stl(ptr, ext, 3);
+    this.floppy.stl(ptr, _vm.stringBuffer(this.ext, 3));
     ptr += 3;
     this.floppy.std(ptr, this.created);
     ptr += 8;
     this.floppy.std(ptr, this.modified);
     ptr += 8;
     this.floppy.stb(ptr, this.attrs);
+
+    this.drive._operation('write', ptr - this.top);
+
+    return ptr;
   }
 
   _isDir () { return this.attrs & _DIR; }
@@ -114,13 +117,15 @@ export class Entry {
 
   isRoot () { return !this.parent_uid; }
 
-  pathname () {
-    var paths = [];
+  paths () {
+    var paths = [this.drive_path];
     for (var p of this.parents()) {
       paths.push(p.filename + p._isDir() ? '' : '.' + p.ext);
     }
     return paths;
   }
+
+  pathname () { return this.drive.dos.pathname(this.paths()); }
 
   parents () {
     var entries = [];
@@ -134,7 +139,7 @@ export class Entry {
 
   children () {
     var entries = [];
-    for (var e of this.drive.entries) {
+    for (var e of this.floppy.entries) {
       if (e.parent_uid === this.uid) {
         entries.push(e);
       }
@@ -151,6 +156,48 @@ export class Entry {
     }
     return blocks;
   }
+
+  size () {
+    var sz = 0;
+    for (var b of this.blocks()) {
+      sz += b.size;
+    }
+    return sz;
+  }
+
+  clear_blocks () {
+    for (var b of this.blocks()) {
+      b.entry_idx = -1;
+    }
+  }
+
+  next_free_block () {
+    var b = this.floppy._unusedBlocks();
+    return b.length ? b[0] : new Block(this, this.idx);
+  }
+
+  read (addr) {
+    var ptr = addr;
+    for (var b of this.blocks()) {
+      ptr += b.read(ptr);
+    }
+    return ptr - addr;
+  }
+
+  write (addr, size) {
+    this.clear_blocks();
+    var ptr = addr;
+    while (size > 0) {
+      var b = this.next_free_block();
+      if (b) {
+        var sz = Math.min(size, this.floppy.block_size);
+        b.set_size(sz);
+        _vm.copy(b.top, ptr, sz);
+        ptr += b.write(ptr);
+      }
+      size -= this.floppy.block_size;
+    }
+  }
 }
 
 
@@ -161,25 +208,32 @@ export class Floppy {
 
     this.size = size;
 
+    this.diskname = 'UNTITLED';
+
+    this.info_table_top = 0;
+    this.info_table_size = 36;
+
     this.block_size = block_size;
     this.max_blocks = max_blocks;
-    this.blocks_table_top = 0;
+    this.blocks_table_top = this.info_table_size + 1;
     this.blocks_table_size = this.max_blocks * 4;
 
     this.entry_size = entry_size;
     this.max_entries = max_entries;
-    this.entries_table_top = this.blocks_table_top + this.blocks_table_size;
+    this.entries_table_top = this.blocks_table_top + this.blocks_table_size + 1;
     this.entries_table_size = this.max_entries * this.entry_size;
 
-    this.blocks_top = this.entries_table_top + this.entries_table_size;
+    this.blocks_top = this.entries_table_top + this.entries_table_size + 1;
 
-    this.mem = new Buffer(this.size);
+    this.init_mem(this.size);
+
     this.entries = [];
     this.blocks = [];
   }
 
   format () {
-    this.mem.fill(0);
+    this.clear_mem();
+    this.diskname = 'UNTITLED';
     this.entries = [];
     this.blocks = [];
     this.flush();
@@ -189,29 +243,23 @@ export class Floppy {
 
   insert (drive) {
     this.drive = drive;
+    this._readInfoTable();
     this._readBlocksTable();
     this._readEntriesTable();
   }
 
   eject () {
     this.drive = null;
-    this.mem.fill(0, 0, this.size - 1);
+    this.clear_mem();
+    this.diskname = 'UNTITLED';
     this.entries = [];
     this.blocks = [];
   }
 
   flush () {
+    this._writeInfoTable();
     this._writeBlocksTable();
     this._writeEntriesTable();
-  }
-
-  _unusedBlock () {
-    for (var b of this.blocks) {
-      if (!b.isUsed()) {
-        return b;
-      }
-    }
-    return null;
   }
 
   _unusedBlocks () {
@@ -234,106 +282,84 @@ export class Floppy {
     return blocks;
   }
 
+  _readInfoTable () {
+    var ptr = this.info_table_top;
+    this.blocks_count = this.ldw(ptr);
+    ptr += 2;
+    this.entries_count = this.ldw(ptr);
+    ptr += 2;
+    this.diskname = this.ldl(ptr, 32).toString('ascii');
+    ptr += 32;
+
+    this.drive._operation('read', ptr - this.info_table_top);
+  }
+
+  _writeInfoTable () {
+    var ptr = this.info_table_top;
+    this.st(ptr, this.blocks.length);
+    ptr += 2;
+    this.st(ptr, this.entries.length);
+    ptr += 2;
+    this.stl(ptr, _vm.stringBuffer(this.diskname, 32));
+    ptr += 32;
+
+    this.drive._operation('write', ptr - this.info_table_top);
+  }
+
   _readBlocksTable () {
-    var max = this.ld(this.entries_table_top);
-    var ptr = this.blocks_table_top + 4;
-    for (var i = 0; i < max; i++) {
-      var m = this.ld(ptr);
+    var ptr = this.blocks_table_top;
+    for (var i = 0; i < this.blocks_count; i++) {
+      var entry = this.ld(ptr) - 1;
       ptr += 4;
-      var entry = (m >> 8 & 0xFFFF) - 1;
-      var mark = m & 0xFF;
-      this.blocks.push(new Block(this, i, entry, mark));
+      var size = this.ldw(ptr);
+      ptr += 2;
+      this.blocks.push(new Block(this, entry, size));
     }
+
+    this.drive._operation('read', ptr - this.blocks_table_top);
   }
 
   _writeBlocksTable () {
-    this.st(this.blocks_table_top, this.blocks.length);
-    var ptr = this.blocks_table_top + 4;
+    var ptr = this.blocks_table_top;
     for (var b of this.blocks) {
-      this.st(ptr, b.entry_idx + 1 | b.end_mark & 0xFF);
+      this.st(ptr, b.entry_idx + 1);
       ptr += 4;
+      this.stw(ptr, b.size);
+      ptr += 2;
     }
+
+    this.drive._operation('write', ptr - this.blocks_table_top);
   }
 
   _readEntriesTable () {
-    var max = this.ld(this.entries_table_top);
-    for (var i = 0; i < max; i++) {
+    for (var i = 0; i < this.entries_count; i++) {
       var e = new Entry(this, i);
-      e._read();
+      e.read_info();
       this.entries.push(e);
     }
   }
 
   _writeEntriesTable () {
-    this.st(this.entries_table_top, this.entries.length);
     for (var e of this.entries) {
-      e._write();
+      e.write_info();
     }
   }
 
-  _split (path) { return path.split(_PATHSEP); }
-
-  _join (paths) { return paths.join(_PATHSEP); }
-
-  _normalize (path) {
-    var cwd = this.drive.cwd();
-    var newparts = [];
-    var paths = this._split(path);
-    var i = 0;
-    var len = paths.length;
-    var p = paths[i];
-    while (i < len) {
-      if (p === _CURRENT) {
-        newparts = newparts.concat(cwd);
-      }
-      else if (p === _PARENT) {
-        newparts = newparts.concat(cwd.slice(0, cwd.length - 1));
-      }
-      else {
-        newparts.push(p);
-      }
-      i++;
-      p = paths[i];
-    }
-    return newparts;
-  }
-
-  _findByName (path) {
-    path = this._join(this._normalize(path));
+  findEntry (v) {
     for (var e of this.entries) {
-      if (e.pathname() === path) {
+      this.drive._operation('read');
+      if (_.isNumber(v) && e.uid === v) {
+        return e;
+      }
+      else if (_.isString(v) && e.paths() === v) {
         return e;
       }
     }
     return null;
   }
 
-  _findById (uid) {
-    for (var e of this.entries) {
-      if (e.uid === uid) {
-        return e;
-      }
-    }
-    return null;
-  }
-
-  dirname (path) {
-    var parts = this._normalize(path);
-    if (_.last(parts).indexOf(_EXTSEP)) {
-      parts.pop();
-    }
-    return this._join(parts);
-  }
-
-  basename (path) { return _.first(this.filename(path).split(_EXTSEP)); }
-
-  extname (path) { return _.last(this.filename(path).split(_EXTSEP)); }
-
-  filename (path) { return _.last(this._normalize(path)); }
-
-  _entriesForFile (path) {
-    var entry = this._findByName(path);
-    return entry ? entry.parents() : null;
+  dumpInfo () {
+    this.dump(this.info_table_top, this.info_table_size);
   }
 
   dumpEntries () {
@@ -343,7 +369,16 @@ export class Floppy {
   dumpBlocks () {
     this.dump(this.blocks_table_top, this.blocks_table_size);
   }
+
+  fromString (str) {
+    this.mem.fill(0);
+    this.mem = stringToBuffer(str);
+  }
+
+  toString () {
+    return bufferToString(this.mem);
+  }
 }
 
-mixin(Floppy.prototype, Memory.prototype, IO.prototype);
+mixin(Floppy.prototype, Memory.prototype, Sound.prototype);
 
