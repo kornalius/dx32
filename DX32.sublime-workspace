@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"extr",
+				"extract_dict"
+			],
+			[
 				"_opera",
 				"_operations"
 			],
@@ -32,18 +36,10 @@
 	"buffers":
 	[
 		{
-			"file": "src/io.js",
-			"settings":
-			{
-				"buffer_size": 1510,
-				"line_ending": "Unix"
-			}
-		},
-		{
 			"file": "src/ports/drive.js",
 			"settings":
 			{
-				"buffer_size": 11642,
+				"buffer_size": 7650,
 				"line_ending": "Unix"
 			}
 		},
@@ -51,15 +47,7 @@
 			"file": "src/floppy.js",
 			"settings":
 			{
-				"buffer_size": 7755,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/globals.js",
-			"settings":
-			{
-				"buffer_size": 8970,
+				"buffer_size": 8195,
 				"line_ending": "Unix"
 			}
 		}
@@ -87,10 +75,30 @@
 	"build_varint": "",
 	"command_palette":
 	{
-		"height": 32.0,
-		"last_filter": "",
+		"height": 400.0,
+		"last_filter": "case",
 		"selected_items":
 		[
+			[
+				"case",
+				"Convert Case: snake_case"
+			],
+			[
+				"dashca",
+				"Convert Case: dash-case"
+			],
+			[
+				"chan",
+				"ChangeQuotes"
+			],
+			[
+				"q",
+				"Quick Find"
+			],
+			[
+				"linter sett",
+				"Preferences: SublimeLinter Settings – User"
+			],
 			[
 				"alig",
 				"AlignTab"
@@ -125,16 +133,30 @@
 	"expanded_folders":
 	[
 		"/Volumes/hd2/sources/DX32",
-		"/Volumes/hd2/sources/DX32/bower_components/Wad",
-		"/Volumes/hd2/sources/DX32/bower_components/Wad/src",
-		"/Volumes/hd2/sources/DX32/node_modules",
-		"/Volumes/hd2/sources/DX32/node_modules/pixi.js",
-		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/bin",
 		"/Volumes/hd2/sources/DX32/src",
 		"/Volumes/hd2/sources/DX32/src/ports"
 	],
 	"file_history":
 	[
+		"/Volumes/hd2/sources/DX32/src/ports/video.js",
+		"/Volumes/hd2/sources/DX32/src/sound.js",
+		"/Volumes/hd2/sources/DX32/src/globals.js",
+		"/Volumes/hd2/sources/DX32/src/ports/drive.js",
+		"/Volumes/hd2/sources/DX32/src/dict.js",
+		"/Volumes/hd2/sources/DX32/.eslintrc",
+		"/Volumes/hd2/sources/DX32/src/ports/sound.js",
+		"/Volumes/hd2/sources/DX32/src/ports/network.js",
+		"/Volumes/hd2/sources/DX32/src/ports/mouse.js",
+		"/Volumes/hd2/sources/DX32/src/ports/keyboard.js",
+		"/Volumes/hd2/sources/DX32/src/assembler.js",
+		"/Volumes/hd2/sources/DX32/src/tokenizer.js",
+		"/Volumes/hd2/sources/DX32/src/port.js",
+		"/Volumes/hd2/sources/DX32/src/memorymanager.js",
+		"/Volumes/hd2/sources/DX32/src/memory.js",
+		"/Volumes/hd2/sources/DX32/src/main.js",
+		"/Volumes/hd2/sources/DX32/src/label.js",
+		"/Volumes/hd2/sources/DX32/src/ports/cpu.js",
+		"/Users/alain/Library/Application Support/Sublime Text 3/Packages/User/SublimeLinter.sublime-settings",
 		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/bin/pixi.js",
 		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/interaction/index.js",
 		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/extras/index.js",
@@ -144,18 +166,7 @@
 		"/Volumes/hd2/sources/DX32/node_modules/pixi.js/src/core/ticker/Ticker.js",
 		"/Volumes/hd2/sources/DX32/src/vm.js",
 		"/Users/alain/sublime_backups/2016-02-28/Volumes/hd2/sources/DX32/src/ports/drive_163635.js",
-		"/Volumes/hd2/sources/DX32/src/memory.js",
-		"/Volumes/hd2/sources/DX32/src/memorymanager.js",
-		"/Volumes/hd2/sources/DX32/src/main.js",
-		"/Volumes/hd2/sources/DX32/src/ports/cpu.js",
 		"/Users/alain/sublime_backups/2016-02-28/Volumes/hd2/sources/DX32/src/ports/drive_142811.js",
-		"/Volumes/hd2/sources/DX32/src/ports/video.js",
-		"/Volumes/hd2/sources/DX32/src/assembler.js",
-		"/Volumes/hd2/sources/DX32/src/tokenizer.js",
-		"/Volumes/hd2/sources/DX32/src/dict.js",
-		"/Volumes/hd2/sources/DX32/src/globals.js",
-		"/Volumes/hd2/sources/DX32/src/port.js",
-		"/Volumes/hd2/sources/DX32/src/ports/sound.js",
 		"/Volumes/hd2/sources/DX32/bower_components/Wad/src/wad.js",
 		"/Volumes/hd2/sources/DX32/bower_components/Wad/README.md",
 		"/Volumes/hd2/sources/DX32/bower_components/Wad/GUI/init.js",
@@ -186,6 +197,49 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"finished_spinning",
+			"n",
+			"finished_spinning",
+			"_wait_finished_spinning",
+			"wait_finished_spinning",
+			"line_data",
+			"_operation",
+			"this._operation",
+			"this._operations",
+			"min_sounds:",
+			"this",
+			"_operation",
+			"op.",
+			"type",
+			"entry = ",
+			"op.",
+			"this._operation({",
+			"IO",
+			"io",
+			"IO",
+			"io",
+			"IO",
+			"+line_data",
+			"data",
+			"path",
+			"n",
+			"extracting_dict",
+			"aa",
+			"js_name",
+			"extracting_dict",
+			"gen: (",
+			"arrow",
+			"single",
+			"_DIR",
+			"_OPEN",
+			"var",
+			"brace",
+			"curly",
+			"align",
+			"space",
+			"extra",
+			"max_time",
+			"default",
 			"performance",
 			"time",
 			"1000",
@@ -276,6 +330,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"\n      "
 		],
 		"reverse": false,
 		"show_context": true,
@@ -291,29 +346,28 @@
 			[
 				{
 					"buffer": 0,
-					"file": "src/io.js",
+					"file": "src/ports/drive.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1510,
+						"buffer_size": 7650,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								497,
-								497
+								1684,
+								1684
 							]
 						],
 						"settings":
 						{
 							"apply_syntax_touched": true,
 							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
-							"open_with_edit": true,
 							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
 							"tab_size": 2,
-							"tabs_extra_last_activated": 1456754762.1,
+							"tabs_extra_last_activated": 1456922934.16,
 							"tabs_extra_last_activated_sheet_index": 0,
 							"tabs_extra_moving":
 							[
@@ -324,7 +378,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 563.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -332,59 +386,19 @@
 				},
 				{
 					"buffer": 1,
-					"file": "src/ports/drive.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 11642,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3361,
-								3361
-							]
-						],
-						"settings":
-						{
-							"apply_syntax_touched": true,
-							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
-							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
-							"tab_size": 2,
-							"tabs_extra_last_activated": 1456754670.78,
-							"tabs_extra_last_activated_sheet_index": 1,
-							"tabs_extra_moving":
-							[
-								2,
-								0
-							],
-							"tabs_extra_spawned": true,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 866.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 1,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
 					"file": "src/floppy.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 7755,
+						"buffer_size": 8195,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								7181,
-								7181
+								3220,
+								3220
 							]
 						],
 						"settings":
@@ -393,56 +407,16 @@
 							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
 							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
 							"tab_size": 2,
-							"tabs_extra_last_activated": 1456754606.24,
-							"tabs_extra_last_activated_sheet_index": 2,
+							"tabs_extra_last_activated": 1456870681.21,
+							"tabs_extra_last_activated_sheet_index": 1,
 							"tabs_extra_spawned": true,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 7018.0,
+						"translation.y": 3842.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "src/globals.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 8970,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								8962,
-								8962
-							]
-						],
-						"settings":
-						{
-							"apply_syntax_touched": true,
-							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
-							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
-							"tab_size": 2,
-							"tabs_extra_last_activated": 1456754595.89,
-							"tabs_extra_last_activated_sheet_index": 3,
-							"tabs_extra_moving":
-							[
-								2,
-								0
-							],
-							"tabs_extra_spawned": true,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 9236.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
+					"stack_index": 1,
 					"type": "text"
 				}
 			]
