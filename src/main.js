@@ -1,8 +1,8 @@
 require('file?name=[name].[ext]!../node_modules/pixi.js/bin/pixi.js');
 require('file?name=[name].[ext]!../bower_components/Wad/build/wad.min.js');
 
-// import css from '../style/main.css';
-// import t from '../html/main.html';
+import css from '../style/main.css';
+import t from '../html/main.html';
 
 import VM from './vm.js';
 
@@ -49,6 +49,10 @@ var src = '\n\
                 print(@i)\n\
               end\n\
               \n\
+              for :x 1, 5\n\
+                print(@x)\n\
+              end\n\
+              \n\
               :n db $01 $01 $02 \'F\' \'3\' $00 $03 $10 $08 $14 $30 $00 $00\n\
               :wad = #sound:note(n)\n\
               #sound:play(@wad)\n\
@@ -60,6 +64,7 @@ var src = '\n\
               \n\
               print "-->", #1 + 32 / 2\n\
               print "-->", #video + 32 / 2\n\
+              int("my_int", :(ms) print "interrupt" ms end, 1000)\n\
               hlt()\n\
               \n\
             end\n\

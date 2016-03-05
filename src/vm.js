@@ -1,11 +1,9 @@
 import _ from 'lodash';
-import hexy from 'hexy';
-import { defaults, mixin, opcodes, opcodes_idx, registers, register_names, error, runtime_error, read, write, byte, word, dword } from './globals.js';
+import { defaults, mixin, runtime_error } from './globals.js';
 import Memory from './memory.js';
+import Interrupt from './interrupt.js';
 import MemoryManager from './memorymanager.js';
 import Dict from './dict.js';
-import Port from './port.js';
-import Label from './label.js';
 import Tokenizer from './tokenizer.js';
 import Assembler from './assembler.js';
 
@@ -22,33 +20,33 @@ class VM {
   constructor (mem_size = defaults.vm.mem_size) {
     window._vm = this;
 
-    this.mm = new MemoryManager(this);
+    this.init_mem(mem_size);
+
+    this.mm = new MemoryManager(this, this.mem, this.mem_size);
+
     this.dict = new Dict(this);
-    this.stacks = {};
+
+    this.init_interrupts();
 
     this.ports = [];
 
     this.code = '';
     this.fn = null;
 
-    this.mem = null;
-    this.mem_size = mem_size;
-
-    this.top = 0;
-    this.bottom = this.mem_size;
-
-    this.avail_mem = this.mem_size;
-    this.used_mem = 0;
-    this.free_mem = this.mem_size;
-
     this.boot(true);
+
+    var that = this;
+    PIXI.ticker.shared.add((time) => {
+      that.tick(time);
+    });
+
   }
 
   boot (cold = false) {
     this.reset();
 
     if (cold) {
-      this.mem = new Buffer(this.mem_size);
+      this.clear_mem();
 
       new CPU(this, 0);
       new Video(this, 1);
@@ -78,6 +76,8 @@ class VM {
     for (var k in this.ports) {
       this.ports[k].reset();
     }
+
+    this.stop_ints();
   }
 
   shut () {
@@ -89,10 +89,6 @@ class VM {
     this.stacks = {};
 
     this.mem = null;
-
-    this.avail_mem = 0;
-    this.used_mem = 0;
-    this.free_mem = 0;
   }
 
   hlt (code) {
@@ -102,44 +98,13 @@ class VM {
     this.stop();
   }
 
+  hex (value, size = 32) { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0'); }
+
   check_bounds (addr, sz = 4) { if (addr < this.top || addr + sz > this.bottom) { this.hlt(0x06); } }
 
   gpa (port, offset) { return this.ports[port].top + offset; }
   gfa (offset) { return this.fp + offset; }
   gsa (offset) { return this.sp + offset; }
-
-  stk (addr, count) {
-    this.stacks[addr] = { top: addr, bottom: addr + (count - 1) * 4, ptr: addr, count: count };
-  }
-
-  hex (value, size = 32) { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0'); }
-
-  psh (addr, ...values) {
-    var s = this.stacks[addr];
-    for (var v of values) {
-      if (s.ptr + 4 < s.bottom ) {
-        this.st(s.ptr, v);
-        s.ptr += 4;
-      }
-      else {
-        runtime_error(this, 0x03);
-        break;
-      }
-    }
-  }
-
-  pop (addr) {
-    var s = this.stacks[addr];
-    if (s.ptr - 4 >= s.top) {
-      s.ptr -= 4;
-      var r = this.ld(s.ptr);
-      return r;
-    }
-    else {
-      runtime_error(this, 0x02);
-      return 0;
-    }
-  }
 
   load (uri) {
     var t = new Tokenizer();
@@ -164,16 +129,30 @@ class VM {
 
   resume () { this.paused = false; }
 
-  tick () {
+  tick (time) {
     for (var k in this.ports) {
-      if (!this.halted) {
-        this.ports[k].tick();
+      if (!this.halted && this.ports[k].tick) {
+        this.ports[k].tick(time);
       }
     }
+    this.process_ints(time);
   }
 
+  port_by_name (name) {
+    name = name.toLowerCase();
+    for (var k in this.ports) {
+      if (this.ports[k].constructor.name.toLowerCase() === name) {
+        return k;
+      }
+    }
+    return null;
+  }
+
+  port_name (no) {
+    return this.ports[no].constructor.name.toLowerCase();
+  }
 }
 
-mixin(VM.prototype, Memory.prototype);
+mixin(VM.prototype, Memory.prototype, Interrupt.prototype);
 
-export default VM
+export default VM;
