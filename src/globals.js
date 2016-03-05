@@ -67,6 +67,15 @@ export var runtime_error = (self, code) => {
     case 0x03:
       e = 'Stack overflow';
       break;
+    case 0x04:
+      e = 'Invalid stack address';
+      break;
+    case 0x05:
+      e = 'Interrupt already exists';
+      break;
+    case 0x06:
+      e = 'Interrupt not found';
+      break;
   }
   console.error(e);
 };
@@ -252,6 +261,29 @@ export var delay = (ms) => {
   }
 };
 
+export var bufferToString = (b) => {
+  var len = b.length;
+  var i = 0;
+  var s = '';
+  while (i < len) {
+    s += b[i++].toString(16);
+  }
+  return s;
+};
+
+export var stringToBuffer = (str) => {
+  var len = str.length;
+  var i = 0;
+  var b = new Buffer(Math.trunc(str.length / 2));
+  var x = 0;
+  while (i < len) {
+    var hex = str.substr(i, 2);
+    b[x++] = parseInt(hex, 16);
+    i += 2;
+  }
+  return b;
+};
+
 opcodes = {
   nop: {
     fn: () => {},
@@ -424,7 +456,7 @@ opcodes = {
     gen: (a, ...args) => { return ['_vm.dict.mix', '(', a, ',', comma_array(args), ')']; },
   },
   stk: {
-    gen: (a, b) => { return ['_vm.stk', '(', a, ',', b, ')']; },
+    gen: (a, b, c) => { return ['_vm.stk', '(', a, ',', b, ',', c || 4, ')']; },
   },
   psh: {
     gen: (a, ...args) => { return ['_vm.psh', '(', a, ',', comma_array(args), ')']; },
@@ -441,6 +473,18 @@ opcodes = {
   },
   hex16: {
     gen: (a) => { return ['_vm.hex', '(', a, ',', 16, ')']; },
+  },
+  int: {
+    gen: (a, b, c) => { return ['_vm.int', '(', a, ',', b, ',', c, ')']; },
+  },
+  pause_int: {
+    gen: (a) => { return ['_vm.pause_int', '(', a, ')']; },
+  },
+  resume_int: {
+    gen: (a) => { return ['_vm.resume_int', '(', a, ')']; },
+  },
+  stop_int: {
+    gen: (a) => { return ['_vm.stop_int', '(', a, ')']; },
   },
 };
 
