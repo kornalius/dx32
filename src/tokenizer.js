@@ -21,6 +21,8 @@ class Tokenizer {
 
       comma: /\,/,
 
+      struct: /\bstruct\b/i,
+
       open_bracket:  /\[/,
       close_bracket: /\]/i,
 
@@ -45,10 +47,12 @@ class Tokenizer {
 
       constant_def: /\:\:([A-Z_][A-Z_0-9]*)/i,
 
-      label_def: /\:([A-Z_][A-Z_0-9]*)(?=\s+db|\s+dw|\s+dd|\s*\=)/i,
+      label_def: /\:([A-Z_][A-Z_0-9]*)/i,
+
+      func_def_expr: /\:(?=\()/i,
 
       label_indirect: {
-        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
+        match: /(\@+[A-Z_][A-Z_0-9\.]*)/i,
         value (v, d) {
           var i = 0;
           while (v[0] === '@') {
@@ -60,40 +64,57 @@ class Tokenizer {
         },
       },
 
-      struct_def: /\:([A-Z_][A-Z_0-9]*)(?=\s+struct)/i,
+      label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
 
-      func_def: /\:([A-Z_][A-Z_0-9]+)(?=\s*\()/i,
+      label_assign_indirect: {
+        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
+        value (v, d) {
+          var i = 0;
+          while (v[0] === '@') {
+            i++;
+            v = v.substr(1);
+          }
+          d.count = i;
+          return v;
+        },
+      },
+
+      label_assign_bracket: {
+        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
+        type () { return 'label_assign'; },
+      },
+
+      label_assign_indirect_bracket: {
+        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
+        value (v, d) {
+          var i = 0;
+          while (v[0] === '@') {
+            i++;
+            v = v.substr(1);
+          }
+          d.count = i;
+          return v;
+        },
+        type () { return 'label_assign_indirect'; },
+      },
 
       port: /\#([0-9]+)(?!\:)/i,
 
       port_name: {
-        match: /\#(\b[A-Z]+\b)(?!\:)/i,
+        match: /\#([A-Z]+\b)(?!\:)/i,
         value (v) {
-          v = v.toLowerCase();
-          for (var k in _vm.ports) {
-            if (_vm.ports[k].constructor.name.toLowerCase() === v) {
-              return k;
-            }
-          }
-          return '0';
+          return _vm.port_by_name(v);
         },
         type () { return 'port'; },
       },
 
-      port_call: /\#([0-9]+\:[A-Z_][A-Z_0-9]+)/i,
+      port_call: /\#([0-9]+\:[A-Z_][A-Z_0-9]*\b)/i,
 
       port_name_call: {
-        match: /\#([A-Z]+\:[A-Z_][A-Z_0-9]+)/i,
+        match: /\#([A-Z]+\b\:[A-Z_][A-Z_0-9]*\b)/i,
         value (v) {
           var parts = v.split(':');
-          var p = parts[0].toLowerCase();
-          var f = parts[1];
-          for (var k in _vm.ports) {
-            if (_vm.ports[k].constructor.name.toLowerCase() === p) {
-              return k + ':' + f;
-            }
-          }
-          return '0:' + f;
+          return _vm.port_by_name(parts[0]) + ':' + parts[1];
         },
         type () { return 'port_call'; },
       },
@@ -116,7 +137,7 @@ class Tokenizer {
       },
 
       port_name_indirect: {
-        match: /(\@\#\b[A-Z]+\b)(?!\:)/i,
+        match: /(\@\#[A-Z]+)(?!\:)/i,
         value (v, d) {
           var i = 0;
           while (v[0] === '@') {
@@ -141,40 +162,6 @@ class Tokenizer {
       // indirect_symbol: /(\@)(?![^\#A-Z_])/i,
 
       id: /([A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
-
-      label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
-
-      label_assign_indirect: {
-        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
-        value (v, d) {
-          var i = 0;
-          while (v[0] === '@') {
-            i++;
-            v = v.substr(1);
-          }
-          d.count = i;
-          return v;
-        },
-      },
-
-      label_assign_indirect_bracket: {
-        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
-        value (v, d) {
-          var i = 0;
-          while (v[0] === '@') {
-            i++;
-            v = v.substr(1);
-          }
-          d.count = i;
-          return v;
-        },
-        type () { return 'label_assign_indirect'; },
-      },
-
-      label_assign_bracket: {
-        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
-        type () { return 'label_assign'; },
-      },
 
       digit: {
         match: /[0-9]+/,

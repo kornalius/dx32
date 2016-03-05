@@ -72,8 +72,10 @@ class Assembler {
     var constant;
     var label;
     var label_def;
+    var struct_def;
     var func;
     var func_def;
+    var func_def_expr;
     var dict;
     var extract_dict;
     var port;
@@ -84,7 +86,6 @@ class Assembler {
     var indirect;
     var assign;
     var label_assign;
-    var struct_def;
     var constant_def;
 
     var js_name = (name) => { return _.camelCase(name.replace('.', '-')); };
@@ -166,6 +167,12 @@ class Assembler {
       return l;
     };
 
+    var tmp_label = (name, fn = false, unit_size = 4, sizes = []) => {
+      var tn = js_name(name || 'tmp' + '_' + _.uniqueId());
+      new_label(tn, fn, unit_size, sizes);
+      return tn;
+    };
+
     var find_constant = (name) => { return contants[name]; };
 
     var new_constant = (name, args) => {
@@ -188,7 +195,7 @@ class Assembler {
     };
 
     var end_frame = () => {
-      if (frame) {
+      if (frame && _.keys(frame.labels).length) {
         code.line_s(['_vm.mm.free', '(', comma_array(_.keys(frame.labels)), ')']);
         frame = frames.pop();
       }
@@ -281,6 +288,9 @@ class Assembler {
       else if (check_label()) {
         r = r.concat(label());
       }
+      else if (t.type === 'func_def_expr') {
+        r = r.concat(func_def_expr());
+      }
       else if (check_func()) {
         r = r.concat(func());
       }
@@ -371,6 +381,9 @@ class Assembler {
 
         if (t && !is_eos(t)) {
           if (close && t.type === close) {
+            break;
+          }
+          else if (t.value === 'end') {
             break;
           }
           else if (!allow_ws && t.type !== 'comma') {
@@ -506,8 +519,9 @@ class Assembler {
       return ['var', name, '=', '_vm.mm.' + alloc, '(', codify(value), ')'];
     };
 
-    label_def = () => {
+    label_def = (simple = false) => {
       var name = js_name(t.value);
+
       if (structs.length) {
         name = js_name(structs.join('.') + '.' + name);
       }
@@ -523,13 +537,22 @@ class Assembler {
 
       next();
 
-      if (is_eos(t)) {
+      if (is_eos(t) || simple) {
         if (nw) {
           code.line_s(...assign(name, 'alloc', 4));
         }
         else {
           code.line_s(...writeUInt32LE(0, name));
         }
+      }
+
+      else if (t.type === 'open_paren') {
+        func_def(name, l);
+      }
+
+      else if (t.type === 'struct') {
+        delete frame.labels[name];
+        struct_def(name);
       }
 
       else if (t.type === 'assign') {
@@ -593,7 +616,7 @@ class Assembler {
     };
 
     label_assign = () => {
-      var name = t.value;
+      var name = js_name(t.value);
       var _ind = _.endsWith(t.type, '_indirect');
       var count = t.count;
       var i;
@@ -628,6 +651,7 @@ class Assembler {
           r.push(')');
         }
       }
+
       else {
         r.push(name);
       }
@@ -637,23 +661,21 @@ class Assembler {
 
     label = () => { return indirect(js_name(t.value)); };
 
-    struct_def = () => {
-      structs.push(t.value);
+    struct_def = (name) => {
       next();
-      expected_next(this, t, 'struct');
+      structs.push(name);
       block('end');
       structs.pop();
     };
 
-    func_def = () => {
-      var name = js_name(t.value);
-
-      new_label(name, true);
-
-      next();
-
+    func_def = (name, l) => {
       new_frame();
-      code.line('var ' + name, '=', 'function', '(', comma_array(parameters('open_paren', 'close_paren', true, -1, true)), ')', '{');
+      l.fn = true;
+      var parms = parameters('open_paren', 'close_paren', true, -1, true);
+      for (var p of parms) {
+        new_label(js_name(p.value));
+      }
+      code.line('var ' + name, '=', 'function', '(', comma_array(parms), ')', '{');
       indent++;
       block('end');
       end_frame();
@@ -661,11 +683,17 @@ class Assembler {
       code.line_s('}');
     };
 
+    func_def_expr = () => {
+      next();
+      var tn = tmp_label('fn');
+      func_def(tn, find_label(tn));
+      debugger;
+      return [tn];
+    };
+
     func = () => {
       var name = js_name(t.value);
-
       next();
-
       return [name, '(', comma_array(exprs()), ')'];
     };
 
@@ -693,9 +721,7 @@ class Assembler {
     };
 
     constant = () => {
-      var name = t.value;
-
-      var c = find_constant(name);
+      var c = find_constant(t.value);
       var col = t.col;
       var row = t.row;
       var start = t.start;
@@ -782,9 +808,6 @@ class Assembler {
         if (t.type === 'label_def') {
           label_def();
         }
-        else if (t.type === 'struct_def') {
-          struct_def();
-        }
         else if (!is_eos(t)) {
           error(this, t, 'label or struct definition expected');
           next();
@@ -795,12 +818,6 @@ class Assembler {
       }
       else if (t.type === 'label_def') {
         label_def();
-      }
-      else if (t.type === 'struct_def') {
-        struct_def();
-      }
-      else if (t.type === 'func_def') {
-        func_def();
       }
       else if (t.type === 'constant_def') {
         constant_def();
@@ -828,10 +845,40 @@ class Assembler {
         block('end');
         prev();
       }
+      else if (t.value === 'brk') {
+        next();
+        code.line_s('break');
+      }
       else if (t.value === 'whl') {
         next();
         code.line('while', '(', expr(), ')', '{');
         indent++;
+        block('end');
+        indent--;
+        code.line_s('}');
+      }
+      else if (t.value === 'for') {
+        next();
+        var name = js_name(t.value);
+        if (t.type === 'label_def') {
+          label_def(true);
+        }
+        else {
+          error(this, t, 'label definition expected');
+          next();
+          return;
+        }
+        var min = expr();
+        if (t.type === 'comma') {
+          next();
+        }
+        var max = expr();
+        if (t.type === 'comma') {
+          next();
+        }
+        code.line('for', '(', 'var', '__' + name, '=', min, ';', '__' + name, '<=', max, ';', '__' + name, '+=', '1', ')', '{');
+        indent++;
+        code.line_s(...writeUInt32LE('__' + name, name));
         block('end');
         indent--;
         code.line_s('}');
