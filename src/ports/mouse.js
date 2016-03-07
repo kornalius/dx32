@@ -8,7 +8,7 @@ class Mouse extends Port {
   constructor (vm, port_number) {
     super(vm, port_number);
 
-    this.init_stack(vm.mm.alloc(32), 1024, 2);
+    this.init_stack(1024, 2);
 
     var stage = vm.ports[1].stage;
     if (stage) {
