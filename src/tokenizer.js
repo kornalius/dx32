@@ -23,6 +23,9 @@ class Tokenizer {
 
       struct: /\bstruct\b/i,
 
+      boundscheck: /\/bounds\b/i,
+      debug:       /\/debug\b/i,
+
       open_bracket:  /\[/,
       close_bracket: /\]/i,
 

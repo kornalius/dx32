@@ -1,29 +1,41 @@
 import _ from 'lodash';
-import { opcodes, comma_array, codify, is_eos, is_opcode, is_string, is_digit, expected, peek_at, peeks_at, error } from './globals.js';
+import { defaults, opcodes, comma_array, codify, is_eos, is_opcode, is_string, is_digit, expected, peek_at, peeks_at, error, _vmldb, _vmldw, _vmld, _vmldl, _vmlds, _vmstb, _vmstw, _vmst, _vmsts, _vmstl, _vmdb, _vmdw, _vmdd } from './globals.js';
 
 
 var indent = 0;
 
+const _COMPACT = 1;
+const _PRETTY = 2;
 
 class CodeGenerator {
 
-  constructor () {
+  constructor (style) {
     this.lines = [];
+    this.style = style || _COMPACT;
   }
 
   clear () { this.lines = []; }
 
   join (a) {
     var r = a.join(' ');
-    r = r.replace(/(\s\s+)/g, ' ');
-    r = r.replace(/\s([\,])\s?/g, '$1 ');
-    r = r.replace(/\s([\(\{\[])\s/g, '$1');
-    r = r.replace(/\s([\)\}\]])/g, '$1');
+    if (this.style === _COMPACT) {
+      r = r.replace(/(\s\s+)/g, ' ');
+      r = r.replace(/\s?([\(\{\[\)\}\]\<\>\=\,\;\:\+\-\*\/\%\^\&\|])\s?/g, '$1');
+    }
+    else if (this.style === _PRETTY) {
+      r = r.replace(/(\s\s+)/g, ' ');
+      r = r.replace(/\s?\,\s?/g, ', ');
+      r = r.replace(/\s([\(\{\[])\s/g, '$1');
+      r = r.replace(/\s([\)\}\]])/g, '$1');
+      r = r.replace(/\:\{/g, ': {');
+    }
     return r;
   }
 
   push (line) {
-    line = _.padStart('', indent * 2) + line;
+    if (this.style === _PRETTY) {
+      line = _.padStart('', indent * 2) + line;
+    }
     console.log(line);
     this.lines.push(line);
   }
@@ -40,6 +52,7 @@ class Assembler {
 
   constructor () {
     this.errors = 0;
+    this.debug = false;
   }
 
   asm (path, tokens, options = {}) {
@@ -47,7 +60,9 @@ class Assembler {
     var i = 0;
     var t = tokens[i];
 
-    var code = new CodeGenerator();
+    defaults.boundscheck = false;
+
+    var code = new CodeGenerator(_PRETTY);
 
     var extra_statement_lines = [];
 
@@ -57,6 +72,7 @@ class Assembler {
     var assign_name = null;
 
     var structs = [];
+    var first_struct_var = null;
 
     var extracting_dict = false;
 
@@ -110,36 +126,46 @@ class Assembler {
       }
     };
 
-    var readUInt8LE = (offset) => {
-      return ['_vm.mem[' + offset + ']'];
+    var ldb = (offset) => {
+      return [_vmldb(), '(', offset, ')'];
     };
 
-    var readUInt16LE = (offset) => {
-      return ['_vm.mem.readUInt16LE', '(', offset, ')'];
+    var ldw = (offset) => {
+      return [_vmldw(), '(', offset, ')'];
     };
 
-    var readUInt32LE = (offset) => {
-      return ['_vm.mem.readUInt32LE', '(', offset, ')'];
+    var ld = (offset) => {
+      return [_vmld(), '(', offset, ')'];
     };
 
-    var writeUInt8LE = (value, offset) => {
-      return ['_vm.mem[' + offset + ']', '=', value];
+    var stb = (offset, value) => {
+      return [_vmstb(), '(', offset, ',', value, ')'];
     };
 
-    var writeUInt16LE = (value, offset) => {
-      return ['_vm.mem.writeUInt16LE', '(', value, ',', offset, ')'];
+    var stw = (offset, value) => {
+      return [_vmstw(), '(', offset, ',', value, ')'];
     };
 
-    var writeUInt32LE = (value, offset) => {
-      return ['_vm.mem.writeUInt32LE', '(', value, ',', offset, ')'];
+    var st = (offset, value) => {
+      return [_vmst(), '(', offset, ',', value, ')'];
     };
 
-    var write = (value, offset, size = 4) => {
+    var read = (offset, size = 4) => {
       switch (size)
       {
-        case 1: return ['_vm.mem.writeUInt8LE', '(', value, ',', offset, ')'];
-        case 2: return ['_vm.mem.writeUInt16LE', '(', value, ',', offset, ')'];
-        case 4: return ['_vm.mem.writeUInt32LE', '(', value, ',', offset, ')'];
+        case 1: return ldb(offset);
+        case 2: return ldw(offset);
+        case 4: return ld(offset);
+        default: return [];
+      }
+    };
+
+    var write = (offset, value, size = 4) => {
+      switch (size)
+      {
+        case 1: return stb(offset, value);
+        case 2: return stw(offset, value);
+        case 4: return st(offset, value);
         default: return [];
       }
     };
@@ -195,8 +221,11 @@ class Assembler {
     };
 
     var end_frame = () => {
-      if (frame && _.keys(frame.labels).length) {
-        code.line_s(['_vm.mm.free', '(', comma_array(_.keys(frame.labels)), ')']);
+      if (frame) {
+        var l = _.filter(_.keys(frame.labels), (k) => { return !frame.labels[k].fn; });
+        if (l.length) {
+          code.line_s(['_vm.mm.free', '(', comma_array(l), ')']);
+        }
         frame = frames.pop();
       }
     };
@@ -414,7 +443,7 @@ class Assembler {
         for (var k in dd) {
           var vname = js_name([genvars ? name : '', k].join('.'));
           if (genvars) {
-            extra_statement_lines.push(['var', vname, '=', '_vm.mem.readUInt32LE', '(', name, ')', '+', offset + 4]);
+            extra_statement_lines.push(['var', vname, '=', ...ld(name), '+', offset + 4]);
             new_label(vname);
             offset += 8;
           }
@@ -498,7 +527,7 @@ class Assembler {
 
       if (_ind) {
         for (i = 0; i < t.count; i++) {
-          r = r.concat(['_vm.mem.readUInt32LE', '(']);
+          r = r.concat([_vmld(), '(']);
         }
       }
 
@@ -521,9 +550,13 @@ class Assembler {
 
     label_def = (simple = false) => {
       var name = js_name(t.value);
+      var orig_name = name;
 
       if (structs.length) {
         name = js_name(structs.join('.') + '.' + name);
+        if (!first_struct_var) {
+          first_struct_var = name;
+        }
       }
 
       var nw = false;
@@ -542,7 +575,7 @@ class Assembler {
           code.line_s(...assign(name, 'alloc', 4));
         }
         else {
-          code.line_s(...writeUInt32LE(0, name));
+          code.line_s(...st(name, 0));
         }
       }
 
@@ -551,8 +584,8 @@ class Assembler {
       }
 
       else if (t.type === 'struct') {
-        delete frame.labels[name];
-        struct_def(name);
+        delete frame.labels[orig_name];
+        struct_def(orig_name);
       }
 
       else if (t.type === 'assign') {
@@ -563,7 +596,7 @@ class Assembler {
           code.line_s(...assign(name, 'alloc_d', v));
         }
         else {
-          code.line_s(...writeUInt32LE(v, name));
+          code.line_s(...st(name, v));
         }
       }
 
@@ -608,7 +641,7 @@ class Assembler {
           if (nw) {
             code.line_s(...assign(name, 'alloc', sz * p.length));
           }
-          code.line_s('_vm.' + szfn, '(', name, ',', comma_array(p), ')');
+          code.line_s('_vm.' + szfn + (defaults.boundscheck ? '_bc' : ''), '(', name, ',', comma_array(p), ')');
         }
       }
 
@@ -642,7 +675,7 @@ class Assembler {
       var r = [];
       if (_ind) {
         for (i = 0; i < count; i++) {
-          r = r.concat(['_vm.mem.readUInt32LE', '(']);
+          r = r.concat([_vmld(), '(']);
         }
 
         r.push(name);
@@ -656,16 +689,20 @@ class Assembler {
         r.push(name);
       }
 
-      code.line_s(...write(v, r.concat(br).join(' '), l.unit_size));
+      code.line_s(...write(r.concat(br).join(' '), v, l.unit_size));
     };
 
     label = () => { return indirect(js_name(t.value)); };
 
     struct_def = (name) => {
+      var old_first_struct_var = first_struct_var;
+      first_struct_var = null;
       next();
       structs.push(name);
       block('end');
+      code.line_s('var', js_name(structs.join('.')), '=', first_struct_var);
       structs.pop();
+      first_struct_var = old_first_struct_var;
     };
 
     func_def = (name, l) => {
@@ -687,7 +724,6 @@ class Assembler {
       next();
       var tn = tmp_label('fn');
       func_def(tn, find_label(tn));
-      debugger;
       return [tn];
     };
 
@@ -813,6 +849,14 @@ class Assembler {
           next();
         }
       }
+      else if (t.type === 'boundscheck') {
+        defaults.boundscheck = true;
+        next();
+      }
+      else if (t.type === 'debug') {
+        this.debug = true;
+        next();
+      }
       else if (t.type === 'label_assign' || t.type === 'label_assign_indirect') {
         label_assign();
       }
@@ -878,7 +922,7 @@ class Assembler {
         }
         code.line('for', '(', 'var', '__' + name, '=', min, ';', '__' + name, '<=', max, ';', '__' + name, '+=', '1', ')', '{');
         indent++;
-        code.line_s(...writeUInt32LE('__' + name, name));
+        code.line_s(...st(name, '__' + name));
         block('end');
         indent--;
         code.line_s('}');
@@ -906,6 +950,10 @@ class Assembler {
           code.line_s(...l);
         }
         extra_statement_lines = [];
+      }
+
+      if (this.debug) {
+        code.line_s('_vm.dbg.line', '(', t.row, ')');
       }
     };
 

@@ -11,6 +11,83 @@ class Memory {
     this.mem = new Buffer(this.mem_size);
   }
 
+  check_bounds (addr, sz = 4) { if (addr < this.top || addr + sz > this.bottom) { this.hlt(0x06); } }
+
+  db_bc (addr, ...args) {
+    this.check_bounds(addr, args.length);
+    this.db(addr, ...args);
+  }
+
+  dw_bc (addr, ...args) {
+    this.check_bounds(addr, args.length * 2);
+    this.dw(addr, ...args);
+  }
+
+  dd_bc (addr, ...args) {
+    this.check_bounds(addr, args.length * 4);
+    this.dd(addr, ...args);
+  }
+
+  ldb_bc (addr) {
+    this.check_bounds(addr, 1);
+    return this.ldb(addr);
+  }
+
+  ldw_bc (addr) {
+    this.check_bounds(addr, 2);
+    return this.ldw(addr);
+  }
+
+  ldd_bc (addr) {
+    this.check_bounds(addr, 8);
+    return this.ldd(addr);
+  }
+
+  ld_bc (addr) {
+    this.check_bounds(addr, 4);
+    return this.ld(addr);
+  }
+
+  ldl_bc (addr, size) {
+    this.check_bounds(addr, size);
+    return this.ldl(addr, size);
+  }
+
+  lds_bc (addr, size = -1) {
+    this.check_bounds(addr, size);
+    return this.lds(addr, size);
+  }
+
+  stb_bc (addr, value) {
+    this.check_bounds(addr, 1);
+    this.stb(addr, value);
+  }
+
+  stw_bc (addr, value) {
+    this.check_bounds(addr, 2);
+    this.stw(addr, value);
+  }
+
+  std_bc (addr, value) {
+    this.check_bounds(addr, 8);
+    this.std(addr, value);
+  }
+
+  st_bc (addr, value) {
+    this.check_bounds(addr, 4);
+    this.st(addr, value);
+  }
+
+  stl_bc (addr, buffer, size = 0) {
+    this.check_bounds(addr, size);
+    this.stl(addr, buffer, size);
+  }
+
+  sts_bc (addr, str, len = 0) {
+    this.check_bounds(addr, len);
+    this.sts(addr, str, len);
+  }
+
   db (addr, ...args) {
     for (var a of args) {
       this.mem[addr++] = a;
@@ -31,13 +108,21 @@ class Memory {
     }
   }
 
-  ldb (addr) { return this.mem[addr]; }
+  ldb (addr) {
+    return this.mem[addr];
+  }
 
-  ldw (addr) { return this.mem.readUInt16LE(addr); }
+  ldw (addr) {
+    return this.mem.readUInt16LE(addr);
+  }
 
-  ldd (addr) { return this.mem.writeDoubleLE(addr); }
+  ldd (addr) {
+    return this.mem.writeDoubleLE(addr);
+  }
 
-  ld (addr) { return this.mem.readUInt32LE(addr); }
+  ld (addr) {
+    return this.mem.readUInt32LE(addr);
+  }
 
   ldl (addr, size) {
     var b = new Buffer(size);
@@ -63,15 +148,25 @@ class Memory {
     return s;
   }
 
-  stb (addr, value) { this.mem.writeUInt8(value, addr); }
+  stb (addr, value) {
+    this.mem[addr] = value;
+  }
 
-  stw (addr, value) { this.mem.writeUInt16LE(value, addr); }
+  stw (addr, value) {
+    this.mem.writeUInt16LE(value, addr);
+  }
 
-  std (addr, value) { this.mem.writeDoubleLE(value, addr); }
+  std (addr, value) {
+    this.mem.writeDoubleLE(value, addr);
+  }
 
-  st (addr, value) { this.mem.writeUInt32LE(value, addr); }
+  st (addr, value) {
+    this.mem.writeUInt32LE(value, addr);
+  }
 
-  stl (addr, buffer, size = 0) { buffer.copy(this.mem, addr, 0, size || buffer.length); }
+  stl (addr, buffer, size = 0) {
+    buffer.copy(this.mem, addr, 0, size || buffer.length);
+  }
 
   sts (addr, str, len = 0) {
     len = len || str.length;
@@ -94,6 +189,7 @@ class Memory {
       case 1: return this.ldb(addr);
       case 2: return this.ldw(addr);
       case 4: return this.ld(addr);
+      case 8: return this.ldd(addr);
       default: return null;
     }
   }
@@ -110,7 +206,20 @@ class Memory {
       case 4:
         this.st(addr, value);
         break;
+      case 8:
+        this.std(addr, value);
+        break;
     }
+  }
+
+  fill_bc (addr, value, size) {
+    this.check_bounds(addr, size);
+    this.fill(addr, value, size);
+  }
+
+  copy_bc (src, tgt, size) {
+    this.check_bounds(src, size); this.check_bounds(tgt, size);
+    this.copy(src, tgt, size);
   }
 
   fill (addr, value, size) {

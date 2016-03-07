@@ -7,6 +7,7 @@ import t from '../html/main.html';
 import VM from './vm.js';
 
 var src = '\n\
+            /bounds\n\
             ::my_const $F0 $20\n\
             :my_label db $FF my_const, 40\n\
             :my_dict = { :k1 = 3, :k2 = 100, :k3 = "string", :k4 = { :k5 = 32, :k6 = 1200 }, :k7 = 1 }\n\
@@ -65,7 +66,7 @@ var src = '\n\
               print "-->", #1 + 32 / 2\n\
               print "-->", #video + 32 / 2\n\
               int("my_int", :(ms) print "interrupt" ms end, 1000)\n\
-              hlt()\n\
+              ;hlt()\n\
               \n\
             end\n\
             \n\

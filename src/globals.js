@@ -1,6 +1,8 @@
 import _ from 'lodash';
 
 export var defaults = {
+  boundscheck: false,
+
   vm: {
     mem_size: 512 * 1024,
   },
@@ -284,13 +286,32 @@ export var stringToBuffer = (str) => {
   return b;
 };
 
+export var _vmldb = () => { return '_vm.ldb' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmldw = () => { return '_vm.ldw' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmld = () => { return '_vm.ld' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmldl = () => { return '_vm.ldl' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmlds = () => { return '_vm.lds' + (defaults.boundscheck ? '_bc' : ''); };
+
+export var _vmstb = () => { return '_vm.stb' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmstw = () => { return '_vm.stw' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmst = () => { return '_vm.st' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmsts = () => { return '_vm.sts' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmstl = () => { return '_vm.stl' + (defaults.boundscheck ? '_bc' : ''); };
+
+export var _vmfill = () => { return '_vm.fill' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmcopy = () => { return '_vm.copy' + (defaults.boundscheck ? '_bc' : ''); };
+
+export var _vmdb = () => { return '_vm.db' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmdw = () => { return '_vm.dw' + (defaults.boundscheck ? '_bc' : ''); };
+export var _vmdd = () => { return '_vm.dd' + (defaults.boundscheck ? '_bc' : ''); };
+
 opcodes = {
   nop: {
     fn: () => {},
   },
   '@': {
     expr: true,
-    gen:  (a) => { return ['_vm.mem.readUInt32LE', '(', a, ')']; },
+    gen:  (a) => { return [_vmld(), '(', a, ')']; },
   },
   '>': {
     expr: true,
@@ -362,38 +383,38 @@ opcodes = {
   },
   ldb: {
     expr: true,
-    gen:  (a) => { return ['_vm.mem', '[', a, ']']; },
+    gen:  (a) => { return [_vmldb(), '(', a, ')']; },
   },
   ldw: {
     expr: true,
-    gen:  (a) => { return ['_vm.mem.readUInt16LE', '(', a, ')']; },
+    gen:  (a) => { return [_vmldw(), '(', a, ')']; },
   },
   ld: {
     expr: true,
-    gen:  (a) => { return ['_vm.mem.readUInt32LE', '(', a, ')']; },
+    gen:  (a) => { return [_vmld(), '(', a, ')']; },
   },
   lds: {
     expr: true,
-    gen:  (a) => { return ['_vm.lds', '(', a, ')']; },
+    gen:  (a) => { return [_vmlds(), '(', a, ')']; },
   },
   ldl: {
     expr: true,
-    gen:  (a, b) => { return ['_vm.ldl', '(', a, ',', b, ')']; },
+    gen:  (a, b) => { return [_vmldl(), '(', a, ',', b, ')']; },
   },
   stb: {
-    gen: (a, b) => { return ['_vm.mem', '[', a, ']', '=', b]; },
+    gen: (a, b) => { return [_vmstb(), '(', a, ',', b, ')']; },
   },
   stw: {
-    gen: (a, b) => { return ['_vm.mem.writeUInt16LE', '(', b, ',', a, ')']; },
+    gen: (a, b) => { return [_vmstw(), '(', a, ',', b, ')']; },
   },
   st: {
-    gen: (a, b) => { return ['_vm.mem.writeUInt32LE', '(', b, ',', a, ')']; },
+    gen: (a, b) => { return [_vmst(), '(', a, ',', b, ')']; },
   },
   sts: {
-    gen: (a, b) => { return ['_vm.sts', '(', a, ',', b, ')']; },
+    gen: (a, b) => { return [_vmsts(), '(', a, ',', b, ')']; },
   },
   stl: {
-    gen: (a, b) => { return ['_vm.stl', '(', a, ',', b, ')']; },
+    gen: (a, b) => { return [_vmstl(), '(', a, ',', b, ')']; },
   },
   call: {
     gen: (a, ...args) => { return ['_vm.' + a, '(', comma_array(args), ')']; },
@@ -423,19 +444,16 @@ opcodes = {
     gen: () => { return ['']; },
   },
   copy: {
-    gen: (s, t, sz) => { return ['_vm.copy', '(', s, ',', t, ',', sz, ')']; },
+    gen: (s, t, sz) => { return [_vmcopy(), '(', s, ',', t, ',', sz, ')']; },
   },
   fill: {
-    gen: (a, v, sz) => { return ['_vm.fill', '(', a, ',', v, ',', sz, ')']; },
+    gen: (a, v, sz) => { return [_vmfill(), '(', a, ',', v, ',', sz, ')']; },
   },
   print: {
     gen: (...args) => { return ['console.log', '(', comma_array(args), ')']; },
   },
   hlt: {
     gen: (a) => { return ['_vm.hlt', '(', a || '', ')']; },
-  },
-  dbg: {
-    gen: () => { return ['debugger']; },
   },
   free: {
     gen: (...args) => { return ['_vm.mm.free', '(', comma_array(args), ')']; },
@@ -485,6 +503,15 @@ opcodes = {
   },
   stop_int: {
     gen: (a) => { return ['_vm.stop_int', '(', a, ')']; },
+  },
+  ord: {
+    gen: (a) => { return [a + '.toString().charCodeAt[0]']; },
+  },
+  chr: {
+    gen: (a) => { return ['String.fromCharCode', '(', a, ')']; },
+  },
+  brk: {
+    gen: () => { return ['_vm.dbg.brk', '(', ')']; },
   },
 };
 
