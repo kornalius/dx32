@@ -3,6 +3,7 @@ import { defaults, mixin, runtime_error } from './globals.js';
 import Memory from './memory.js';
 import Interrupt from './interrupt.js';
 import MemoryManager from './memorymanager.js';
+import Debugger from './debugger.js';
 import Dict from './dict.js';
 import Tokenizer from './tokenizer.js';
 import Assembler from './assembler.js';
@@ -15,6 +16,10 @@ import Drive from './ports/drive.js';
 import Network from './ports/network.js';
 import Sound from './ports/sound.js';
 
+const _STOPPED = 0;
+const _RUNNING = 1;
+const _PAUSED = 2;
+
 class VM {
 
   constructor (mem_size = defaults.vm.mem_size) {
@@ -23,6 +28,8 @@ class VM {
     this.init_mem(mem_size);
 
     this.mm = new MemoryManager(this, this.mem, this.mem_size);
+
+    this.dbg = new Debugger(this);
 
     this.dict = new Dict(this);
 
@@ -37,7 +44,9 @@ class VM {
 
     var that = this;
     PIXI.ticker.shared.add((time) => {
-      that.tick(time);
+      if (that.status === _RUNNING) {
+        that.tick(time);
+      }
     });
 
   }
@@ -70,8 +79,7 @@ class VM {
   }
 
   reset () {
-    this.paused = false;
-    this.halted = false;
+    this.status = _RUNNING;
 
     for (var k in this.ports) {
       this.ports[k].reset();
@@ -100,8 +108,6 @@ class VM {
 
   hex (value, size = 32) { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0'); }
 
-  check_bounds (addr, sz = 4) { if (addr < this.top || addr + sz > this.bottom) { this.hlt(0x06); } }
-
   gpa (port, offset) { return this.ports[port].top + offset; }
   gfa (offset) { return this.fp + offset; }
   gsa (offset) { return this.sp + offset; }
@@ -123,15 +129,15 @@ class VM {
     }
   }
 
-  stop () { this.halted = true; }
+  stop () { this.status = _STOPPED; }
 
-  pause () { this.paused = true; }
+  pause () { this.status = _PAUSED; }
 
-  resume () { this.paused = false; }
+  resume () { this.status = _RUNNING; }
 
   tick (time) {
     for (var k in this.ports) {
-      if (!this.halted && this.ports[k].tick) {
+      if (this.ports[k].tick) {
         this.ports[k].tick(time);
       }
     }
