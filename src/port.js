@@ -25,9 +25,6 @@ class Port {
   }
 
   tick () {
-    var n = Date.now();
-    this.tick(n - this._last_tick);
-    this._last_tick = n;
   }
 
 }
