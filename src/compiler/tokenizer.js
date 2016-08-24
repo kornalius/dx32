@@ -1,20 +1,21 @@
-import _ from 'lodash';
-import { error } from './globals.js';
+import _ from 'lodash'
+import { error } from '../globals.js'
+
 
 class Tokenizer {
 
   constructor () {
-    this.errors = 0;
+    this.errors = 0
   }
 
   tokenize (path, text) {
-    var tokens = [];
-    var len = text.length;
-    var i = 0;
-    var si = 0;
-    var ls = 0;
-    var row = 1;
-    var col = 1;
+    var tokens = []
+    var len = text.length
+    var i = 0
+    var si = 0
+    var ls = 0
+    var row = 1
+    var col = 1
 
     var defs = {
       eol: /[\r\n]/,
@@ -57,13 +58,13 @@ class Tokenizer {
       label_indirect: {
         match: /(\@+[A-Z_][A-Z_0-9\.]*)/i,
         value (v, d) {
-          var i = 0;
+          var i = 0
           while (v[0] === '@') {
-            i++;
-            v = v.substr(1);
+            i++
+            v = v.substr(1)
           }
-          d.count = i;
-          return v;
+          d.count = i
+          return v
         },
       },
 
@@ -72,33 +73,33 @@ class Tokenizer {
       label_assign_indirect: {
         match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
         value (v, d) {
-          var i = 0;
+          var i = 0
           while (v[0] === '@') {
-            i++;
-            v = v.substr(1);
+            i++
+            v = v.substr(1)
           }
-          d.count = i;
-          return v;
+          d.count = i
+          return v
         },
       },
 
       label_assign_bracket: {
         match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
-        type () { return 'label_assign'; },
+        type () { return 'label_assign' },
       },
 
       label_assign_indirect_bracket: {
         match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
         value (v, d) {
-          var i = 0;
+          var i = 0
           while (v[0] === '@') {
-            i++;
-            v = v.substr(1);
+            i++
+            v = v.substr(1)
           }
-          d.count = i;
-          return v;
+          d.count = i
+          return v
         },
-        type () { return 'label_assign_indirect'; },
+        type () { return 'label_assign_indirect' },
       },
 
       port: /\#([0-9]+)(?!\:)/i,
@@ -106,9 +107,9 @@ class Tokenizer {
       port_name: {
         match: /\#([A-Z]+\b)(?!\:)/i,
         value (v) {
-          return _vm.port_by_name(v);
+          return _vm.port_by_name(v)
         },
-        type () { return 'port'; },
+        type () { return 'port' },
       },
 
       port_call: /\#([0-9]+\:[A-Z_][A-Z_0-9]*\b)/i,
@@ -116,50 +117,50 @@ class Tokenizer {
       port_name_call: {
         match: /\#([A-Z]+\b\:[A-Z_][A-Z_0-9]*\b)/i,
         value (v) {
-          var parts = v.split(':');
-          return _vm.port_by_name(parts[0]) + ':' + parts[1];
+          var parts = v.split(':')
+          return _vm.port_by_name(parts[0]) + ':' + parts[1]
         },
-        type () { return 'port_call'; },
+        type () { return 'port_call' },
       },
 
       port_indirect: {
         match: /(\@\#[0-9]+)(?!\:)/i,
         value (v, d) {
-          var i = 0;
+          var i = 0
           while (v[0] === '@') {
-            i++;
-            v = v.substr(1);
+            i++
+            v = v.substr(1)
           }
           if (v[0] === '#') {
-            v = v.substr(1);
+            v = v.substr(1)
           }
-          d.count = i;
-          debugger;
-          return v;
+          d.count = i
+          debugger
+          return v
         },
       },
 
       port_name_indirect: {
         match: /(\@\#[A-Z]+)(?!\:)/i,
         value (v, d) {
-          var i = 0;
+          var i = 0
           while (v[0] === '@') {
-            i++;
-            v = v.substr(1);
+            i++
+            v = v.substr(1)
           }
           if (v[0] === '#') {
-            v = v.substr(1);
+            v = v.substr(1)
           }
-          d.count = i;
-          v = v.toLowerCase();
+          d.count = i
+          v = v.toLowerCase()
           for (var k in _vm.ports) {
             if (_vm.ports[k].constructor.name.toLowerCase() === v) {
-              return k;
+              return k
             }
           }
-          return '0';
+          return '0'
         },
-        type () { return 'port_indirect'; },
+        type () { return 'port_indirect' },
       },
 
       // indirect_symbol: /(\@)(?![^\#A-Z_])/i,
@@ -169,19 +170,19 @@ class Tokenizer {
       digit: {
         match: /[0-9]+/,
         type (k, v) {
-          v = parseInt(v);
+          v = parseInt(v)
           if (v >= 0x00 && v <= 0xFF) {
-            return 'byte';
+            return 'byte'
           }
           else if (v > 0xFF && v <= 0xFFFF) {
-            return 'word';
+            return 'word'
           }
           else if (v > 0xFFFF && v <= 0xFFFFFFFF) {
-            return 'dword';
+            return 'dword'
           }
           else {
-            error(this, { v, row, col }, 'value out of bounds');
-            return null;
+            error(this, { v, row, col }, 'value out of bounds')
+            return null
           }
         },
       },
@@ -197,113 +198,115 @@ class Tokenizer {
 
       hex: {
         match: /\$([0-9A-F]+)/i,
-        type () { return 'digit'; },
-        value (v) { return parseInt('0x' + v, 16).toString(); },
+        type () { return 'digit' },
+        value (v) { return parseInt('0x' + v, 16).toString() },
       },
 
       string: /\"([^"]*)\"/i,
 
       char: {
         match: /\'(.)\'/i,
-        type () { return 'digit'; },
-        value (v) { return v.charCodeAt(0); },
+        type () { return 'digit' },
+        value (v) { return v.charCodeAt(0) },
       },
 
-    };
+    }
 
     var add_token = (k, v) => {
-      var d = defs[k];
+      var d = defs[k]
 
-      var r = { type: k, value: v, row, col: si + 1 - ls, start: si, end: i, idx: tokens.length - 1 };
+      var r = { type: k, value: v, row, col: si + 1 - ls, start: si, end: i, idx: tokens.length - 1 }
 
       while (d && (_.isFunction(d.type) || _.isFunction(d.value))) {
-        var ok = k;
+        var ok = k
 
         if (_.isFunction(d.type)) {
-          k = d.type(k, v, r);
+          k = d.type(k, v, r)
           if (k === ok) {
-            error(this, { k, row, col }, 'recursive type loop');
-            break;
+            error(this, { k, row, col }, 'recursive type loop')
+            break
           }
         }
 
         if (_.isFunction(d.value)) {
-          v = d.value(v, r);
+          v = d.value(v, r)
         }
 
         if (ok !== k) {
-          d = defs[k];
+          d = defs[k]
         }
         else {
-          break;
+          break
         }
       }
 
-      r.type = k;
-      r.value = v;
+      r.type = k
+      r.value = v
 
-      tokens.push(r);
+      tokens.push(r)
 
       if (k === 'eol') {
-        row++;
-        ls = i;
+        row++
+        ls = i
       }
-    };
+    }
 
-    var rx;
-    var _include = false;
+    var rx
+    var _include = false
 
     while (i < len) {
-      var c = text[i];
+      var c = text[i]
 
-      si = i;
+      si = i
 
       if (c !== ' ' && c !== '\t') {
         for (var k in defs) {
-          var d = defs[k];
+          var d = defs[k]
 
           if (_.isRegExp(d)) {
-            rx = d;
+            rx = d
           }
           else if (d.match) {
-            rx = d.match;
+            rx = d.match
           }
 
-          var r = text.substring(i).match(rx);
+          var r = text.substring(i).match(rx)
           if (r && r.index === 0) {
-            var t = r.length > 1 ? r.slice(1).join('') : r.join('');
-            i += r[0].length - 1;
+            var t = r.length > 1 ? r.slice(1).join('') : r.join('')
+            i += r[0].length - 1
 
             if (_include && k === 'string') {
-              _include = false;
-              var p = new Tokenizer();
-              var s = '';
-              var new_tokens = p.parse(s);
+              _include = false
+              var p = new Tokenizer()
+              var s = ''
+              var new_tokens = p.parse(s)
               if (p.errors !== 0) {
-                new_tokens = [];
+                new_tokens = []
               }
-              tokens = tokens.concat(new_tokens);
-              len = tokens.length;
+              tokens = tokens.concat(new_tokens)
+              len = tokens.length
             }
             else if (d.include) {
-              _include = true;
+              _include = true
             }
             else {
-              add_token(k, t);
+              add_token(k, t)
             }
 
-            break;
+            break
           }
 
         }
       }
 
-      i++;
+      i++
     }
 
-    return tokens;
+    return tokens
   }
 
 }
 
-export default Tokenizer;
+export default {
+  Tokenizer,
+}

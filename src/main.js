@@ -1,10 +1,10 @@
-require('file?name=[name].[ext]!../node_modules/pixi.js/bin/pixi.js');
-require('file?name=[name].[ext]!../bower_components/Wad/build/wad.min.js');
+require('file?name=[name].[ext]!../node_modules/pixi.js/bin/pixi.js')
+require('file?name=[name].[ext]!../bower_components/Wad/build/wad.min.js')
 
-import css from '../style/main.css';
-import t from '../html/main.html';
+import css from '../style/main.css'
+import t from '../html/main.html'
 
-import VM from './vm.js';
+import { VM } from './interpreter/vm.js'
 
 var src = '\n\
             /bounds\n\
@@ -70,16 +70,16 @@ var src = '\n\
               \n\
             end\n\
             \n\
-          ';
-console.log(src);
+          '
+console.log(src)
 
-var vm = new VM();
-vm.load(src);
-vm.run();
-vm.mm.dump();
+var vm = new VM()
+vm.load(src)
+vm.run()
+vm.mm.dump()
 
-// console.log(hexy.hexy(vm.mem, { offset: 0, length: 512, display_offset: 0x00, width: 16, caps: 'upper', indent: 2 }));
+// console.log(hexy.hexy(vm.mem, { offset: 0, length: 512, display_offset: 0x00, width: 16, caps: 'upper', indent: 2 }))
 
-// var el = document.createElement('div');
-// el.innerHTML = t;
-// document.body.appendChild(el);
+// var el = document.createElement('div')
+// el.innerHTML = t
+// document.body.appendChild(el)
