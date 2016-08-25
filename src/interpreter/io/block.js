@@ -1,7 +1,7 @@
 import _ from 'lodash'
 
 
-class Block {
+export class Block {
 
   constructor (floppy, entry_idx, size = 0) {
     this.floppy = floppy
@@ -39,8 +39,4 @@ class Block {
     return this.size
   }
 
-}
-
-export default {
-  Block,
 }

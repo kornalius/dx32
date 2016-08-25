@@ -3,7 +3,7 @@ import { Stack } from '../stack.js'
 import { mixin } from '../../globals.js'
 
 
-class NetworkPort extends Port {
+export class NetworkPort extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number)
@@ -23,7 +23,3 @@ class NetworkPort extends Port {
 }
 
 mixin(NetworkPort.prototype, Stack.prototype)
-
-export default {
-  NetworkPort,
-}

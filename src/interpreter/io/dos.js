@@ -1,13 +1,13 @@
 import { Entry, _ENTRY_OPEN, _ENTRY_LOCK } from './entry.js'
-import { io_error } from '../globals.js'
+import { io_error } from '../../globals.js'
 
 
-const _DOS_PATHSEP = '/'
-const _DOS_EXTSEP = '.'
-const _DOS_CURRENT = '.'
-const _DOS_PARENT = '..'
+export const _DOS_PATHSEP = '/'
+export const _DOS_EXTSEP = '.'
+export const _DOS_CURRENT = '.'
+export const _DOS_PARENT = '..'
 
-class DOS {
+export class DOS {
 
   constructor (drive) {
     this.drive = drive
@@ -20,12 +20,12 @@ class DOS {
   path_join (paths) { return paths.join(_DOS_PATHSEP) }
 
   normalize (path) {
-    var cwd = this.cwd()
-    var newparts = []
-    var paths = this.path_split(path)
-    var i = 0
-    var len = paths.length
-    var p = paths[i]
+    let cwd = this.cwd()
+    let newparts = []
+    let paths = this.path_split(path)
+    let i = 0
+    let len = paths.length
+    let p = paths[i]
     while (i < len) {
       if (p === _DOS_CURRENT) {
         newparts = newparts.concat(cwd)
@@ -45,7 +45,7 @@ class DOS {
   pathname (paths) { return this.path_join(paths) }
 
   dirname (path) {
-    var parts = this.normalize(path)
+    let parts = this.normalize(path)
     if (_.last(parts).indexOf(_DOS_EXTSEP)) {
       parts.pop()
     }
@@ -79,11 +79,11 @@ class DOS {
   exists (path) { return this.drive.floppy.find_entry(path) !== null }
 
   size (id) {
-    var sz = 0
-    var entry = this.drive.floppy.find_entry(id)
+    let sz = 0
+    let entry = this.drive.floppy.find_entry(id)
     if (entry) {
-      var blocks = entry.blocks()
-      for (var b of blocks) {
+      let blocks = entry.blocks()
+      for (let b of blocks) {
         sz += b.size
       }
       this._operation('read', blocks.length * 4)
@@ -98,65 +98,65 @@ class DOS {
   }
 
   create (path, data = null, size = 0, attrs = 0, created = Date.now(), modified = Date.now()) {
-    var parent = this.drive.floppy.find_entry(this.dirname(path))
+    let parent = this.drive.floppy.find_entry(this.dirname(path))
     if (data && size === 0) {
       size = data.length
     }
-    var entry = new Entry(this.drive.floppy, this.drive.floppy.entries.length, 0, parent ? parent._uid : 0, this.basename(path), this.extname(path), created, modified, attrs)
+    let entry = new Entry(this.drive.floppy, this.drive.floppy.entries.length, 0, parent ? parent._uid : 0, this.basename(path), this.extname(path), created, modified, attrs)
     this.drive.floppy.entries.push(entry)
     entry.write(data, size)
     this.flush()
   }
 
   fopen (path) {
-    var entry = this.find_entry(path)
+    let entry = this.find_entry(path)
     if (entry) {
       if (!entry._isOpened()) {
         entry.attrs |= _ENTRY_OPEN
         this.flush()
       }
       else {
-        io_error(this, 0x02)
+        io_error(0x02)
       }
     }
   }
 
   fread (id, size, addr) {
-    var entry = this.find_entry(id)
+    let entry = this.find_entry(id)
     if (entry) {
       this.read(addr, size)
     }
   }
 
   fwrite (id, addr, size) {
-    var entry = this.find_entry(id)
+    let entry = this.find_entry(id)
     if (entry) {
       this.write(addr, size)
     }
   }
 
   append (id, addr, size) {
-    var entry = this.find_entry(id)
+    let entry = this.find_entry(id)
     if (entry) {
       // this.seek(size())
     }
   }
 
   fclose (id) {
-    var entry = this.find_entry(id)
+    let entry = this.find_entry(id)
     if (entry) {
       if (entry._isOpened()) {
         entry.attrs ^= _ENTRY_OPEN
         this.flush()
       }
       else {
-        io_error(this, 0x03)
+        io_error(0x03)
       }
     }
   }
 
   delete (path) {
-    var entry = this.find_entry(path)
+    let entry = this.find_entry(path)
     if (entry) {
       if (!entry._isLocked()) {
         entry.uid = 0
@@ -171,7 +171,7 @@ class DOS {
   }
 
   lock (path) {
-    var entry = this.find_entry(path)
+    let entry = this.find_entry(path)
     if (entry) {
       if (!entry._isLocked()) {
         entry.attrs |= _ENTRY_LOCK
@@ -184,7 +184,7 @@ class DOS {
   }
 
   unlock (path) {
-    var entry = this.find_entry(path)
+    let entry = this.find_entry(path)
     if (entry) {
       if (!entry._isLocked()) {
         entry.attrs ^= _ENTRY_LOCK
@@ -196,12 +196,4 @@ class DOS {
     }
   }
 
-}
-
-export default {
-  DOS,
-  _DOS_PATHSEP,
-  _DOS_EXTSEP,
-  _DOS_CURRENT,
-  _DOS_PARENT,
 }

@@ -1,0 +1,64 @@
+/bounds
+
+::my_const $F0 $20
+:my_label db $FF my_const, 40
+:my_dict = { :k1 = 3, :k2 = 100, :k3 = "string", :k4 = { :k5 = 32, :k6 = 1200 }, :k7 = 1 }
+
+print(lds(@my_dict.k3))
+print(@my_dict.k4.k5)
+
+:s22 union
+  :a1 db 0
+  :b1 db 0
+  :st union
+    :a2 db 0
+    :b2 db 0
+  end
+end
+
+:init()
+  :v = "a string now"
+  sts v ("a string now")
+  if 10 > $A0 & 20 > $02
+    :v = $FFFF - 30
+  else
+    :v = ($FF + 30) ;this is a comment
+  end
+
+end
+
+:shut()
+end
+
+:tick(ms)
+end
+
+:main()
+  init()
+  #1:moveTo 10 2
+  :i = 0
+  whl @i < 5
+    #1:bs
+    i = @i + 1
+    print(@i)
+  end
+
+  for :x 1, 5
+    print(@x)
+  end
+
+  :n db $01 $01 $02 \'F\' \'3\' $00 $03 $10 $08 $14 $30 $00 $00
+  :wad = #sound:note(n)
+  #sound:play(@wad)
+
+  :stack dd [100]
+  stk stack 100
+  psh stack 10 20 30
+  print pop stack
+
+  print "-->", #1 + 32 / 2
+  print "-->", #video + 32 / 2
+  int_start("my_int", :(ms) print "interrupt" ms end, 1000)
+  ;hlt()
+
+end

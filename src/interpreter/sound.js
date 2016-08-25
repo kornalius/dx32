@@ -24,15 +24,15 @@ import { rnd } from '../globals.js'
 */
 
 
-class Sound {
+export class Sound {
 
   snd_init () {
     this.sounds = {}
   }
 
   snd_reset () {
-    for (var k in this.sounds) {
-      var s = this.sounds[k]
+    for (let k in this.sounds) {
+      let s = this.sounds[k]
       if (s.playable) {
         s.stop()
       }
@@ -47,12 +47,12 @@ class Sound {
   }
 
   snd_load (name, path, loop) {
-    this.sounds[name] = new Wad({ source: require('file?name=[path]/[name].[ext]!../sounds/' + path), loop: loop || false })
+    this.sounds[name] = new Wad({ source: require('file?name=[path]/[name].[ext]!../../sounds/' + path), loop: loop || false })
   }
 
   snd_name (name, random = false) {
     if (random) {
-      var c = _.reduce(this.sounds, (r, v, k) => { return r + (_.startsWith(k, name) ? 1 : 0) }, 0)
+      let c = _.reduce(this.sounds, (r, v, k) => { return r + (_.startsWith(k, name) ? 1 : 0) }, 0)
       return name + rnd(1, c)
     }
     else {
@@ -63,7 +63,7 @@ class Sound {
   snd_play (name, options = {}, random = false, repeat_min = 1, repeat_max = 1) {
     repeat_max = rnd(repeat_min, repeat_max)
     while (repeat_max > 0) {
-      var s = this.sounds[this.snd_name(name, random)]
+      let s = this.sounds[this.snd_name(name, random)]
       if (s) {
         s.play(_.defaultsDeep({}, options, { env: { hold: 500 } }))
       }
@@ -72,7 +72,7 @@ class Sound {
   }
 
   snd_stop (name) {
-    var s = this.sounds[this.snd_name(name, false)]
+    let s = this.sounds[this.snd_name(name, false)]
     if (s) {
       s.stop()
     }
@@ -85,18 +85,18 @@ class Sound {
   process_note (addr) {
     // note ( 0 = end, 1 = shape, 2 = pitch, 3 = volume, 4 = loop, 5 = detune, 6 = wait, 7 = label, 8 = envelop, 9 = filter, 10 = delay, 11 = vibrato, 12 = tremolo )
 
-    var note = {
+    let note = {
       source: 'sine',
     }
 
-    var r
+    let r
 
-    var cmd = _vm.mem[addr++]
+    let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
       switch (cmd)
       {
         case 1:  // shape
-          var value = _vm.ldb(addr)
+          let value = _vm.ldb(addr)
           addr++
           if (value === 1) {
             note.source = 'sine'
@@ -177,7 +177,7 @@ class Sound {
           break
       }
 
-      cmd = _vm.mem[addr++]
+      cmd = _vm.mem_buffer[addr++]
     }
 
     return { note, addr }
@@ -186,10 +186,10 @@ class Sound {
   process_envelop (addr) {
     // ENVELOP ( 20 = sustain, 21 = hold, 22 = release, 23 = decay, 24 = attack )
 
-    var envelop = {
+    let envelop = {
     }
 
-    var cmd = _vm.mem[addr++]
+    let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
       switch (cmd)
       {
@@ -219,7 +219,7 @@ class Sound {
           break
       }
 
-      cmd = _vm.mem[addr++]
+      cmd = _vm.mem_buffer[addr++]
     }
 
     return { envelop, addr }
@@ -228,15 +228,15 @@ class Sound {
   process_filter (addr) {
     // FILTER ( 30 = type (L H), 31 = freq, 32 = Q, 33 = envelop)
 
-    var filter = {
+    let filter = {
     }
 
-    var cmd = _vm.mem[addr++]
+    let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
       switch (cmd)
       {
         case 30:  // type (L H)
-          var value = _vm.ldb(addr)
+          let value = _vm.ldb(addr)
           addr++
           if (value === 1) {
             filter.type = 'lowpass'
@@ -257,13 +257,13 @@ class Sound {
           break
 
         case 33:  // envelop
-          var r = this.process_envelop(addr)
+          let r = this.process_envelop(addr)
           filter.env = r.envelop
           addr = r.addr
           break
       }
 
-      cmd = _vm.mem[addr++]
+      cmd = _vm.mem_buffer[addr++]
     }
 
     return { filter, addr }
@@ -276,10 +276,10 @@ class Sound {
   process_delay (addr) {
     // DELAY ( 40 = time, 41 = wet, 42 = feedback )
 
-    var delay = {
+    let delay = {
     }
 
-    var cmd = _vm.mem[addr++]
+    let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
       switch (cmd)
       {
@@ -299,7 +299,7 @@ class Sound {
           break
       }
 
-      cmd = _vm.mem[addr++]
+      cmd = _vm.mem_buffer[addr++]
     }
 
     return { delay, addr }
@@ -308,15 +308,15 @@ class Sound {
   process_vibrato (addr) {
     // VIBRATO ( 50 = shape, 51 = magnitude, 52 = speed, 53 = attack )
 
-    var vibrato = {
+    let vibrato = {
     }
 
-    var cmd = _vm.mem[addr++]
+    let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
       switch (cmd)
       {
         case 50:  // time
-          var value = _vm.ldb(addr)
+          let value = _vm.ldb(addr)
           addr++
           if (value === 1) {
             vibrato.shape = 'sine'
@@ -348,7 +348,7 @@ class Sound {
           break
       }
 
-      cmd = _vm.mem[addr++]
+      cmd = _vm.mem_buffer[addr++]
     }
 
     return { vibrato, addr }
@@ -357,15 +357,15 @@ class Sound {
   process_tremolo (addr) {
     // TREMOLO ( 60 = shape, 61 = magnitude, 62 = speed, 63 = attack )
 
-    var tremolo = {
+    let tremolo = {
     }
 
-    var cmd = _vm.mem[addr++]
+    let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
       switch (cmd)
       {
         case 60:  // shape
-          var value = _vm.ldb(addr)
+          let value = _vm.ldb(addr)
           addr++
           if (value === 1) {
             tremolo.shape = 'sine'
@@ -397,21 +397,21 @@ class Sound {
           break
       }
 
-      cmd = _vm.mem[addr++]
+      cmd = _vm.mem_buffer[addr++]
     }
 
     return { tremolo, addr }
   }
 
   snd_note (addr) {
-    var { note } = this.process_note(addr)
-    var id = _.uniqueId()
+    let { note } = this.process_note(addr)
+    let id = _.uniqueId()
     this.sounds[id] = new Wad(note)
     return id
   }
 
   snd_poly () {
-    var id = _.uniqueId()
+    let id = _.uniqueId()
     this.sounds[id] = new Wad.Poly()
     return id
   }
@@ -424,8 +424,4 @@ class Sound {
     this.sounds[poly_id].remove(this.sounds[wad_id])
   }
 
-}
-
-export default {
-  Sound,
 }

@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 
-class Label {
+export class Label {
 
   constructor (frame, addr, size = 4, len = 1) {
     this.frame = frame
@@ -33,8 +33,8 @@ class Label {
       case 4:
         return _vm.rd(this.addr)
       default:
-        var b = new Buffer(this._sz)
-        _vm.mem.copy(b, 0, this.addr, this.addr + this._sz)
+        let b = new Buffer(this._sz)
+        _vm.mem_buffer.copy(b, 0, this.addr, this.addr + this._sz)
         return b
     }
   }
@@ -49,7 +49,7 @@ class Label {
       case 4:
         return _vm.wd(this.addr, value)
       default:
-        value.copy(_vm.mem, this.addr, 0, this._sz - 1)
+        value.copy(_vm.mem_buffer, this.addr, 0, this._sz - 1)
         break
     }
   }
@@ -61,13 +61,9 @@ class Label {
         this.addr(...args)
       }
       else {
-        _vm.hlt(this, 0x04)
+        _vm.hlt(0x04)
       }
     }
   }
 
-}
-
-export default {
-  Label,
 }

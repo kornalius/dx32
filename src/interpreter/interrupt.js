@@ -1,14 +1,22 @@
 import { runtime_error } from '../globals.js'
 
 
-const _INT_STOPPED = 0
-const _INT_RUNNING = 1
-const _INT_PAUSED = 2
+export const _INT_STOPPED = 0
+export const _INT_RUNNING = 1
+export const _INT_PAUSED = 2
 
-class Interrupt {
+export class Interrupt {
 
   int_init () {
     this.interrupts = {}
+  }
+
+  int_reset () {
+    this.int_stop_all()
+  }
+
+  int_shut () {
+    this.int_reset()
   }
 
   int_find (name) { return this.interrupts[name] }
@@ -18,7 +26,7 @@ class Interrupt {
       this.interrupts[name] = { name, status: _INT_RUNNING, ms, fn, last: 0 }
     }
     else {
-      runtime_error(this, 0x05)
+      runtime_error(0x05)
     }
   }
 
@@ -28,7 +36,7 @@ class Interrupt {
       this.interrupts[name].last = performance.now()
     }
     else {
-      runtime_error(this, 0x06)
+      runtime_error(0x06)
     }
   }
 
@@ -37,7 +45,7 @@ class Interrupt {
       this.interrupts[name].status = _INT_PAUSED
     }
     else {
-      runtime_error(this, 0x06)
+      runtime_error(0x06)
     }
   }
 
@@ -46,22 +54,22 @@ class Interrupt {
       delete this.interrupts[name]
     }
     else {
-      runtime_error(this, 0x06)
+      runtime_error(0x06)
     }
   }
 
   int_stop_all () {
-    for (var k in this.interrupts) {
+    for (let k in this.interrupts) {
       this.int_stop(k)
     }
     this.interrupts = {}
   }
 
   int_tick (t) {
-    for (var k in this.interrupts) {
-      var i = this.interrupts[k]
+    for (let k in this.interrupts) {
+      let i = this.interrupts[k]
       if (i.status === _INT_RUNNING) {
-        var delay = t - i.last
+        let delay = t - i.last
         if (delay >= i.ms) {
           i.fn.apply(this, [delay - i.ms])
           i.last = t
@@ -69,11 +77,4 @@ class Interrupt {
       }
     }
   }
-}
-
-export default {
-  Interrupt,
-  _INT_STOPPED,
-  _INT_RUNNING,
-  _INT_PAUSED,
 }

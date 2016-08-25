@@ -1,15 +1,10 @@
 import _ from 'lodash'
+import { mixin } from '../../globals.js'
 import { Port } from '../port.js'
-import { Video } from '../../video/video.js'
+import { Video } from '../video/video.js'
 
 
-var crtUrl = require('file?name=[path]/[name].[ext]!../../imgs/crt.png')
-
-PIXI.Point.prototype.distance = (target) => {
-  Math.sqrt((this.x - target.x) * (this.x - target.x) + (this.y - target.y) * (this.y - target.y))
-}
-
-class VideoPort extends Port {
+export class VideoPort extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number)
@@ -88,8 +83,8 @@ class VideoPort extends Port {
     this.txt_mov(10, 11)
     this.txt_print('Welcome to DX32\nÉgalitée!', 2, 6)
 
-    var chars = ''
-    for (var i = 33; i < 256; i++) {
+    let chars = ''
+    for (let i = 33; i < 256; i++) {
       chars += String.fromCharCode(i)
     }
     this.txt_mov(1, 2)
@@ -107,7 +102,3 @@ class VideoPort extends Port {
 }
 
 mixin(VideoPort.prototype, Video.prototype)
-
-export default {
-  VideoPort,
-}

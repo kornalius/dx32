@@ -2,27 +2,27 @@ import _ from 'lodash'
 import { error } from '../globals.js'
 
 
-class Tokenizer {
+export class Tokenizer {
 
   constructor () {
     this.errors = 0
   }
 
   tokenize (path, text) {
-    var tokens = []
-    var len = text.length
-    var i = 0
-    var si = 0
-    var ls = 0
-    var row = 1
-    var col = 1
+    let tokens = []
+    let len = text.length
+    let i = 0
+    let si = 0
+    let ls = 0
+    let row = 1
+    let col = 1
 
-    var defs = {
+    let defs = {
       eol: /[\r\n]/,
 
       comma: /\,/,
 
-      struct: /\bstruct\b/i,
+      union: /\bunion\b/i,
 
       boundscheck: /\/bounds\b/i,
       debug:       /\/debug\b/i,
@@ -58,7 +58,7 @@ class Tokenizer {
       label_indirect: {
         match: /(\@+[A-Z_][A-Z_0-9\.]*)/i,
         value (v, d) {
-          var i = 0
+          let i = 0
           while (v[0] === '@') {
             i++
             v = v.substr(1)
@@ -73,7 +73,7 @@ class Tokenizer {
       label_assign_indirect: {
         match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
         value (v, d) {
-          var i = 0
+          let i = 0
           while (v[0] === '@') {
             i++
             v = v.substr(1)
@@ -91,7 +91,7 @@ class Tokenizer {
       label_assign_indirect_bracket: {
         match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
         value (v, d) {
-          var i = 0
+          let i = 0
           while (v[0] === '@') {
             i++
             v = v.substr(1)
@@ -117,7 +117,7 @@ class Tokenizer {
       port_name_call: {
         match: /\#([A-Z]+\b\:[A-Z_][A-Z_0-9]*\b)/i,
         value (v) {
-          var parts = v.split(':')
+          let parts = v.split(':')
           return _vm.port_by_name(parts[0]) + ':' + parts[1]
         },
         type () { return 'port_call' },
@@ -126,7 +126,7 @@ class Tokenizer {
       port_indirect: {
         match: /(\@\#[0-9]+)(?!\:)/i,
         value (v, d) {
-          var i = 0
+          let i = 0
           while (v[0] === '@') {
             i++
             v = v.substr(1)
@@ -143,7 +143,7 @@ class Tokenizer {
       port_name_indirect: {
         match: /(\@\#[A-Z]+)(?!\:)/i,
         value (v, d) {
-          var i = 0
+          let i = 0
           while (v[0] === '@') {
             i++
             v = v.substr(1)
@@ -153,7 +153,7 @@ class Tokenizer {
           }
           d.count = i
           v = v.toLowerCase()
-          for (var k in _vm.ports) {
+          for (let k in _vm.ports) {
             if (_vm.ports[k].constructor.name.toLowerCase() === v) {
               return k
             }
@@ -181,7 +181,7 @@ class Tokenizer {
             return 'dword'
           }
           else {
-            error(this, { v, row, col }, 'value out of bounds')
+            error({ v, row, col }, 'value out of bounds')
             return null
           }
         },
@@ -213,17 +213,17 @@ class Tokenizer {
     }
 
     var add_token = (k, v) => {
-      var d = defs[k]
+      let d = defs[k]
 
-      var r = { type: k, value: v, row, col: si + 1 - ls, start: si, end: i, idx: tokens.length - 1 }
+      let r = { type: k, value: v, row, col: si + 1 - ls, start: si, end: i, idx: tokens.length - 1 }
 
       while (d && (_.isFunction(d.type) || _.isFunction(d.value))) {
-        var ok = k
+        let ok = k
 
         if (_.isFunction(d.type)) {
           k = d.type(k, v, r)
           if (k === ok) {
-            error(this, { k, row, col }, 'recursive type loop')
+            error({ k, row, col }, 'recursive type loop')
             break
           }
         }
@@ -251,17 +251,17 @@ class Tokenizer {
       }
     }
 
-    var rx
-    var _include = false
+    let rx
+    let _include = false
 
     while (i < len) {
-      var c = text[i]
+      let c = text[i]
 
       si = i
 
       if (c !== ' ' && c !== '\t') {
-        for (var k in defs) {
-          var d = defs[k]
+        for (let k in defs) {
+          let d = defs[k]
 
           if (_.isRegExp(d)) {
             rx = d
@@ -270,16 +270,16 @@ class Tokenizer {
             rx = d.match
           }
 
-          var r = text.substring(i).match(rx)
+          let r = text.substring(i).match(rx)
           if (r && r.index === 0) {
-            var t = r.length > 1 ? r.slice(1).join('') : r.join('')
+            let t = r.length > 1 ? r.slice(1).join('') : r.join('')
             i += r[0].length - 1
 
             if (_include && k === 'string') {
               _include = false
-              var p = new Tokenizer()
-              var s = ''
-              var new_tokens = p.parse(s)
+              let p = new Tokenizer()
+              let s = ''
+              let new_tokens = p.parse(s)
               if (p.errors !== 0) {
                 new_tokens = []
               }
@@ -305,8 +305,4 @@ class Tokenizer {
     return tokens
   }
 
-}
-
-export default {
-  Tokenizer,
 }

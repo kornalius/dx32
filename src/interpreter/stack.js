@@ -1,5 +1,6 @@
 
-class Stack {
+
+export class Stack {
 
   stk_init (max_stack = 255, entry_size = 4) {
     this.stack_info = _vm.mm.alloc(20)
@@ -7,11 +8,11 @@ class Stack {
     this.max_stack = max_stack
     this.entry_size = entry_size
     this.stack_size = this.max_stack * this.entry_size
-    this.stack = _vm.mm.alloc(this.stack_size)
-    this.stack_ptr = this.stack
+    this.stack_addr = _vm.mm.alloc(this.stack_size)
+    this.stack_ptr = this.stack_addr
 
     _vm.seq_start(this.stack_info)
-    _vm.seq_dword(this.stack)
+    _vm.seq_dword(this.stack_addr)
     _vm.seq_dword(this.stack_ptr)
     _vm.seq_dword(this.max_stack)
     _vm.seq_dword(this.entry_size)
@@ -19,8 +20,11 @@ class Stack {
     _vm.seq_end()
   }
 
-  stk_shut () {
+  stk_reset () {
+    this.stack_ptr = this.stack_addr
+  }
 
+  stk_shut () {
   }
 
   stk_update_info () {
@@ -28,9 +32,9 @@ class Stack {
   }
 
   stk_psh (...value) {
-    var sz = this.entry_size
-    for (var v of value) {
-      if (this.stack_ptr < this.stack + this.stack_size) {
+    let sz = this.entry_size
+    for (let v of value) {
+      if (this.stack_ptr < this.stack_addr + this.stack_size) {
         this.stack_ptr += sz
         _vm.write(this.stack_ptr, v, sz)
       }
@@ -40,17 +44,13 @@ class Stack {
 
   stk_pop () {
     if (this.stk_sz()) {
-      var sz = this.entry_size
+      let sz = this.entry_size
       _vm.read(this.stack_ptr, sz)
       this.stack_ptr -= sz
       this.stk_update_info()
     }
   }
 
-  stk_sz () { return Math.trunc((this.stack_ptr - this.stack) / this.entry_size) }
+  stk_sz () { return Math.trunc((this.stack_ptr - this.stack_addr) / this.entry_size) }
 
-}
-
-export default {
-  Stack,
 }

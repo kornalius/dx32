@@ -1,5 +1,6 @@
 
-class Sprites {
+
+export class Sprite {
 
   spr_init (count, width, height) {
     this.sprite_count = count || 16
@@ -30,7 +31,7 @@ class Sprites {
   }
 
   spr_refresh (flip = true) {
-    this.refresh(flip)
+    this.vid_refresh(flip)
     this.force_sprites = true
   }
 
@@ -68,7 +69,7 @@ class Sprites {
       if (z) {
         s.z = z
       }
-      this.refresh()
+      this.spr_refresh()
     }
   }
 
@@ -77,7 +78,7 @@ class Sprites {
     if (s) {
       s.x = x
       s.y = y
-      this.refresh()
+      this.spr_refresh()
     }
   }
 
@@ -92,14 +93,10 @@ class Sprites {
       for (let by = 0; by < sh; by++) {
         let pi = (s.y + by) * this.width + s.x
         for (let bx = 0; bx < sw; bx++) {
-          this.pixel(pi++, _vm.mem[ptr++])
+          this.pixel(pi++, _vm.mem_buffer[ptr++])
         }
       }
     }
   }
 
-}
-
-export default {
-  Sprites,
 }

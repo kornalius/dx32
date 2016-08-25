@@ -1,12 +1,12 @@
 import _ from 'lodash'
-import { Sound } from '../../sound.js'
+import { Sound } from '../sound.js'
 import { Memory } from '../../memory.js'
 import { Block } from './block.js'
 import { Entry } from './entry.js'
 import { defaults, mixin, string_to_buffer, buffer_to_string } from '../../globals.js'
 
 
-class Floppy {
+export class Floppy {
 
   constructor (drive, size = defaults.floppy.size, block_size = defaults.floppy.block_size, max_blocks = defaults.floppy.max_blocks, entry_size = defaults.floppy.entry_size, max_entries = defaults.floppy.max_entries) {
     this.drive = drive
@@ -68,8 +68,8 @@ class Floppy {
   }
 
   unused_blocks () {
-    var blocks = []
-    for (var b of this.blocks) {
+    let blocks = []
+    for (let b of this.blocks) {
       if (!b.is_used()) {
         blocks.push(b)
       }
@@ -78,8 +78,8 @@ class Floppy {
   }
 
   used_blocks () {
-    var blocks = []
-    for (var b of this.blocks) {
+    let blocks = []
+    for (let b of this.blocks) {
       if (b.is_used()) {
         blocks.push(b)
       }
@@ -88,7 +88,7 @@ class Floppy {
   }
 
   read_info_table () {
-    var ptr = this.info_table_top
+    let ptr = this.info_table_top
     this.blocks_count = this.ldw(ptr)
     ptr += 2
     this.entries_count = this.ldw(ptr)
@@ -96,63 +96,63 @@ class Floppy {
     this.diskname = this.ldl(ptr, 32).toString('ascii')
     ptr += 32
 
-    this.drive._operation('read', ptr - this.info_table_top)
+    this.drive.operation('read', ptr - this.info_table_top)
   }
 
   write_info_table () {
-    var ptr = this.info_table_top
+    let ptr = this.info_table_top
     this.st(ptr, this.blocks.length)
     ptr += 2
     this.st(ptr, this.entries.length)
     ptr += 2
-    this.stl(ptr, _vm.stringBuffer(this.diskname, 32))
+    this.stl(ptr, _vm.string_buffer(this.diskname, 32))
     ptr += 32
 
-    this.drive._operation('write', ptr - this.info_table_top)
+    this.drive.operation('write', ptr - this.info_table_top)
   }
 
   read_blocks_table () {
-    var ptr = this.blocks_table_top
-    for (var i = 0 i < this.blocks_count i++) {
-      var entry = this.ld(ptr) - 1
+    let ptr = this.blocks_table_top
+    for (let i = 0 ;i < this.blocks_count; i++) {
+      let entry = this.ld(ptr) - 1
       ptr += 4
-      var size = this.ldw(ptr)
+      let size = this.ldw(ptr)
       ptr += 2
       this.blocks.push(new Block(this, entry, size))
     }
 
-    this.drive._operation('read', ptr - this.blocks_table_top)
+    this.drive.operation('read', ptr - this.blocks_table_top)
   }
 
   write_blocks_table () {
-    var ptr = this.blocks_table_top
-    for (var b of this.blocks) {
+    let ptr = this.blocks_table_top
+    for (let b of this.blocks) {
       this.st(ptr, b.entry_idx + 1)
       ptr += 4
       this.stw(ptr, b.size)
       ptr += 2
     }
 
-    this.drive._operation('write', ptr - this.blocks_table_top)
+    this.drive.operation('write', ptr - this.blocks_table_top)
   }
 
   read_entries_table () {
-    for (var i = 0; i < this.entries_count; i++) {
-      var e = new Entry(this, i)
+    for (let i = 0; i < this.entries_count; i++) {
+      let e = new Entry(this, i)
       e.read_info()
       this.entries.push(e)
     }
   }
 
   write_entries_table () {
-    for (var e of this.entries) {
+    for (let e of this.entries) {
       e.write_info()
     }
   }
 
   find_entry (v) {
-    for (var e of this.entries) {
-      this.drive._operation('read')
+    for (let e of this.entries) {
+      this.drive.operation('read')
       if (_.isNumber(v) && e.uid === v) {
         return e
       }
@@ -176,17 +176,14 @@ class Floppy {
   }
 
   fromString (str) {
-    this.mem.fill(0)
-    this.mem = string_to_buffer(str)
+    this.mem_buffer.fill(0)
+    this.mem_buffer = string_to_buffer(str)
   }
 
   toString () {
-    return buffer_to_string(this.mem)
+    return buffer_to_string(this.mem_buffer)
   }
 }
 
 mixin(Floppy.prototype, Memory.prototype, Sound.prototype)
 
-export default {
-  Floppy,
-}

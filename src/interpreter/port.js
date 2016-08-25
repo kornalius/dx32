@@ -1,8 +1,8 @@
 
-class Port {
+export class Port {
 
   constructor (vm, port_number) {
-    var top = vm.mm.alloc(4)
+    let top = vm.mm.alloc(4)
     // vm.st(top, port_number)
 
     this.port_number = port_number
@@ -27,8 +27,4 @@ class Port {
   tick () {
   }
 
-}
-
-export default {
-  Port,
 }

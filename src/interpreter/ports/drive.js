@@ -6,7 +6,7 @@ import { Floppy, Entry, _OPEN, _LOCK } from '../io/floppy.js'
 import { mixin, delay, rnd, io_error } from '../../globals.js'
 
 
-class DrivePort extends Port {
+export class DrivePort extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number)
@@ -15,15 +15,15 @@ class DrivePort extends Port {
 
     this.snd_init()
 
-    this.snd_load({ name: 'insert', path: 'disk_insert.wav', loop: false, })
-    this.snd_load({ name: 'eject', path: 'disk_eject.wav', loop: false, })
-    this.snd_load({ name: 'spin', path: 'disk_spin.wav', loop: true, })
-    this.snd_load({ name: 'read1', path: 'disk_read1.wav', loop: false, })
-    this.snd_load({ name: 'read2', path: 'disk_read2.wav', loop: false, })
-    this.snd_load({ name: 'read3', path: 'disk_read3.wav', loop: false, })
-    this.snd_load({ name: 'read4', path: 'disk_read4.wav', loop: false, })
-    this.snd_load({ name: 'write1', path: 'disk_write1.wav', loop: false, })
-    this.snd_load({ name: 'write2', path: 'disk_write2.wav', loop: false, })
+    this.snd_load('insert', 'disk_insert.wav', false)
+    this.snd_load('eject', 'disk_eject.wav', false)
+    this.snd_load('spin', 'disk_spin.wav', true)
+    this.snd_load('read1', 'disk_read1.wav', false)
+    this.snd_load('read2', 'disk_read2.wav', false)
+    this.snd_load('read3', 'disk_read3.wav', false)
+    this.snd_load('read4', 'disk_read4.wav', false)
+    this.snd_load('write1', 'disk_write1.wav', false)
+    this.snd_load('write2', 'disk_write2.wav', false)
 
     this.operations = {
       insert: { min_time: 1000, max_time: 2000, sound: 'insert' },
@@ -40,9 +40,9 @@ class DrivePort extends Port {
     this.spinning = null
     this.stop_spin_bound = this.stop_spin.bind(this)
 
-    var that = this
+    let that = this
     setTimeout(() => {
-      var f = new Floppy(that)
+      let f = new Floppy(that)
       that.insert(f)
       that.dos.format()
       that.dos.create('myfile.txt', 'MY DATA IS FUCKING COOL')
@@ -68,19 +68,19 @@ class DrivePort extends Port {
       }
     }
 
-    var _op = this.operations[name]
+    let _op = this.operations[name]
 
-    var max = 1
+    let max = 1
     if (size) {
       max = size ? Math.max(Math.trunc(size / 128), 1) : 1
     }
 
-    var min_time = _op ? _op.min_time : 250
-    var max_time = _op ? _op.max_time : 500
-    var sound = _op ? _op.sound : null
+    let min_time = _op ? _op.min_time : 250
+    let max_time = _op ? _op.max_time : 500
+    let sound = _op ? _op.sound : null
 
     while (max > 0) {
-      var t = rnd(min_time, max_time)
+      let t = rnd(min_time, max_time)
       // console.log(name, '=>', size, t)
 
       if (sound) {
@@ -95,7 +95,7 @@ class DrivePort extends Port {
 
   when_finished_spinning (cb) {
     if (this.spinning) {
-      var that = this
+      let that = this
       setTimeout(() => { that.when_finished_spinning(cb) }, 500)
     }
     else {
@@ -119,7 +119,7 @@ class DrivePort extends Port {
 
   check_floppy () {
     if (!this.loaded()) {
-      io_error(this, 0x08)
+      io_error(0x08)
       return false
     }
     return true
@@ -135,7 +135,7 @@ class DrivePort extends Port {
       this.operation('eject')
     }
     else {
-      io_error(this, 0x08)
+      io_error(0x08)
       return
     }
   }
@@ -148,7 +148,7 @@ class DrivePort extends Port {
       this.floppy.insert(this)
     }
     else {
-      io_error(this, 0x07)
+      io_error(0x07)
       return
     }
   }
@@ -163,22 +163,22 @@ class DrivePort extends Port {
   }
 
   read (addr, size) {
-    var start = 0
-    var b
+    let start = 0
+    let b
     if (addr) {
-      b = _vm.mem
+      b = _vm.mem_buffer
       start = addr
     }
     else {
       b = new Buffer(size)
     }
-    this.floppy.mem.copy(b, start, this.pos, this.pos + size)
+    this.floppy.mem_buffer.copy(b, start, this.pos, this.pos + size)
     this.operation('read', size)
     this.seek_by(size)
   }
 
   write (addr, size) {
-    _vm.mem.copy(this.floppy.mem, this.pos, addr, size)
+    _vm.mem_buffer.copy(this.floppy.mem_buffer, this.pos, addr, size)
     this.operation('write', size)
     this.dos.flush()
     this.seek_by(size)
@@ -187,7 +187,3 @@ class DrivePort extends Port {
 }
 
 mixin(DrivePort.prototype, Sound.prototype)
-
-export default {
-  DrivePort,
-}

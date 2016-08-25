@@ -1,5 +1,6 @@
 
-class Palette {
+
+export class Palette {
 
   pal_init (count) {
     this.palette_count = count || 32
@@ -10,7 +11,7 @@ class Palette {
   }
 
   pal_reset () {
-    this.palette_addr = _vm.mem.alloc(this.palette_size)
+    this.palette_addr = _vm.mm.alloc(this.palette_size)
 
     this.palette_rgba(0, 0x000000ff)
     this.palette_rgba(1, 0xffffffff)
@@ -53,17 +54,17 @@ class Palette {
     let pi = this.palette_addr + c * 4
     if (r) {
       if (r && g && b) {
-        this.RGBAToMem(_vm.mem, pi, r, g, b, a)
+        this.rgba_to_mem(_vm.mem_buffer, pi, r, g, b, a)
       }
       else {
-        _vm.mem.writeUInt32LE(r, pi)
+        _vm.mem_buffer.writeUInt32LE(r, pi)
       }
     }
-    return _vm.mem.readUInt32LE(pi)
+    return _vm.mem_buffer.readUInt32LE(pi)
   }
 
   rgba_to_palette (r, g, b, a) {
-    let rgba = this.RGBAToNum(r, g, b, a)
+    let rgba = this.rgba_to_num(r, g, b, a)
     for (let c = 0; c < this.palette_count; c++) {
       if (this.palette_rgba(c) === rgba) {
         return c
@@ -72,8 +73,4 @@ class Palette {
     return -1
   }
 
-}
-
-export default {
-  Palette,
 }

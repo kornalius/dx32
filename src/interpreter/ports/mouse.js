@@ -3,7 +3,7 @@ import { Stack } from '../stack.js'
 import { mixin } from '../../globals.js'
 
 
-class MousePort extends Port {
+export class MousePort extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number)
@@ -12,7 +12,7 @@ class MousePort extends Port {
 
     this.stk_init(1024, 2)
 
-    var stage = vm.ports[1].stage
+    let stage = vm.ports[1].stage
     if (stage) {
       stage.interactive = true
       stage.on('mousedown', this.onLeftButtonDown.bind(this))
@@ -54,7 +54,3 @@ class MousePort extends Port {
 }
 
 mixin(MousePort.prototype, Stack.prototype)
-
-export default {
-  MousePort,
-}

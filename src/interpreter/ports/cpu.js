@@ -1,10 +1,6 @@
-import Port from '../port.js'
+import { Port } from '../port.js'
 
 
-class CPUPort extends Port {
+export class CPUPort extends Port {
 
-}
-
-export default {
-  CPUPort,
 }

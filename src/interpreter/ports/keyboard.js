@@ -3,7 +3,7 @@ import { Stack } from '../stack.js'
 import { mixin } from '../../globals.js'
 
 
-class KeyboardPort extends Port {
+export class KeyboardPort extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number)
@@ -48,7 +48,3 @@ class KeyboardPort extends Port {
 }
 
 mixin(KeyboardPort.prototype, Stack.prototype)
-
-export default {
-  KeyboardPort,
-}

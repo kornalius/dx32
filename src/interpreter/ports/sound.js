@@ -1,8 +1,9 @@
+import { mixin } from '../../globals.js'
 import { Port } from '../port.js'
 import { Sound } from '../sound.js'
 
 
-class SoundPort extends Port {
+export class SoundPort extends Port {
 
   constructor (vm, port_number) {
     super(vm, port_number)
@@ -21,8 +22,4 @@ class SoundPort extends Port {
 
 }
 
-mixin(SoundPort.prototype, SoundMixin.prototype)
-
-export default {
-  SoundPort,
-}
+mixin(SoundPort.prototype, Sound.prototype)

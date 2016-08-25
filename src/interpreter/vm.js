@@ -3,10 +3,13 @@ import _ from 'lodash'
 import { defaults, mixin, runtime_error } from '../globals.js'
 
 import { Memory } from '../memory.js'
-import { Interrupt } from './interrupt.js'
 import { MemoryManager } from './memorymanager.js'
 import { Debugger } from './debugger.js'
-import { Struct } from './struct.js'
+import { Union } from './union.js'
+
+import { Interrupt } from './interrupt.js'
+import { Video } from './video/video.js'
+import { Sound } from './sound.js'
 
 import { Tokenizer } from '../compiler/tokenizer.js'
 import { Assembler } from '../compiler/assembler.js'
@@ -20,22 +23,22 @@ import { NetworkPort } from './ports/network.js'
 import { SoundPort } from './ports/sound.js'
 
 
-const _VM_STOPPED = 0
-const _VM_RUNNING = 1
-const _VM_PAUSED = 2
+export const _VM_STOPPED = 0
+export const _VM_RUNNING = 1
+export const _VM_PAUSED = 2
 
-class VM {
+export class VM {
 
   constructor (mem_size = defaults.vm.mem_size) {
     window._vm = this
 
     this.mem_init(mem_size)
 
-    this.mm = new MemoryManager(this, this.mem, this.mem_size)
+    this.mm = new MemoryManager(this.mem_buffer, this.mem_size)
 
-    this.dbg = new Debugger(this)
+    this.dbg = new Debugger()
 
-    this.struct = new Struct(this)
+    this.union = new Union()
 
     this.int_init()
     this.snd_init()
@@ -45,42 +48,42 @@ class VM {
     this.code = ''
     this.fn = null
 
-    this.vm_boot(true)
+    this.boot(true)
 
-    PIXI.ticker.shared.add(this.vm_tick)
+    PIXI.ticker.shared.add(this.tick)
   }
 
-  vm_boot (cold = false) {
-    this.vm_reset()
+  boot (cold = false) {
+    this.reset()
 
     if (cold) {
-      this.mem_clr()
+      this.clear()
 
-      new CPUPort(this, 0)
-      new VideoPort(this, 1)
-      new KeyboardPort(this, 2)
-      new MousePort(this, 3)
-      new DrivePort(this, 4)
-      new NetworkPort(this, 5)
-      new SoundPort(this, 6)
+      new CPUPort(0)
+      new VideoPort(1)
+      new KeyboardPort(2)
+      new MousePort(3)
+      new DrivePort(4)
+      new NetworkPort(5)
+      new SoundPort(6)
     }
 
-    for (var k in this.ports) {
+    for (let k in this.ports) {
       this.ports[k].boot(cold)
     }
   }
 
-  vm_restart (cold = false) {
+  restart (cold = false) {
     if (cold) {
-      this.vm_shut()
+      this.shut()
     }
-    this.vm_boot(cold)
+    this.boot(cold)
   }
 
-  vm_reset () {
+  reset () {
     this.status = _VM_RUNNING
 
-    for (var k in this.ports) {
+    for (let k in this.ports) {
       this.ports[k].reset()
     }
 
@@ -89,8 +92,8 @@ class VM {
     this.snd_reset()
   }
 
-  vm_shut () {
-    for (var k in this.ports) {
+  shut () {
+    for (let k in this.ports) {
       this.ports[k].shut()
     }
     this.ports = {}
@@ -100,40 +103,40 @@ class VM {
     this.snd_shut()
   }
 
-  vm_hlt (code) {
+  hlt (code) {
     if (code > 0) {
-      runtime_error(this, code)
+      runtime_error(code)
     }
-    this.vm_stop()
+    this.stop()
   }
 
-  vm_load (uri) {
-    var t = new Tokenizer()
-    var tokens = t.tokenize('', uri)
+  load (uri) {
+    let t = new Tokenizer()
+    let tokens = t.tokenize('', uri)
     console.log(tokens)
-    var a = new Assembler()
+    let a = new Assembler()
     this.code = a.asm('', tokens)
     if (a.errors === 0) {
       this.fn = new Function(['args'], this.code)
     }
   }
 
-  vm_run (...args) {
+  run (...args) {
     if (this.fn) {
       this.fn.apply(this, args)
     }
   }
 
-  vm_stop () { this.status = _VM_STOPPED }
+  stop () { this.status = _VM_STOPPED }
 
-  vm_pause () { this.status = _VM_PAUSED }
+  pause () { this.status = _VM_PAUSED }
 
-  vm_resume () { this.status = _VM_RUNNING }
+  resume () { this.status = _VM_RUNNING }
 
-  vm_tick (time) {
+  tick (time) {
     if (this.status === _VM_RUNNING) {
-      for (var k in this.ports) {
-        if (this.ports[k].vm_tick) {
+      for (let k in this.ports) {
+        if (this.ports[k].tick) {
           this.ports[k].tick(time)
         }
       }
@@ -145,15 +148,13 @@ class VM {
     }
   }
 
-  hex (value, size = 32) { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0') }
-
   gpa (port, offset) { return this.ports[port].top + offset }
   gfa (offset) { return this.fp + offset }
   gsa (offset) { return this.sp + offset }
 
   port_by_name (name) {
     name = name.toLowerCase()
-    for (var k in this.ports) {
+    for (let k in this.ports) {
       if (this.ports[k].constructor.name.toLowerCase() === name) {
         return k
       }
@@ -167,10 +168,3 @@ class VM {
 }
 
 mixin(VM.prototype, Memory.prototype, Interrupt.prototype, Video.prototype, Sound.prototype)
-
-export default {
-  VM,
-  _VM_STOPPED,
-  _VM_RUNNING,
-  _VM_PAUSED,
-}

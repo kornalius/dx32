@@ -2,19 +2,17 @@ import hexy from 'hexy'
 import prettyBytes from 'pretty-bytes'
 
 
-class MemoryManager {
+export class MemoryManager {
 
-  constructor (vm, mem, mem_size) {
-    this.vm = vm
-
-    this.mem = mem
+  constructor (mem_buffer, mem_size) {
+    this.mem_buffer = mem_buffer
     this.mem_size = mem_size
     this.mem_top = 0
     this.mem_bottom = this.mem_size - 1
 
     this.blocks = []
 
-    var that = this
+    let that = this
     setInterval(() => {
       that.collect()
     }, 30 * 1024)
@@ -23,8 +21,8 @@ class MemoryManager {
   avail_mem () { return this.mem_size }
 
   used_mem () {
-    var sz = 0
-    for (var b of this.blocks) {
+    let sz = 0
+    for (let b of this.blocks) {
       if (b.used) {
         sz += b.size
       }
@@ -37,9 +35,9 @@ class MemoryManager {
   }
 
   alloc (sz, type = 'b') {
-    var n = 0
+    let n = 0
 
-    for (var b of this.blocks) {
+    for (let b of this.blocks) {
 
       if (b.mem_bottom > n) {
         n = b.mem_bottom
@@ -50,7 +48,7 @@ class MemoryManager {
           b.used = true
           return b.mem_top
         }
-        var ob = b.mem_bottom
+        let ob = b.mem_bottom
         b.mem_bottom = b.mem_top + sz
         b.size = sz
         b.used = true
@@ -61,8 +59,8 @@ class MemoryManager {
       }
     }
 
-    if (n + 1 + sz > this.vm.mem_bottom) {
-      this.vm.hlt()
+    if (n + 1 + sz > _vm.mem_bottom) {
+      _vm.hlt()
       return 0
     }
 
@@ -72,36 +70,36 @@ class MemoryManager {
   }
 
   alloc_b (v) {
-    var addr = this.alloc(1, 'b')
-    this.vm.mem[addr] = v
+    let addr = this.alloc(1, 'b')
+    _vm.mem_buffer[addr] = v
     return addr
   }
 
   alloc_w (v) {
-    var addr = this.alloc(2, 'w')
-    this.vm.mem.writeUInt16LE(v, addr)
+    let addr = this.alloc(2, 'w')
+    _vm.mem_buffer.writeUInt16LE(v, addr)
     return addr
   }
 
   alloc_d (v) {
-    var addr = this.alloc(4, 'd')
-    this.vm.mem.writeUInt32LE(v, addr)
+    let addr = this.alloc(4, 'd')
+    _vm.mem_buffer.writeUInt32LE(v, addr)
     return addr
   }
 
   alloc_s (str, len = 0) {
     len = len || str.length
-    var addr = this.alloc(len + 1, 's')
-    var a = addr
-    for (var i = 0; i < len; i++) {
-      this.vm.mem[a++] = str.charCodeAt(i)
+    let addr = this.alloc(len + 1, 's')
+    let a = addr
+    for (let i = 0; i < len; i++) {
+      _vm.mem_buffer[a++] = str.charCodeAt(i)
     }
-    this.vm.mem[a] = 0
+    _vm.mem_buffer[a] = 0
     return addr
   }
 
   free (addr) {
-    for (var b of this.blocks) {
+    for (let b of this.blocks) {
       if (b.mem_top === addr) {
         b.used = false
         break
@@ -110,7 +108,7 @@ class MemoryManager {
   }
 
   size (addr) {
-    for (var b of this.blocks) {
+    for (let b of this.blocks) {
       if (b.mem_top === addr) {
         return b.mem_bottom - b.mem_top
       }
@@ -119,8 +117,8 @@ class MemoryManager {
   }
 
   collect () {
-    var n = []
-    for (var b of this.blocks) {
+    let n = []
+    for (let b of this.blocks) {
       if (!b.used) {
         n.push(b)
       }
@@ -130,12 +128,8 @@ class MemoryManager {
 
   dump () {
     console.log('memory blocks dump', 'avail:', prettyBytes(this.avail_mem()), 'used:', prettyBytes(this.used_mem()), 'free:', prettyBytes(this.free_mem()))
-    for (var b of this.blocks) {
-      console.log(hexy.hexy(this.vm.mem, { offset: b.mem_top, length: Math.min(255, b.size), display_offset: b.mem_top, width: 16, caps: 'upper', indent: 2 }))
+    for (let b of this.blocks) {
+      console.log(hexy.hexy(_vm.mem_buffer, { offset: b.mem_top, length: Math.min(255, b.size), display_offset: b.mem_top, width: 16, caps: 'upper', indent: 2 }))
     }
   }
-}
-
-export default {
-  MemoryManager,
 }

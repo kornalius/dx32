@@ -1,15 +1,15 @@
 import hexy from 'hexy'
-import { runtime_error, buffer_to_string } from './globals.js'
+import { runtime_error, buffer_to_string, hex } from './globals.js'
 
 
-class Memory {
+export class Memory {
 
   mem_init (mem_size) {
     this.frame_stacks = {}
-    this.mem_size = mem_size
+    this.mem_size = mem_size || 4
     this.mem_top = 0
     this.mem_bottom = this.mem_size - 1
-    this.mem = new Buffer(this.mem_size)
+    this.mem_buffer = new Buffer(this.mem_size)
   }
 
   mem_tick (t) {
@@ -21,8 +21,12 @@ class Memory {
   }
 
   mem_shut () {
-    this.mem = null
+    this.mem_buffer = null
     this.frame_stacks = {}
+  }
+
+  clear () {
+    this.fill(0, 0, this.mem_size)
   }
 
   chk_bounds (addr, sz = 4) { if (addr < this.mem_top || addr + sz > this.mem_bottom) { this.hlt(0x06) } }
@@ -103,52 +107,52 @@ class Memory {
   }
 
   db (addr, ...args) {
-    for (var a of args) {
-      this.mem[addr++] = a
+    for (let a of args) {
+      this.mem_buffer[addr++] = a
     }
   }
 
   dw (addr, ...args) {
-    for (var a of args) {
-      this.mem.writeUInt16LE(a, addr)
+    for (let a of args) {
+      this.mem_buffer.writeUInt16LE(a, addr)
       addr += 2
     }
   }
 
   dd (addr, ...args) {
-    for (var a of args) {
-      this.mem.writeUInt32LE(a, addr)
+    for (let a of args) {
+      this.mem_buffer.writeUInt32LE(a, addr)
       addr += 4
     }
   }
 
   ldb (addr) {
-    return this.mem[addr]
+    return this.mem_buffer[addr]
   }
 
   ldw (addr) {
-    return this.mem.readUInt16LE(addr)
+    return this.mem_buffer.readUInt16LE(addr)
   }
 
   ldd (addr) {
-    return this.mem.writeDoubleLE(addr)
+    return this.mem_buffer.writeDoubleLE(addr)
   }
 
   ld (addr) {
-    return this.mem.readUInt32LE(addr)
+    return this.mem_buffer.readUInt32LE(addr)
   }
 
   ldl (addr, size) {
-    var b = new Buffer(size)
-    this.mem.copy(b, 0, addr, addr + size)
+    let b = new Buffer(size)
+    this.mem_buffer.copy(b, 0, addr, addr + size)
     return b
   }
 
   lds (addr, size = -1) {
-    var s = ''
-    var l = 0
+    let s = ''
+    let l = 0
     while (addr < this.mem_bottom && (size === -1 || l < size)) {
-      var c = this.mem[addr++]
+      let c = this.mem_buffer[addr++]
       if (c === 0) {
         if (size === -1) {
           break
@@ -163,31 +167,31 @@ class Memory {
   }
 
   stb (addr, value) {
-    this.mem[addr] = value
+    this.mem_buffer[addr] = value
   }
 
   stw (addr, value) {
-    this.mem.writeUInt16LE(value, addr)
+    this.mem_buffer.writeUInt16LE(value, addr)
   }
 
   std (addr, value) {
-    this.mem.writeDoubleLE(value, addr)
+    this.mem_buffer.writeDoubleLE(value, addr)
   }
 
   st (addr, value) {
-    this.mem.writeUInt32LE(value, addr)
+    this.mem_buffer.writeUInt32LE(value, addr)
   }
 
   stl (addr, buffer, size = 0) {
-    buffer.copy(this.mem, addr, 0, size || buffer.length)
+    buffer.copy(this.mem_buffer, addr, 0, size || buffer.length)
   }
 
   sts (addr, str, len = 0) {
     len = len || str.length
-    for (var i = 0; i < len; i++) {
-      this.mem[addr++] = str.charCodeAt(i)
+    for (let i = 0; i < len; i++) {
+      this.mem_buffer[addr++] = str.charCodeAt(i)
     }
-    this.mem[addr] = 0
+    this.mem_buffer[addr] = 0
   }
 
   read (addr, size = 4) {
@@ -225,16 +229,17 @@ class Memory {
   }
 
   copy_bc (src, tgt, size) {
-    this.chk_bounds(src, size) this.chk_bounds(tgt, size)
+    this.chk_bounds(src, size)
+    this.chk_bounds(tgt, size)
     this.copy(src, tgt, size)
   }
 
   fill (addr, value, size) {
-    this.mem.fill(value, addr, addr + size)
+    this.mem_buffer.fill(value, addr, addr + size)
   }
 
   copy (src, tgt, size) {
-    this.mem.copy(this.mem, tgt, src, src + size)
+    this.mem_buffer.copy(this.mem_buffer, tgt, src, src + size)
   }
 
   seq_start (start) {
@@ -266,8 +271,8 @@ class Memory {
   }
 
   dump (addr = 0, size = 1024) {
-    console.log('Dumnping', size, ' bytes from memory at ', _vm.hex(addr))
-    console.log(hexy.hexy(this.mem, { offset: addr, length: size, display_offset: addr, width: 16, caps: 'upper', indent: 2 }))
+    console.log('Dumnping', size, ' bytes from memory at ', hex(addr))
+    console.log(hexy.hexy(this.mem_buffer, { offset: addr, length: size, display_offset: addr, width: 16, caps: 'upper', indent: 2 }))
   }
 
   frame_stack (addr, count, entry_size) {
@@ -275,51 +280,43 @@ class Memory {
   }
 
   frame_push (addr, ...values) {
-    var s = this.frame_stacks[addr]
+    let s = this.frame_stacks[addr]
     if (s) {
-      var sz = s.entry_size
-      for (var v of values) {
+      let sz = s.entry_size
+      for (let v of values) {
         if (s.ptr + sz < s.mem_bottom) {
           this.st(s.ptr, v)
           s.ptr += sz
         }
         else {
-          runtime_error(this, 0x03)
+          runtime_error(0x03)
           break
         }
       }
     }
     else {
-      runtime_error(this, 0x04)
+      runtime_error(0x04)
     }
   }
 
   frame_pop (addr) {
-    var s = this.frame_stacks[addr]
+    let s = this.frame_stacks[addr]
     if (s) {
-      var sz = s.entry_size
+      let sz = s.entry_size
       if (s.ptr - sz >= s.mem_top) {
         s.ptr -= sz
-        var r = this.ld(s.ptr)
+        let r = this.ld(s.ptr)
         return r
       }
       else {
-        runtime_error(this, 0x02)
+        runtime_error(0x02)
         return 0
       }
     }
     else {
-      runtime_error(this, 0x04)
+      runtime_error(0x04)
       return 0
     }
   }
 
-  clear () {
-    this.fill(0, 0, this.mem_size)
-  }
-
-}
-
-export default {
-  Memory,
 }

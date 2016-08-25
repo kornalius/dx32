@@ -1,11 +1,11 @@
 import _ from 'lodash'
 
 
-const _ENTRY_DIR = 0x01
-const _ENTRY_OPEN = 0x02
-const _ENTRY_LOCK = 0x04
+export const _ENTRY_DIR = 0x01
+export const _ENTRY_OPEN = 0x02
+export const _ENTRY_LOCK = 0x04
 
-class Entry {
+export class Entry {
 
   constructor (floppy, idx, uid, parent_uid, filename, ext, size, created, modified, attrs) {
     this.floppy = floppy
@@ -25,7 +25,7 @@ class Entry {
   }
 
   read_info () {
-    var ptr = this.mem_top
+    let ptr = this.mem_top
     this.uid = this.floppy.ld(ptr)
     ptr += 4
     this.parent_uid = this.floppy.ld(ptr)
@@ -47,7 +47,7 @@ class Entry {
   }
 
   write_info () {
-    var ptr = this.mem_top
+    let ptr = this.mem_top
     this.floppy.st(ptr, this.uid)
     ptr += 4
     this.floppy.st(ptr, this.parent_uid)
@@ -76,8 +76,8 @@ class Entry {
   is_root () { return !this.parent_uid }
 
   paths () {
-    var paths = [this.drive_path]
-    for (var p of this.parents()) {
+    let paths = [this.drive_path]
+    for (let p of this.parents()) {
       paths.push(p.filename + p.is_dir() ? '' : '.' + p.ext)
     }
     return paths
@@ -86,8 +86,8 @@ class Entry {
   pathname () { return this.drive.dos.pathname(this.paths()) }
 
   parents () {
-    var entries = []
-    var p = this
+    let entries = []
+    let p = this
     while (p) {
       entries.unshift(p)
       p = p.parent
@@ -96,8 +96,8 @@ class Entry {
   }
 
   children () {
-    var entries = []
-    for (var e of this.floppy.entries) {
+    let entries = []
+    for (let e of this.floppy.entries) {
       if (e.parent_uid === this.uid) {
         entries.push(e)
       }
@@ -106,8 +106,8 @@ class Entry {
   }
 
   blocks () {
-    var blocks = []
-    for (var b of this.floppy.blocks) {
+    let blocks = []
+    for (let b of this.floppy.blocks) {
       if (b.entry_idx === this.idx) {
         blocks.push(b)
       }
@@ -116,27 +116,27 @@ class Entry {
   }
 
   size () {
-    var sz = 0
-    for (var b of this.blocks()) {
+    let sz = 0
+    for (let b of this.blocks()) {
       sz += b.size
     }
     return sz
   }
 
   clear_blocks () {
-    for (var b of this.blocks()) {
+    for (let b of this.blocks()) {
       b.entry_idx = -1
     }
   }
 
   next_free_block () {
-    var b = this.floppy.unused_blocks()
+    let b = this.floppy.unused_blocks()
     return b.length ? b[0] : new Block(this, this.idx)
   }
 
   read (addr) {
-    var ptr = addr
-    for (var b of this.blocks()) {
+    let ptr = addr
+    for (let b of this.blocks()) {
       ptr += b.read(ptr)
     }
     return ptr - addr
@@ -144,11 +144,11 @@ class Entry {
 
   write (addr, size) {
     this.clear_blocks()
-    var ptr = addr
+    let ptr = addr
     while (size > 0) {
-      var b = this.next_free_block()
+      let b = this.next_free_block()
       if (b) {
-        var sz = Math.min(size, this.floppy.block_size)
+        let sz = Math.min(size, this.floppy.block_size)
         b.set_size(sz)
         _vm.copy(b.mem_top, ptr, sz)
         ptr += b.write(ptr)
@@ -156,11 +156,4 @@ class Entry {
       size -= this.floppy.block_size
     }
   }
-}
-
-export default {
-  Entry,
-  _ENTRY_DIR,
-  _ENTRY_OPEN,
-  _ENTRY_LOCK,
 }

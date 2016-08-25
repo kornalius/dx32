@@ -1,14 +1,13 @@
 
-const _DBG_RUNNING = 0
-const _DBG_STEP_OUT = -1
-const _DBG_STEP_IN = -2
-const _DBG_PAUSED = -3
-const _DBG_STOPPED = -4
+export const _DBG_RUNNING = 0
+export const _DBG_STEP_OUT = -1
+export const _DBG_STEP_IN = -2
+export const _DBG_PAUSED = -3
+export const _DBG_STOPPED = -4
 
-class Debugger {
+export class Debugger {
 
-  constructor (vm) {
-    this.vm = vm
+  constructor () {
     this.status = _DBG_RUNNING
     this.current_line = -1
     this.lines = []
@@ -53,19 +52,19 @@ class Debugger {
   }
 
   list (type) {
-    var l = []
+    let l = []
 
     switch (type)
     {
       case 'frames':
       case 'f':
-        for (var f of this.frames) {
+        for (let f of this.frames) {
           l.shift(f.name)
         }
         break
 
       default:
-        for (var i = Math.max(0, this.current_line - this.lines_display); i < Math.min(this.current_line + this.lines_display, this.lines.length) i++) {
+        for (let i = Math.max(0, this.current_line - this.lines_display); i < Math.min(this.current_line + this.lines_display, this.lines.length); i++) {
           l.push(this.lines[i])
         }
     }
@@ -73,13 +72,4 @@ class Debugger {
     return l
   }
 
-}
-
-export default {
-  Debugger,
-  _DBG_RUNNING,
-  _DBG_STEP_OUT,
-  _DBG_STEP_IN,
-  _DBG_PAUSED,
-  _DBG_STOPPED,
 }

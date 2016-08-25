@@ -1,13 +1,18 @@
-import { _ } from 'lodash'
+import _ from 'lodash'
+import { mixin } from '../../globals.js'
 import { Overlays } from './overlays.js'
-import { Video } from './video.js'
 import { Sound } from '../sound.js'
 import { Palette } from './palette.js'
 import { Text } from './text.js'
 import { Sprite } from './sprite.js'
 
 
-class Video {
+PIXI.Point.prototype.distance = (target) => {
+  Math.sqrt((this.x - target.x) * (this.x - target.x) + (this.y - target.y) * (this.y - target.y))
+}
+
+
+export class Video {
 
   vid_init (width, height, scale, offset) {
     this.force_update = false
@@ -100,7 +105,7 @@ class Video {
 
     let end = this.screen_addr + this.screen_size
     for (let si = this.screen_addr, pi = 0; si < end; si++, pi += 4) {
-      this.rgba_to_mem(pixels, pi, _vm.mem.readUInt32LE(this.palette + _vm.mem[si] * 4))
+      this.rgba_to_mem(pixels, pi, _vm.mem_buffer.readUInt32LE(this.palette + _vm.mem_buffer[si] * 4))
     }
 
     screenOverlay.context.putImageData(data, 0, 0)
@@ -117,10 +122,10 @@ class Video {
 
   pixel (i, c) {
     let pi = this.screen_addr + i
-    if (c !== undefined && _vm.mem[pi] !== c) {
-      _vm.mem[pi] = c
+    if (c !== undefined && _vm.mem_buffer[pi] !== c) {
+      _vm.mem_buffer[pi] = c
     }
-    return _vm.mem[pi]
+    return _vm.mem_buffer[pi]
   }
 
   pixel_to_index (x, y) { return y * this.width + x }
@@ -143,28 +148,24 @@ class Video {
 
   rgba_to_num (r, g, b, a) { return r << 24 | g << 16 | b << 8 | a }
 
-  rgba_to_mem (mem, i, r, g, b, a) {
+  rgba_to_mem (mem_buffer, i, r, g, b, a) {
     if (r && !g) {
       g = r >> 16 & 0xFF
       b = r >> 8 & 0xFF
       a = r & 0xFF
       r = r >> 24 & 0xFF
     }
-    mem[i] = r
-    mem[i + 1] = g
-    mem[i + 2] = b
-    mem[i + 3] = a
+    mem_buffer[i] = r
+    mem_buffer[i + 1] = g
+    mem_buffer[i + 2] = b
+    mem_buffer[i + 3] = a
   }
 
   scroll (x, y) {
-    _vm.mem.copy(_vm.mem, this.screen_addr, this.screen_addr + y * this.width, (this.height - y) * this.width)
+    _vm.mem_buffer.copy(_vm.mem_buffer, this.screen_addr, this.screen_addr + y * this.width, (this.height - y) * this.width)
     this.vid_refresh()
   }
 
 }
 
 mixin(Video.prototype, Overlays.prototype, Palette.prototype, Text.prototype, Sprite.prototype)
-
-export default {
-  Video,
-}

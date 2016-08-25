@@ -1,4 +1,4 @@
-import { _ } from 'lodash'
+import _ from 'lodash'
 
 
 class BDF {
@@ -12,14 +12,14 @@ class BDF {
     this.meta = {}
     this.glyphs = {}
 
-    var fontLines = data.split('\n')
-    var declarationStack = []
-    var currentChar = null
+    let fontLines = data.split('\n')
+    let declarationStack = []
+    let currentChar = null
 
-    for (var i = 0 i < fontLines.length i++) {
-      var line = fontLines[i]
-      var line_data = line.split(/\s+/)
-      var declaration = line_data[0]
+    for (let i = 0; i < fontLines.length; i++) {
+      let line = fontLines[i]
+      let line_data = line.split(/\s+/)
+      let declaration = line_data[0]
 
       switch (declaration)
       {
@@ -93,11 +93,11 @@ class BDF {
           }
           break
         case 'BITMAP':
-          for (var row = 0; row < currentChar.boundingBox.height; row++, i++) {
-            var byte = parseInt(fontLines[i + 1], 16)
+          for (let row = 0; row < currentChar.boundingBox.height; row++, i++) {
+            let byte = parseInt(fontLines[i + 1], 16)
             currentChar.bytes.push(byte)
             currentChar.bitmap[row] = []
-            for (var bit = 7; bit >= 0; bit--) {
+            for (let bit = 7; bit >= 0; bit--) {
               currentChar.bitmap[row][7 - bit] = byte & 1 << bit ? 1 : 0
             }
           }
@@ -120,7 +120,7 @@ class BDF {
 }
 
 
-class Text {
+export class Text {
 
   txt_init (count, width, height) {
     this.char_count = count || 256
@@ -168,26 +168,26 @@ class Text {
   txt_shut () {
   }
 
-  txt_load () {
-    var b = new BDF()
-    var f = require('raw!../../fonts_addr/ctrld-fixed-10r.bdf')
+  txt_load_fnt () {
+    let b = new BDF()
+    let f = require('raw!../../../fonts/ctrld-fixed-10r.bdf')
     b.load(f)
 
-    // var points = b.meta.size.points
-    var fontAscent = b.meta.properties.fontAscent
-    // var fontDescent = b.meta.properties.fontDescent
-    var baseline = fontAscent + this.char_offset_y
+    // let points = b.meta.size.points
+    let fontAscent = b.meta.properties.fontAscent
+    // let fontDescent = b.meta.properties.fontDescent
+    let baseline = fontAscent + this.char_offset_y
 
-    for (var k in b.glyphs) {
-      var g = b.glyphs[k]
-      var bb = g.boundingBox
-      var dsc = baseline - bb.height - bb.y
-      var ptr = this.fonts_addr + g.code * this.font_size
+    for (let k in b.glyphs) {
+      let g = b.glyphs[k]
+      let bb = g.boundingBox
+      let dsc = baseline - bb.height - bb.y
+      let ptr = this.fonts_addr + g.code * this.font_size
 
-      for (var y = 0; y < bb.height; y++) {
-        var p = ptr + (y + dsc) * this.char_width
-        for (var x = 0; x < bb.width; x++) {
-          _vm.mem[p + x + bb.x + this.char_offset_x] |= g.bitmap[y][x]
+      for (let y = 0; y < bb.height; y++) {
+        let p = ptr + (y + dsc) * this.char_width
+        for (let x = 0; x < bb.width; x++) {
+          _vm.mem_buffer[p + x + bb.x + this.char_offset_x] |= g.bitmap[y][x]
         }
       }
     }
@@ -204,19 +204,19 @@ class Text {
     let idx = this.text_addr
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
-        let c = _vm.mem[idx]
+        let c = _vm.mem_buffer[idx]
         if (c) {
-          let fg = _vm.mem[idx + 1]
-          let bg = _vm.mem[idx + 2]
+          let fg = _vm.mem_buffer[idx + 1]
+          let bg = _vm.mem_buffer[idx + 2]
 
           let px = x * cw
           let py = y * ch
 
           let ptr = this.fonts + c * this.font_size
-          for (let by = 0 by < ch by++) {
+          for (let by = 0; by < ch; by++) {
             let pi = (py + by) * this.width + px
-            for (let bx = 0 bx < cw bx++) {
-              this.pixel(pi++, _vm.mem[ptr++] ? fg : bg)
+            for (let bx = 0; bx < cw; bx++) {
+              this.pixel(pi++, _vm.mem_buffer[ptr++] ? fg : bg)
             }
           }
         }
@@ -226,7 +226,7 @@ class Text {
   }
 
   txt_refresh (flip = true) {
-    this.refresh(flip)
+    this.vid_refresh(flip)
     this.force_text = true
   }
 
@@ -241,7 +241,7 @@ class Text {
 
   txt_cha (x, y) {
     let tidx = this.txt_idx(x, y)
-    return { ch: _vm.mem[tidx], fg: _vm.mem[tidx + 1], bg: _vm.mem[tidx + 2] }
+    return { ch: _vm.mem_buffer[tidx], fg: _vm.mem_buffer[tidx + 1], bg: _vm.mem_buffer[tidx + 2] }
   }
 
   txt_put (ch, fg = 1, bg = 0) {
@@ -258,9 +258,9 @@ class Text {
     let { x, y } = this.txt_pos()
 
     let tidx = this.txt_idx(x, y)
-    _vm.mem[tidx] = ch.charCodeAt(0)
-    _vm.mem[tidx + 1] = fg
-    _vm.mem[tidx + 2] = bg
+    _vm.mem_buffer[tidx] = ch.charCodeAt(0)
+    _vm.mem_buffer[tidx + 1] = fg
+    _vm.mem_buffer[tidx + 2] = bg
 
     this.overlays.text.x++
     if (this.overlays.text.x > this.text_width) {
@@ -270,7 +270,7 @@ class Text {
     this.txt_refresh()
   }
 
-  txt_prt (text, fg, bg) {
+  txt_print (text, fg, bg) {
     for (let c of text) {
       this.txt_put(c, fg, bg)
     }
@@ -307,7 +307,7 @@ class Text {
 
   txt_eos () { return this.txt_mov(this.text_width, this.text_height) }
 
-  txt_bs () { this.txt_lft() this.txt_put(' ') return this.txt_lft() }
+  txt_bs () { this.txt_lft(); this.txt_put(' '); return this.txt_lft() }
 
   txt_cr () { return this.txt_mov(1, this.overlays.text.y + 1) }
 
@@ -322,53 +322,53 @@ class Text {
   txt_rgt () { return this.txt_mov(this.overlays.text.x + 1, this.overlays.text.y) }
 
   txt_clr () {
-    _vm.mem.fill(0, this.text_addr, text_addr + this.text_size)
+    _vm.mem_buffer.fill(0, this.text_addr, text_addr + this.text_size)
   }
 
   txt_clr_eol () {
     let { x, y } = this.txt_pos()
-    _vm.mem.fill(0, this.txt_idx(x, y), this.txt_idx(this.text_width, y))
+    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.txt_idx(this.text_width, y))
   }
 
   txt_clr_eos () {
     let { x, y } = this.txt_pos()
-    _vm.mem.fill(0, this.txt_idx(x, y), this.text_addr + this.text_size)
+    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.text_addr + this.text_size)
   }
 
   txt_clr_bol () {
     let { x, y } = this.txt_pos()
-    _vm.mem.fill(0, this.txt_idx(x, y), this.txt_idx(1, y))
+    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.txt_idx(1, y))
   }
 
   txt_clr_bos () {
     let { x, y } = this.txt_pos()
-    _vm.mem.fill(0, this.txt_idx(x, y), this.text_addr)
+    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.text_addr)
   }
 
   txt_cpy_lin (sy, ty) {
     let si = this.txt_lin(sy)
     let ti = this.txt_lin(ty)
-    _vm.mem.copy(_vm.mem, ti.start, si.start, si.length)
+    _vm.mem_buffer.copy(_vm.mem_buffer, ti.start, si.start, si.length)
   }
 
   txt_cpy_col (sx, tx) {
-    for (let y = 0 y < this.text_height y++) {
+    for (let y = 0; y < this.text_height; y++) {
       let i = this.txt_lin(y)
       let si = i.start + sx * 3
       let ti = i.start + tx * 3
-      _vm.mem.copy(_vm.mem, ti, si, 3)
+      _vm.mem_buffer.copy(_vm.mem_buffer, ti, si, 3)
     }
   }
 
   txt_erase_lin (y) {
     let i = this.txt_lin(y)
-    _vm.mem.fill(0, i.start, i.end)
+    _vm.mem_buffer.fill(0, i.start, i.end)
   }
 
   txt_erase_col (x) {
-    for (let y = 0 y < this.text_height y++) {
+    for (let y = 0; y < this.text_height; y++) {
       let i = this.txt_lin(y).start + x * 3
-      _vm.mem.fill(0, i, i + 3)
+      _vm.mem_buffer.fill(0, i, i + 3)
     }
   }
 
@@ -376,20 +376,16 @@ class Text {
     let i
     if (dy > 0) {
       i = this.txt_lin(dy + 1)
-      _vm.mem.copy(_vm.mem, this.text_addr, i.start, this.text_size - i)
+      _vm.mem_buffer.copy(_vm.mem_buffer, this.text_addr, i.start, this.text_size - i)
       i = this.txt_lin(dy)
-      _vm.mem.fill(0, this.text_addr - i.start, this.text_addr + this.text_size)
+      _vm.mem_buffer.fill(0, this.text_addr - i.start, this.text_addr + this.text_size)
     }
     else if (dy < 0) {
       i = this.txt_lin(dy + 1)
-      _vm.mem.copy(_vm.mem, this.text_addr, i, this.text_size - i)
+      _vm.mem_buffer.copy(_vm.mem_buffer, this.text_addr, i, this.text_size - i)
       i = this.txt_lin(dy + 1)
-      _vm.mem.fill(0, this.text_addr - dy * this.text_width * 3, this.text_addr + this.text_size)
+      _vm.mem_buffer.fill(0, this.text_addr - dy * this.text_width * 3, this.text_addr + this.text_size)
     }
   }
 
-}
-
-export default {
-  Text,
 }
