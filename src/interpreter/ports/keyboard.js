@@ -12,7 +12,7 @@ export class KeyboardPort extends Port {
 
     this.keys = {}
 
-    this.stk_init(1024, 2)
+    this.stk_init(1024, 4)
 
     window.addEventListener('keydown', this.onKeydown.bind(this))
     window.addEventListener('keyup', this.onKeyup.bind(this))
@@ -33,7 +33,7 @@ export class KeyboardPort extends Port {
   }
 
   onKeydown (e) {
-    this.stk_psh(1, e.which)
+    this.stk_push(1, e.which)
     if (!e.repeat) {
       this.keys[e.which] = 0
     }
@@ -43,7 +43,7 @@ export class KeyboardPort extends Port {
   }
 
   onKeyup (e) {
-    this.stk_psh(2, e.which)
+    this.stk_push(2, e.which)
     delete this.keys[e.which]
     // e.preventDefault()
     e.stopPropagation()

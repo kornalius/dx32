@@ -1,14 +1,10 @@
 import { defaults, mixin, runtime_error } from '../globals.js'
 
 import { Memory } from '../memory.js'
-import { Stack } from '../stack.js'
 import { MemoryManager } from './memorymanager.js'
 import { Debugger } from './debugger.js'
 import { Union } from './union.js'
-
 import { Interrupt } from './interrupt.js'
-import { Video } from './video/video.js'
-import { Sound } from './sound.js'
 
 import { Tokenizer } from '../compiler/tokenizer.js'
 import { Assembler } from '../compiler/assembler.js'
@@ -38,7 +34,6 @@ export class VM {
     this.dbg = new Debugger()
 
     this.int_init()
-    this.snd_init()
 
     this.ports = []
 
@@ -47,7 +42,8 @@ export class VM {
 
     this.boot(true)
 
-    PIXI.ticker.shared.add(this.tick)
+    this.tickBound = this.tick.bind(this)
+    PIXI.ticker.shared.add(this.tickBound)
   }
 
   boot (cold = false) {
@@ -86,7 +82,6 @@ export class VM {
 
     this.mem_reset()
     this.int_reset()
-    this.snd_reset()
   }
 
   shut () {
@@ -97,7 +92,6 @@ export class VM {
 
     this.mem_shut()
     this.int_shut()
-    this.snd_shut()
   }
 
   hlt (code) {
@@ -130,18 +124,16 @@ export class VM {
 
   resume () { this.status = _VM_RUNNING }
 
-  tick (time) {
+  tick (delta) {
     if (this.status === _VM_RUNNING) {
-      for (let k in this.ports) {
-        if (this.ports[k].tick) {
-          this.ports[k].tick(time)
-        }
-      }
+      let t = performance.now()
 
-      this.mem_tick(time)
-      this.int_tick(time)
-      this.vid_tick(time)
-      this.snd_tick(time)
+      this.mem_tick(t, delta)
+      this.int_tick(t, delta)
+
+      for (let k in this.ports) {
+        this.ports[k].tick(t, delta)
+      }
     }
   }
 
@@ -164,4 +156,4 @@ export class VM {
   }
 }
 
-mixin(VM.prototype, Memory.prototype, Stack.prototype, Union.prototype, Interrupt.prototype, Video.prototype, Sound.prototype)
+mixin(VM.prototype, Memory.prototype, Union.prototype, Interrupt.prototype)

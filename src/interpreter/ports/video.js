@@ -56,10 +56,15 @@ export class VideoPort extends Port {
     }
   }
 
+  tick (t) {
+    super.tick(t)
+    this.vid_tick(t)
+  }
+
   reset () {
     super.reset()
     this.vid_reset()
-    this.vid_write_info()
+    this.write_info()
   }
 
   shut () {
@@ -67,7 +72,7 @@ export class VideoPort extends Port {
     this.vid_shut()
   }
 
-  vid_write_info () {
+  write_info () {
     if (!this.info) {
       this.info = _vm.mm.alloc(80)
     }

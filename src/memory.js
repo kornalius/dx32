@@ -5,7 +5,7 @@ import { runtime_error, hex } from './globals.js'
 export class Memory {
 
   mem_init (mem_size) {
-    this.frame_stacks = {}
+    this.stacks = {}
     this.mem_size = mem_size || 4
     this.mem_top = 0
     this.mem_bottom = this.mem_size - 1
@@ -17,12 +17,12 @@ export class Memory {
 
   mem_reset () {
     this.clear()
-    this.frame_stacks = {}
+    this.stacks = {}
   }
 
   mem_shut () {
     this.mem_buffer = null
-    this.frame_stacks = {}
+    this.stacks = {}
   }
 
   clear () {
@@ -273,16 +273,17 @@ export class Memory {
     console.log(hexy.hexy(this.mem_buffer, { offset: addr, length: size, display_offset: addr, width: 16, caps: 'upper', indent: 2 }))
   }
 
-  frame_stack (addr, count, entry_size) {
-    this.frame_stacks[addr] = { top: addr, bottom: addr + (count - 1) * entry_size, ptr: addr, count, entry_size }
+  stack (addr, count, entry_size) {
+    entry_size = entry_size || 1
+    this.stacks[addr] = { top: addr, bottom: addr + (count - 1) * entry_size, ptr: addr, count, entry_size }
   }
 
-  frame_push (addr, ...values) {
-    let s = this.frame_stacks[addr]
+  push (addr, ...values) {
+    let s = this.stacks[addr]
     if (s) {
       let sz = s.entry_size
       for (let v of values) {
-        if (s.ptr + sz < s.mem_bottom) {
+        if (s.ptr + sz < s.bottom) {
           this.st(s.ptr, v)
           s.ptr += sz
         }
@@ -297,11 +298,11 @@ export class Memory {
     }
   }
 
-  frame_pop (addr) {
-    let s = this.frame_stacks[addr]
+  pop (addr) {
+    let s = this.stacks[addr]
     if (s) {
       let sz = s.entry_size
-      if (s.ptr - sz >= s.mem_top) {
+      if (s.ptr - sz >= s.top) {
         s.ptr -= sz
         let r = this.ld(s.ptr)
         return r

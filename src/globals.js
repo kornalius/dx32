@@ -14,6 +14,13 @@ export var comma_array = args => {
   return r
 }
 
+export var string_buffer = (str, len = 0) => {
+  len = len || str.length
+  var b = new Buffer(len)
+  b.write(str, 0, str.length, 'ascii')
+  return b
+}
+
 export var _vm_ldb = () => { return '_vm.ldb' + (defaults.boundscheck ? '_bc' : '') }
 export var _vm_ldw = () => { return '_vm.ldw' + (defaults.boundscheck ? '_bc' : '') }
 export var _vm_ld = () => { return '_vm.ld' + (defaults.boundscheck ? '_bc' : '') }
@@ -204,14 +211,14 @@ export var opcodes = {
     gen: (a, ...args) => { return ['_vm.union_mix', '(', a, ',', comma_array(args), ')'] },
   },
   stk: {
-    gen: (a, b, c) => { return ['_vm.stk_init', '(', a, ',', b, ',', c || 4, ')'] },
+    gen: (a, b, c) => { return ['_vm.stack', '(', a, ',', b, ',', c || 4, ')'] },
   },
   psh: {
-    gen: (a, ...args) => { return ['_vm.stk_psh', '(', a, ',', comma_array(args), ')'] },
+    gen: (a, ...args) => { return ['_vm.push', '(', a, ',', comma_array(args), ')'] },
   },
   pop: {
     expr: true,
-    gen: a => { return ['_vm.stk_pop', '(', a, ')'] },
+    gen: a => { return ['_vm.pop', '(', a, ')'] },
   },
   hex: {
     gen: a => { return ['_vm.hex', '(', a, ')'] },

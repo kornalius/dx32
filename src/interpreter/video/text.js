@@ -140,13 +140,13 @@ export class Text {
 
   txt_tick (t) {
     if (t - this.last_text_cursor >= 500) {
-      this.overlays.cursor.text.sprite.visible = !this.overlays.cursor.text.sprite.visible
+      this.overlays.text.sprite.visible = !this.overlays.text.sprite.visible
       this.last_text_cursor = t
       this.force_update = true
     }
 
-    this.overlays.cursor.text.sprite.x = (this.overlays.cursor.text.x - 1) * this.overlays.cursor.text.sprite.width + this.offset.x
-    this.overlays.cursor.text.sprite.y = (this.overlays.cursor.text.y - 1) * this.overlays.cursor.text.sprite.height + this.offset.y
+    this.overlays.text.sprite.x = (this.overlays.text.x - 1) * this.overlays.text.sprite.width + this.offset.x
+    this.overlays.text.sprite.y = (this.overlays.text.y - 1) * this.overlays.text.sprite.height + this.offset.y
 
     if (this.force_text) {
       this.txt_draw()

@@ -103,7 +103,7 @@ export class Video {
 
     let end = this.screen_addr + this.screen_size
     for (let si = this.screen_addr, pi = 0; si < end; si++, pi += 4) {
-      this.rgba_to_mem(pixels, pi, _vm.mem_buffer.readUInt32LE(this.palette + _vm.mem_buffer[si] * 4))
+      this.rgba_to_mem(pixels, pi, _vm.mem_buffer.readUInt32LE(this.palette_addr + _vm.mem_buffer[si] * 4))
     }
 
     screenOverlay.context.putImageData(data, 0, 0)

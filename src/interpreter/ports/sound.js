@@ -25,6 +25,11 @@ export class SoundPort extends Port {
     }
   }
 
+  tick (t) {
+    super.tick(t)
+    this.snd_tick(t)
+  }
+
   reset () {
     super.reset()
     this.snd_reset()

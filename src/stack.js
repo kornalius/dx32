@@ -8,6 +8,7 @@ export class Stack {
     this.max_stack = max_stack || 255
     this.entry_size = entry_size || 4
     this.stack_size = this.max_stack * this.entry_size
+
     this.stack_addr = _vm.mm.alloc(this.stack_size)
     this.stack_ptr = this.stack_addr
 
@@ -31,7 +32,7 @@ export class Stack {
     _vm.st(this.stack_info + 4, this.stack_ptr)
   }
 
-  stk_psh (...value) {
+  stk_push (...value) {
     let sz = this.entry_size
     for (let v of value) {
       if (this.stack_ptr < this.stack_addr + this.stack_size) {
@@ -43,7 +44,7 @@ export class Stack {
   }
 
   stk_pop () {
-    if (this.stk_sz()) {
+    if (this.stk_size()) {
       let sz = this.entry_size
       _vm.read(this.stack_ptr, sz)
       this.stack_ptr -= sz
@@ -51,6 +52,6 @@ export class Stack {
     }
   }
 
-  stk_sz () { return Math.trunc((this.stack_ptr - this.stack_addr) / this.entry_size) }
+  stk_size () { return Math.trunc((this.stack_ptr - this.stack_addr) / this.entry_size) }
 
 }

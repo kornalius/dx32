@@ -3,7 +3,7 @@ import { Sound } from '../sound.js'
 import { Memory } from '../../memory.js'
 import { Block } from './block.js'
 import { Entry } from './entry.js'
-import { defaults, mixin, string_to_buffer, buffer_to_string } from '../../globals.js'
+import { defaults, mixin, string_to_buffer, buffer_to_string, string_buffer } from '../../globals.js'
 
 
 export class Floppy {
@@ -105,7 +105,7 @@ export class Floppy {
     ptr += 2
     this.st(ptr, this.entries.length)
     ptr += 2
-    this.stl(ptr, _vm.string_buffer(this.diskname, 32))
+    this.stl(ptr, string_buffer(this.diskname, 32))
     ptr += 32
 
     this.drive.operation('write', ptr - this.info_table_top)

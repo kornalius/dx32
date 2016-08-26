@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import { string_buffer } from '../../globals.js'
 import { Block } from './block.js'
 
 
@@ -42,7 +43,7 @@ export class Entry {
     ptr += 8
     this.attrs = this.floppy.ldb(ptr)
 
-    this.drive._operation('read', ptr - this.mem_top)
+    this.drive.operation('read', ptr - this.mem_top)
 
     return ptr
   }
@@ -53,9 +54,9 @@ export class Entry {
     ptr += 4
     this.floppy.st(ptr, this.parent_uid)
     ptr += 4
-    this.floppy.stl(ptr, _vm.string_buffer(this.filename, 32))
+    this.floppy.stl(ptr, string_buffer(this.filename, 32))
     ptr += 32
-    this.floppy.stl(ptr, _vm.string_buffer(this.ext, 3))
+    this.floppy.stl(ptr, string_buffer(this.ext, 3))
     ptr += 3
     this.floppy.std(ptr, this.created)
     ptr += 8
@@ -63,7 +64,7 @@ export class Entry {
     ptr += 8
     this.floppy.stb(ptr, this.attrs)
 
-    this.drive._operation('write', ptr - this.mem_top)
+    this.drive.operation('write', ptr - this.mem_top)
 
     return ptr
   }

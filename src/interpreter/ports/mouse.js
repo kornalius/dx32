@@ -12,7 +12,7 @@ export class MousePort extends Port {
 
     this.last_mouse = new PIXI.Point()
 
-    this.stk_init(1024, 2)
+    this.stk_init(1024, 8)
 
     let stage = _vm.ports[1].stage
     if (stage) {
@@ -39,19 +39,19 @@ export class MousePort extends Port {
   }
 
   onLeftButtonDown () {
-    this.stk_psh(1)
+    this.stk_push(1)
   }
 
   onRightButtonDown () {
-    this.stk_psh(2)
+    this.stk_push(2)
   }
 
   onButtonMove (e) {
-    this.stk_psh(3, e.data.global.x, e.data.global.y)
+    this.stk_push(3, e.data.global.x, e.data.global.y)
   }
 
   onButtonUp () {
-    this.stk_psh(4)
+    this.stk_push(4)
   }
 }
 

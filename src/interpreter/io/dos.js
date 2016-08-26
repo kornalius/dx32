@@ -86,7 +86,7 @@ export class DOS {
       for (let b of blocks) {
         sz += b.size
       }
-      this._operation('read', blocks.length * 4)
+      this.drive.operation('read', blocks.length * 4)
     }
     return sz
   }
