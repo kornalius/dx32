@@ -20,43 +20,43 @@ export class Tokenizer {
     let defs = {
       eol: /[\r\n]/,
 
-      comma: /\,/,
+      comma: /,/,
 
       union: /\bunion\b/i,
 
       boundscheck: /\/bounds\b/i,
-      debug:       /\/debug\b/i,
+      debug: /\/debug\b/i,
 
-      open_bracket:  /\[/,
+      open_bracket: /\[/,
       close_bracket: /\]/i,
 
-      open_curly:  /\{/,
+      open_curly: /\{/,
       close_curly: /\}/,
 
-      open_paren:  /\(/,
+      open_paren: /\(/,
       close_paren: /\)/,
 
       include: {
-        match:   /\.include\s/i,
+        match: /\.include\s/i,
         include: true,
       },
 
-      comp:  /\>|\<|\>\=|\<\=|\!\=|\=\=/,
-      math:  /[\+\-\*\/\%\^]/,
-      logic: /[\!\&\|]/,
+      comp: />|<|>=|<=|!=|==/,
+      math: /[\+\-\*\/%\^]/,
+      logic: /[!&\|]/,
 
-      assign: /^([\=])[^\=]/,
+      assign: /^([=])[^=]/,
 
-      comment: /\;([^\n]*)/,
+      comment: /;([^\n]*)/,
 
-      constant_def: /\:\:([A-Z_][A-Z_0-9]*)/i,
+      constant_def: /::([A-Z_][A-Z_0-9]*)/i,
 
-      label_def: /\:([A-Z_][A-Z_0-9]*)/i,
+      label_def: /:([A-Z_][A-Z_0-9]*)/i,
 
-      func_def_expr: /\:(?=\()/i,
+      func_def_expr: /:(?=\()/i,
 
       label_indirect: {
-        match: /(\@+[A-Z_][A-Z_0-9\.]*)/i,
+        match: /(@+[A-Z_][A-Z_0-9\.]*)/i,
         value (v, d) {
           let i = 0
           while (v[0] === '@') {
@@ -68,10 +68,10 @@ export class Tokenizer {
         },
       },
 
-      label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
+      label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
 
       label_assign_indirect: {
-        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\=)/i,
+        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
         value (v, d) {
           let i = 0
           while (v[0] === '@') {
@@ -84,12 +84,12 @@ export class Tokenizer {
       },
 
       label_assign_bracket: {
-        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
+        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
         type () { return 'label_assign' },
       },
 
       label_assign_indirect_bracket: {
-        match: /(\@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*\=)/i,
+        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
         value (v, d) {
           let i = 0
           while (v[0] === '@') {
@@ -102,20 +102,20 @@ export class Tokenizer {
         type () { return 'label_assign_indirect' },
       },
 
-      port: /\#([0-9]+)(?!\:)/i,
+      port: /#([0-9]+)(?!:)/i,
 
       port_name: {
-        match: /\#([A-Z]+\b)(?!\:)/i,
+        match: /#([A-Z]+\b)(?!:)/i,
         value (v) {
           return _vm.port_by_name(v)
         },
         type () { return 'port' },
       },
 
-      port_call: /\#([0-9]+\:[A-Z_][A-Z_0-9]*\b)/i,
+      port_call: /#([0-9]+:[A-Z_][A-Z_0-9]*\b)/i,
 
       port_name_call: {
-        match: /\#([A-Z]+\b\:[A-Z_][A-Z_0-9]*\b)/i,
+        match: /#([A-Z]+\b:[A-Z_][A-Z_0-9]*\b)/i,
         value (v) {
           let parts = v.split(':')
           return _vm.port_by_name(parts[0]) + ':' + parts[1]
@@ -124,7 +124,7 @@ export class Tokenizer {
       },
 
       port_indirect: {
-        match: /(\@\#[0-9]+)(?!\:)/i,
+        match: /(@#[0-9]+)(?!:)/i,
         value (v, d) {
           let i = 0
           while (v[0] === '@') {
@@ -141,7 +141,7 @@ export class Tokenizer {
       },
 
       port_name_indirect: {
-        match: /(\@\#[A-Z]+)(?!\:)/i,
+        match: /(@#[A-Z]+)(?!:)/i,
         value (v, d) {
           let i = 0
           while (v[0] === '@') {
@@ -163,9 +163,9 @@ export class Tokenizer {
         type () { return 'port_indirect' },
       },
 
-      // indirect_symbol: /(\@)(?![^\#A-Z_])/i,
+      // indirect_symbol: /(@)(?![^#A-Z_])/i,
 
-      id: /([A-Z_][A-Z_0-9\.]*)(?!\s*\=)/i,
+      id: /([A-Z_][A-Z_0-9\.]*)(?!\s*=)/i,
 
       digit: {
         match: /[0-9]+/,
@@ -202,10 +202,10 @@ export class Tokenizer {
         value (v) { return parseInt('0x' + v, 16).toString() },
       },
 
-      string: /\"([^"]*)\"/i,
+      string: /"([^"]*)"/i,
 
       char: {
-        match: /\'(.)\'/i,
+        match: /'(.)'/i,
         type () { return 'digit' },
         value (v) { return v.charCodeAt(0) },
       },
@@ -295,7 +295,6 @@ export class Tokenizer {
 
             break
           }
-
         }
       }
 

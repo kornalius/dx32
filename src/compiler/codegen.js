@@ -1,11 +1,12 @@
 import _ from 'lodash'
+import { is_string } from './assembler.js'
 
 
 export const _COMPACT = 1
 export const _PRETTY = 2
 
 
-export var codify = (args) => {
+export var codify = args => {
   let r = []
   if (!_.isArray(args)) {
     args = [args]
@@ -44,14 +45,14 @@ export class CodeGenerator {
     let r = a.join(' ')
     if (this.style === _COMPACT) {
       r = r.replace(/(\s\s+)/g, ' ')
-      r = r.replace(/\s?([\(\{\[\)\}\]\<\>\=\,\;\:\+\-\*\/\%\^\&\|])\s?/g, '$1')
+      r = r.replace(/\s?([\(\{\[\)\}\]<>=,;:\+\-\*\/%\^&\|])\s?/g, '$1')
     }
     else if (this.style === _PRETTY) {
       r = r.replace(/(\s\s+)/g, ' ')
-      r = r.replace(/\s?\,\s?/g, ', ')
+      r = r.replace(/\s?,\s?/g, ', ')
       r = r.replace(/\s([\(\{\[])\s/g, '$1')
       r = r.replace(/\s([\)\}\]])/g, '$1')
-      r = r.replace(/\:\{/g, ': {')
+      r = r.replace(/:\{/g, ': {')
     }
     return r
   }

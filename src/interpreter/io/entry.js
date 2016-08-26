@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import { Block } from './block.js'
 
 
 export const _ENTRY_DIR = 0x01

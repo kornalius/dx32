@@ -38,7 +38,6 @@ export class MemoryManager {
     let n = 0
 
     for (let b of this.blocks) {
-
       if (b.mem_bottom > n) {
         n = b.mem_bottom
       }

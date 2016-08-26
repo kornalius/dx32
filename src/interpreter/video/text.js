@@ -1,4 +1,3 @@
-import _ from 'lodash'
 
 
 class BDF {
@@ -21,28 +20,27 @@ class BDF {
       let line_data = line.split(/\s+/)
       let declaration = line_data[0]
 
-      switch (declaration)
-      {
+      switch (declaration) {
         case 'STARTFONT':
           declarationStack.push(declaration)
-          this.meta.version = +line_data[1]
+          this.meta.version = Math.abs(line_data[1])
           break
         case 'FONT':
-          this.meta.name = +line_data[1]
+          this.meta.name = Math.abs(line_data[1])
           break
         case 'SIZE':
           this.meta.size = {
-            points:      +line_data[1],
-            resolutionX: +line_data[2],
-            resolutionY: +line_data[3]
+            points: Math.abs(line_data[1]),
+            resolutionX: Math.abs(line_data[2]),
+            resolutionY: Math.abs(line_data[3]),
           }
           break
         case 'FONTBOUNDINGBOX':
           this.meta.boundingBox = {
-            width:  +line_data[1],
-            height: +line_data[2],
-            x:      +line_data[3],
-            y:      +line_data[4]
+            width: Math.abs(line_data[1]),
+            height: Math.abs(line_data[2]),
+            x: Math.abs(line_data[3]),
+            y: Math.abs(line_data[4]),
           }
           break
         case 'STARTPROPERTIES':
@@ -50,46 +48,46 @@ class BDF {
           this.meta.properties = {}
           break
         case 'FONT_DESCENT':
-          this.meta.properties.fontDescent = +line_data[1]
+          this.meta.properties.fontDescent = Math.abs(line_data[1])
           break
         case 'FONT_ASCENT':
-          this.meta.properties.fontAscent = +line_data[1]
+          this.meta.properties.fontAscent = Math.abs(line_data[1])
           break
         case 'DEFAULT_CHAR':
-          this.meta.properties.defaultChar = +line_data[1]
+          this.meta.properties.defaultChar = Math.abs(line_data[1])
           break
         case 'ENDPROPERTIES':
           declarationStack.pop()
           break
         case 'CHARS':
-          this.meta.totalChars = +line_data[1]
+          this.meta.totalChars = Math.abs(line_data[1])
           break
         case 'STARTCHAR':
           declarationStack.push(declaration)
           currentChar = {
-            name:   +line_data[1],
-            bytes:  [],
-            bitmap: []
+            name: Math.abs(line_data[1]),
+            bytes: [],
+            bitmap: [],
           }
           break
         case 'ENCODING':
-          currentChar.code = +line_data[1]
-          currentChar.char = String.fromCharCode(+line_data[1])
+          currentChar.code = Math.abs(line_data[1])
+          currentChar.char = String.fromCharCode(Math.abs(line_data[1]))
           break
         case 'SWIDTH':
-          currentChar.scalableWidthX = +line_data[1]
-          currentChar.scalableWidthY = +line_data[2]
+          currentChar.scalableWidthX = Math.abs(line_data[1])
+          currentChar.scalableWidthY = Math.abs(line_data[2])
           break
         case 'DWIDTH':
-          currentChar.deviceWidthX = +line_data[1]
-          currentChar.deviceWidthY = +line_data[2]
+          currentChar.deviceWidthX = Math.abs(line_data[1])
+          currentChar.deviceWidthY = Math.abs(line_data[2])
           break
         case 'BBX':
           currentChar.boundingBox = {
-            x:      +line_data[3],
-            y:      +line_data[4],
-            width:  +line_data[1],
-            height: +line_data[2]
+            x: Math.abs(line_data[3]),
+            y: Math.abs(line_data[4]),
+            width: Math.abs(line_data[1]),
+            height: Math.abs(line_data[2]),
           }
           break
         case 'BITMAP':
@@ -230,23 +228,22 @@ export class Text {
     this.force_text = true
   }
 
-  txt_idx (x, y) {
+  txt_index (x, y) {
     return this.text_addr + ((y - 1) * this.text_width + (x - 1)) * 3
   }
 
-  txt_lin (y) {
+  txt_line (y) {
     let l = this.text_width * 3
     return { start: this.text_addr + y * l, end: this.text_addr + (y + 1) * l - 3, length: l }
   }
 
-  txt_cha (x, y) {
-    let tidx = this.txt_idx(x, y)
+  txt_char_at (x, y) {
+    let tidx = this.txt_index(x, y)
     return { ch: _vm.mem_buffer[tidx], fg: _vm.mem_buffer[tidx + 1], bg: _vm.mem_buffer[tidx + 2] }
   }
 
-  txt_put (ch, fg = 1, bg = 0) {
-    switch (ch.charCodeAt(0))
-    {
+  txt_put_char (ch, fg = 1, bg = 0) {
+    switch (ch.charCodeAt(0)) {
       case 13:
       case 10:
         this.txt_cr()
@@ -257,7 +254,7 @@ export class Text {
     }
     let { x, y } = this.txt_pos()
 
-    let tidx = this.txt_idx(x, y)
+    let tidx = this.txt_index(x, y)
     _vm.mem_buffer[tidx] = ch.charCodeAt(0)
     _vm.mem_buffer[tidx + 1] = fg
     _vm.mem_buffer[tidx + 2] = bg
@@ -272,14 +269,14 @@ export class Text {
 
   txt_print (text, fg, bg) {
     for (let c of text) {
-      this.txt_put(c, fg, bg)
+      this.txt_put_char(c, fg, bg)
     }
     return this
   }
 
   txt_pos () { return { x: this.overlays.text.x, y: this.overlays.text.y } }
 
-  txt_mov (x, y) {
+  txt_move_to (x, y) {
     if (x > this.text_width) {
       x = this.text_width
     }
@@ -297,63 +294,63 @@ export class Text {
     this.txt_refresh()
   }
 
-  txt_mvb (x, y) { return this.txt_mov(this.overlays.text.x + x, this.overlays.text.y + y) }
+  txt_move_by (x, y) { return this.txt_move_to(this.overlays.text.x + x, this.overlays.text.y + y) }
 
-  txt_bol () { return this.txt_mov(1, this.overlays.text.y) }
+  txt_bol () { return this.txt_move_to(1, this.overlays.text.y) }
 
-  txt_eol () { return this.txt_mov(this.text_width, this.overlays.text.y) }
+  txt_eol () { return this.txt_move_to(this.text_width, this.overlays.text.y) }
 
-  txt_bos () { return this.txt_mov(1, 1) }
+  txt_bos () { return this.txt_move_to(1, 1) }
 
-  txt_eos () { return this.txt_mov(this.text_width, this.text_height) }
+  txt_eos () { return this.txt_move_to(this.text_width, this.text_height) }
 
-  txt_bs () { this.txt_lft(); this.txt_put(' '); return this.txt_lft() }
+  txt_bs () { this.txt_left(); this.txt_put_char(' '); return this.txt_left() }
 
-  txt_cr () { return this.txt_mov(1, this.overlays.text.y + 1) }
+  txt_cr () { return this.txt_move_to(1, this.overlays.text.y + 1) }
 
-  txt_lf () { return this.txt_mov(this.overlays.text.x, this.overlays.text.y + 1) }
+  txt_lf () { return this.txt_move_to(this.overlays.text.x, this.overlays.text.y + 1) }
 
-  txt_up () { return this.txt_mov(this.overlays.text.x, this.overlays.text.y - 1) }
+  txt_up () { return this.txt_move_to(this.overlays.text.x, this.overlays.text.y - 1) }
 
-  txt_lft () { return this.txt_mov(this.overlays.text.x - 1, this.overlays.text.y) }
+  txt_left () { return this.txt_move_to(this.overlays.text.x - 1, this.overlays.text.y) }
 
-  txt_dwn () { return this.txt_mov(this.overlays.text.x, this.overlays.text.y + 1) }
+  txt_down () { return this.txt_move_to(this.overlays.text.x, this.overlays.text.y + 1) }
 
-  txt_rgt () { return this.txt_mov(this.overlays.text.x + 1, this.overlays.text.y) }
+  txt_right () { return this.txt_move_to(this.overlays.text.x + 1, this.overlays.text.y) }
 
-  txt_clr () {
-    _vm.mem_buffer.fill(0, this.text_addr, text_addr + this.text_size)
+  txt_clear () {
+    _vm.mem_buffer.fill(0, this.text_addr, this.text_addr + this.text_size)
   }
 
-  txt_clr_eol () {
+  txt_clear_eol () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.txt_idx(this.text_width, y))
+    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_index(this.text_width, y))
   }
 
-  txt_clr_eos () {
+  txt_clear_eos () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.text_addr + this.text_size)
+    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.text_addr + this.text_size)
   }
 
-  txt_clr_bol () {
+  txt_clear_bol () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.txt_idx(1, y))
+    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_index(1, y))
   }
 
-  txt_clr_bos () {
+  txt_clear_bos () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_idx(x, y), this.text_addr)
+    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.text_addr)
   }
 
-  txt_cpy_lin (sy, ty) {
-    let si = this.txt_lin(sy)
-    let ti = this.txt_lin(ty)
+  txt_copy_lin (sy, ty) {
+    let si = this.txt_line(sy)
+    let ti = this.txt_line(ty)
     _vm.mem_buffer.copy(_vm.mem_buffer, ti.start, si.start, si.length)
   }
 
-  txt_cpy_col (sx, tx) {
+  txt_copy_col (sx, tx) {
     for (let y = 0; y < this.text_height; y++) {
-      let i = this.txt_lin(y)
+      let i = this.txt_line(y)
       let si = i.start + sx * 3
       let ti = i.start + tx * 3
       _vm.mem_buffer.copy(_vm.mem_buffer, ti, si, 3)
@@ -361,13 +358,13 @@ export class Text {
   }
 
   txt_erase_lin (y) {
-    let i = this.txt_lin(y)
+    let i = this.txt_line(y)
     _vm.mem_buffer.fill(0, i.start, i.end)
   }
 
   txt_erase_col (x) {
     for (let y = 0; y < this.text_height; y++) {
-      let i = this.txt_lin(y).start + x * 3
+      let i = this.txt_line(y).start + x * 3
       _vm.mem_buffer.fill(0, i, i + 3)
     }
   }
@@ -375,15 +372,15 @@ export class Text {
   txt_scroll (dy) {
     let i
     if (dy > 0) {
-      i = this.txt_lin(dy + 1)
+      i = this.txt_line(dy + 1)
       _vm.mem_buffer.copy(_vm.mem_buffer, this.text_addr, i.start, this.text_size - i)
-      i = this.txt_lin(dy)
+      i = this.txt_line(dy)
       _vm.mem_buffer.fill(0, this.text_addr - i.start, this.text_addr + this.text_size)
     }
     else if (dy < 0) {
-      i = this.txt_lin(dy + 1)
+      i = this.txt_line(dy + 1)
       _vm.mem_buffer.copy(_vm.mem_buffer, this.text_addr, i, this.text_size - i)
-      i = this.txt_lin(dy + 1)
+      i = this.txt_line(dy + 1)
       _vm.mem_buffer.fill(0, this.text_addr - dy * this.text_width * 3, this.text_addr + this.text_size)
     }
   }

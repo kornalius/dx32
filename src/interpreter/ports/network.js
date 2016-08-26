@@ -1,12 +1,15 @@
 import { Port } from '../port.js'
-import { Stack } from '../stack.js'
+import { Stack } from '../../stack.js'
 import { mixin } from '../../globals.js'
 
 
 export class NetworkPort extends Port {
 
-  constructor (vm, port_number) {
-    super(vm, port_number)
+  constructor (port_number) {
+    super(port_number)
+
+    this.name = 'net'
+
     this.stk_init(8092, 1)
   }
 

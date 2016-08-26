@@ -1,8 +1,7 @@
-import _ from 'lodash'
-
 import { defaults, mixin, runtime_error } from '../globals.js'
 
 import { Memory } from '../memory.js'
+import { Stack } from '../stack.js'
 import { MemoryManager } from './memorymanager.js'
 import { Debugger } from './debugger.js'
 import { Union } from './union.js'
@@ -37,8 +36,6 @@ export class VM {
     this.mm = new MemoryManager(this.mem_buffer, this.mem_size)
 
     this.dbg = new Debugger()
-
-    this.union = new Union()
 
     this.int_init()
     this.snd_init()
@@ -155,7 +152,7 @@ export class VM {
   port_by_name (name) {
     name = name.toLowerCase()
     for (let k in this.ports) {
-      if (this.ports[k].constructor.name.toLowerCase() === name) {
+      if (this.ports[k].name.toLowerCase() === name) {
         return k
       }
     }
@@ -163,8 +160,8 @@ export class VM {
   }
 
   port_name (no) {
-    return this.ports[no].constructor.name.toLowerCase()
+    return this.ports[no].name.toLowerCase()
   }
 }
 
-mixin(VM.prototype, Memory.prototype, Interrupt.prototype, Video.prototype, Sound.prototype)
+mixin(VM.prototype, Memory.prototype, Stack.prototype, Union.prototype, Interrupt.prototype, Video.prototype, Sound.prototype)

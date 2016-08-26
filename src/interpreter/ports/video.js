@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import { mixin } from '../../globals.js'
 import { Port } from '../port.js'
 import { Video } from '../video/video.js'
@@ -6,9 +5,46 @@ import { Video } from '../video/video.js'
 
 export class VideoPort extends Port {
 
-  constructor (vm, port_number) {
-    super(vm, port_number)
+  constructor (port_number) {
+    super(port_number)
+
+    this.name = 'vid'
+
     this.vid_init()
+
+    this.publics = {
+      draw: this.txt_draw,
+      refresh: this.txt_refresh,
+      idx: this.txt_index,
+      lin: this.txt_line,
+      at: this.txt_char_at,
+      put: this.txt_put_char,
+      print: this.txt_print,
+      pos: this.txt_pos,
+      to: this.txt_move_to,
+      by: this.txt_move_by,
+      bol: this.txt_bol,
+      eol: this.txt_eol,
+      bos: this.txt_bos,
+      eos: this.txt_eos,
+      bs: this.txt_bs,
+      cr: this.txt_cr,
+      lf: this.txt_lf,
+      up: this.txt_up,
+      left: this.txt_left,
+      down: this.txt_down,
+      right: this.txt_right,
+      clr: this.txt_clear,
+      clr_eol: this.txt_clear_eol,
+      clr_os: this.txt_clear_eos,
+      clr_bl: this.txt_clear_bol,
+      clr_bs: this.txt_clear_bos,
+      cpy_lin: this.txt_copy_lin,
+      cpy_col: this.txt_copy_col,
+      erase_lin: this.txt_erase_lin,
+      erase_col: this.txt_erase_col,
+      scroll: this.txt_scroll,
+    }
   }
 
   boot (cold = false) {
@@ -77,23 +113,23 @@ export class VideoPort extends Port {
     this.pixel(500, 8)
     this.pixel(600, 20)
 
-    this.txt_mov(1, 1)
-    this.txt_put('A', 29, 15)
+    this.txt_move_to(1, 1)
+    this.txt_put_char('A', 29, 15)
 
-    this.txt_mov(10, 11)
+    this.txt_move_to(10, 11)
     this.txt_print('Welcome to DX32\nÉgalitée!', 2, 6)
 
     let chars = ''
     for (let i = 33; i < 256; i++) {
       chars += String.fromCharCode(i)
     }
-    this.txt_mov(1, 2)
+    this.txt_move_to(1, 2)
     this.txt_print(chars, 1, 0)
 
-    this.txt_mov(1, 23)
+    this.txt_move_to(1, 23)
     this.txt_print('Second to last line', 30, 0)
 
-    this.txt_mov(1, 24)
+    this.txt_move_to(1, 24)
     this.txt_print('012345678901234567890123456789012345678901234567890123', 1, 0)
 
     this.txt_refresh()

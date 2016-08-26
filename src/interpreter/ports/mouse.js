@@ -1,18 +1,20 @@
 import { Port } from '../port.js'
-import { Stack } from '../stack.js'
+import { Stack } from '../../stack.js'
 import { mixin } from '../../globals.js'
 
 
 export class MousePort extends Port {
 
-  constructor (vm, port_number) {
-    super(vm, port_number)
+  constructor (port_number) {
+    super(port_number)
+
+    this.name = 'mse'
 
     this.last_mouse = new PIXI.Point()
 
     this.stk_init(1024, 2)
 
-    let stage = vm.ports[1].stage
+    let stage = _vm.ports[1].stage
     if (stage) {
       stage.interactive = true
       stage.on('mousedown', this.onLeftButtonDown.bind(this))

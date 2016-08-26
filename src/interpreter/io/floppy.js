@@ -113,7 +113,7 @@ export class Floppy {
 
   read_blocks_table () {
     let ptr = this.blocks_table_top
-    for (let i = 0 ;i < this.blocks_count; i++) {
+    for (let i = 0; i < this.blocks_count; i++) {
       let entry = this.ld(ptr) - 1
       ptr += 4
       let size = this.ldw(ptr)

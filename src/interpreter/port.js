@@ -1,14 +1,18 @@
 
 export class Port {
 
-  constructor (vm, port_number) {
-    let top = vm.mm.alloc(4)
-    // vm.st(top, port_number)
+  constructor (port_number) {
+    let top = _vm.mm.alloc(4)
+    // _vm.st(top, port_number)
+
+    this.name = ''
 
     this.port_number = port_number
-    vm.ports[port_number] = this
+    _vm.ports[port_number] = this
 
     this.top = top
+
+    this.publics = {}
   }
 
   boot (cold = false) {

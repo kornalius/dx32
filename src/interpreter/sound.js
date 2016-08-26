@@ -79,7 +79,7 @@ export class Sound {
   }
 
   snd_free (name) {
-    delete this.sounds[this.snd_name(name, random)]
+    delete this.sounds[this.snd_name(name)]
   }
 
   process_note (addr) {
@@ -93,8 +93,7 @@ export class Sound {
 
     let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
-      switch (cmd)
-      {
+      switch (cmd) {
         case 1:  // shape
           let value = _vm.ldb(addr)
           addr++
@@ -191,8 +190,7 @@ export class Sound {
 
     let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
-      switch (cmd)
-      {
+      switch (cmd) {
         case 20:  // sustain
           envelop.sustain = _vm.ldb(addr) / 100
           addr++
@@ -233,8 +231,7 @@ export class Sound {
 
     let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
-      switch (cmd)
-      {
+      switch (cmd) {
         case 30:  // type (L H)
           let value = _vm.ldb(addr)
           addr++
@@ -281,8 +278,7 @@ export class Sound {
 
     let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
-      switch (cmd)
-      {
+      switch (cmd) {
         case 40:  // time
           delay.time = _vm.ldw(addr)
           addr += 2
@@ -313,8 +309,7 @@ export class Sound {
 
     let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
-      switch (cmd)
-      {
+      switch (cmd) {
         case 50:  // time
           let value = _vm.ldb(addr)
           addr++
@@ -362,8 +357,7 @@ export class Sound {
 
     let cmd = _vm.mem_buffer[addr++]
     while (cmd !== 0) {
-      switch (cmd)
-      {
+      switch (cmd) {
         case 60:  // shape
           let value = _vm.ldb(addr)
           addr++

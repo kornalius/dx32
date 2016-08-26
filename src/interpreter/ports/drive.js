@@ -1,15 +1,16 @@
-import _ from 'lodash'
 import { DOS } from '../io/dos.js'
 import { Port } from '../port.js'
 import { Sound } from '../sound.js'
-import { Floppy, Entry, _OPEN, _LOCK } from '../io/floppy.js'
+import { Floppy } from '../io/floppy.js'
 import { mixin, delay, rnd, io_error } from '../../globals.js'
 
 
 export class DrivePort extends Port {
 
-  constructor (vm, port_number) {
-    super(vm, port_number)
+  constructor (port_number) {
+    super(port_number)
+
+    this.name = 'drv'
 
     this.dos = new DOS(this)
 
@@ -27,11 +28,11 @@ export class DrivePort extends Port {
 
     this.operations = {
       insert: { min_time: 1000, max_time: 2000, sound: 'insert' },
-      eject:  { min_time: 1000, max_time: 2000, sound: 'eject' },
-      spin:   { min_time: 1000, max_time: 2500 },
-      seek:   { min_time: 100, max_time: 250, sound: 'read', random_sound: true },
-      read:   { min_time: 250, max_time: 500, sound: 'read', random_sound: true },
-      write:  { min_time: 500, max_time: 1500, sound: 'write', random_sound: true },
+      eject: { min_time: 1000, max_time: 2000, sound: 'eject' },
+      spin: { min_time: 1000, max_time: 2500 },
+      seek: { min_time: 100, max_time: 250, sound: 'read', random_sound: true },
+      read: { min_time: 250, max_time: 500, sound: 'read', random_sound: true },
+      write: { min_time: 500, max_time: 1500, sound: 'write', random_sound: true },
     }
 
     this.floppy = null
@@ -48,6 +49,16 @@ export class DrivePort extends Port {
       that.dos.create('myfile.txt', 'MY DATA IS FUCKING COOL')
       // that.when_finished_spinning(() => { delay(500); that.eject() })
     }, 2000)
+
+    this.publics = {
+      loaded: this.loaded,
+      eject: this.eject,
+      insert: this.insert,
+      by: this.seek_by,
+      to: this.seek,
+      read: this.read,
+      write: this.write,
+    }
   }
 
   reset () {

@@ -1,12 +1,14 @@
 import { Port } from '../port.js'
-import { Stack } from '../stack.js'
+import { Stack } from '../../stack.js'
 import { mixin } from '../../globals.js'
 
 
 export class KeyboardPort extends Port {
 
-  constructor (vm, port_number) {
-    super(vm, port_number)
+  constructor (port_number) {
+    super(port_number)
+
+    this.name = 'kbd'
 
     this.keys = {}
 
@@ -14,6 +16,10 @@ export class KeyboardPort extends Port {
 
     window.addEventListener('keydown', this.onKeydown.bind(this))
     window.addEventListener('keyup', this.onKeyup.bind(this))
+
+    this.publics = {
+      pressed: this.pressed,
+    }
   }
 
   reset () {

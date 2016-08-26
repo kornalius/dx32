@@ -1,29 +1,29 @@
 import _ from 'lodash'
-import { defaults, opcodes, comma_array, error, _vm_ldb, _vm_ldw, _vm_ld, _vm_ldl, _vm_lds, _vm_stb, _vm_stw, _vm_st, _vm_sts, _vm_stl, _vm_db, _vm_dw, _vm_dd } from '../globals.js'
-import { codify, CodeGenerator, _COMPACT, _PRETTY } from './codegen.js'
+import { defaults, opcodes, comma_array, error, _vm_ldb, _vm_ldw, _vm_ld, _vm_stb, _vm_stw, _vm_st } from '../globals.js'
+import { codify, CodeGenerator, _PRETTY } from './codegen.js'
 
 
-export var is_eos = (t) => {
+export var is_eos = t => {
   return t.type === 'comment' || t.type === 'eol'
 }
 
-export var is_symbol = (t) => {
+export var is_symbol = t => {
   return t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectSymbol'
 }
 
-export var is_opcode = (t) => {
+export var is_opcode = t => {
   return (is_symbol(t) || t.type === 'id') && opcodes[t.value] ? t.value : null
 }
 
-export var is_digit = (t) => {
+export var is_digit = t => {
   return t.type === 'byte' || t.type === 'word' || t.type === 'dword'
 }
 
-export var is_string = (t) => {
+export var is_string = t => {
   return t.type === 'string'
 }
 
-export var is_value = (t) => {
+export var is_value = t => {
   return is_digit(t) || is_string(t)
 }
 
@@ -102,76 +102,142 @@ export class Assembler {
   }
 
   asm (path, tokens, options = {}) {
-    let len = tokens.length
-    let i = 0
-    let t = tokens[i]
+    var len = tokens.length
+    var i = 0
+    var t = tokens[i]
 
     defaults.boundscheck = false
 
-    let code = new CodeGenerator(_PRETTY, this)
+    var code = new CodeGenerator(_PRETTY, this)
 
-    let extra_statement_lines = []
+    var extra_statement_lines = []
 
-    let frame = null
-    let frames = []
+    var frame = null
+    var frames = []
 
-    let assign_name = null
+    var assign_name = null
 
-    let unions = []
-    let first_unions_var = null
-    let extracting_union = false
+    var unions = []
+    var first_unions_label = null
+    var extracting_union = false
 
-    let contants = {}
+    var contants = {}
 
-    let js_name = (name) => { return _.camelCase(name.replace('.', '-')) }
+    var js_name
+    var next_token
+    var prev_token
+    var next_if_token
+    var peek_token
+    var is_type
+    var is_token
+    var token_peeks
+    var expected_next_token
+    var ldb
+    var ldw
+    var ld
+    var stb
+    var stw
+    var st
+    var read
+    var write
+    var find_label
+    var new_label
+    var tmp_label
+    var find_constant
+    var new_constant
+    var new_frame
+    var end_frame
+    var new_frame_code
+    var end_frame_code
+    var check_constant
+    var check_label
+    var check_port
+    var check_port_call
+    var term
+    var factor
+    var conditional
+    var junction
+    var simple_expr
+    var expr
+    var exprs
+    var subexpr
+    var parameters
+    var union
+    var extract_union
+    var port
+    var port_call
+    var bracket_def
+    var indexed
+    var indirect
+    var assign
+    var label_def
+    var label_assign
+    var label
+    var union_def
+    var func_def
+    var func_def_expr
+    var func
+    var constant_def
+    var constant
+    var opcode
+    var statements
+    var block
+    var statement
 
-    let next_token = () => { t = tokens[++i]; return t }
+    js_name = name => { return _.camelCase(name.replace('.', '-')) }
 
-    let prev_token = () => { t = tokens[--i]; return t }
+    next_token = () => { t = tokens[++i]; return t }
 
-    // let next_if_token = (type) => { return peek_at(i + 1, type, tokens) ? t = tokens[++i] : false }
+    prev_token = () => { t = tokens[--i]; return t }
 
-    // let peek_token = (type) => { return peek_at(i + 1, type, tokens) }
+    next_if_token = type => {
+      let p = peek_at(i + 1, type, tokens)
+      if (p) {
+        t = tokens[++i]
+      }
+      return p ? t : false
+    }
 
-    let is_type = (type) => { return peek_at(i, type, tokens) }
+    peek_token = type => { return peek_at(i + 1, type, tokens) }
 
-    let is_token = (o) => { return _.isObject(o) && o.type && o.value }
+    is_type = type => { return peek_at(i, type, tokens) }
 
-    let token_peeks = (arr) => { return peeks_at(i + 1, arr, tokens) }
+    is_token = o => { return _.isObject(o) && o.type && o.value }
 
-    let expected_next_token = (self, t, type) => {
-      if (expected(self, t, type)) {
+    token_peeks = arr => { return peeks_at(i + 1, arr, tokens) }
+
+    expected_next_token = (t, type) => {
+      if (expected(t, type)) {
         next_token()
       }
     }
 
-    let ldb = (offset) => {
+    ldb = offset => {
       return [_vm_ldb(), '(', offset, ')']
     }
 
-    let ldw = (offset) => {
+    ldw = offset => {
       return [_vm_ldw(), '(', offset, ')']
     }
 
-    let ld = (offset) => {
+    ld = offset => {
       return [_vm_ld(), '(', offset, ')']
     }
 
-    let stb = (offset, value) => {
+    stb = (offset, value) => {
       return [_vm_stb(), '(', offset, ',', value, ')']
     }
 
-    let stw = (offset, value) => {
+    stw = (offset, value) => {
       return [_vm_stw(), '(', offset, ',', value, ')']
     }
 
-    let st = (offset, value) => {
+    st = (offset, value) => {
       return [_vm_st(), '(', offset, ',', value, ')']
     }
 
-    let read = (offset, size = 4) => {
-      switch (size)
-      {
+    read = (offset, size = 4) => {
+      switch (size) {
         case 1: return ldb(offset)
         case 2: return ldw(offset)
         case 4: return ld(offset)
@@ -179,9 +245,8 @@ export class Assembler {
       }
     }
 
-    let write = (offset, value, size = 4) => {
-      switch (size)
-      {
+    write = (offset, value, size = 4) => {
+      switch (size) {
         case 1: return stb(offset, value)
         case 2: return stw(offset, value)
         case 4: return st(offset, value)
@@ -189,7 +254,7 @@ export class Assembler {
       }
     }
 
-    let find_label = (name) => {
+    find_label = name => {
       name = js_name(name)
       let l = frame.labels[name]
       if (!l && !frame.global) {
@@ -198,7 +263,7 @@ export class Assembler {
       return l
     }
 
-    let new_label = (name, fn = false, unit_size = 4, sizes = []) => {
+    new_label = (name, fn = false, unit_size = 4, sizes = []) => {
       name = js_name(name)
       let l = find_label(name)
       if (!l) {
@@ -212,15 +277,15 @@ export class Assembler {
       return l
     }
 
-    let tmp_label = (name, fn = false, unit_size = 4, sizes = []) => {
+    tmp_label = (name, fn = false, unit_size = 4, sizes = []) => {
       let tn = js_name(name || 'tmp' + '_' + _.uniqueId())
       new_label(tn, fn, unit_size, sizes)
       return tn
     }
 
-    let find_constant = (name) => { return contants[name] }
+    find_constant = name => { return contants[name] }
 
-    let new_constant = (name, args) => {
+    new_constant = (name, args) => {
       if (!find_constant(name)) {
         contants[name] = args
         return contants[name]
@@ -232,25 +297,35 @@ export class Assembler {
       }
     }
 
-    let new_frame = (name) => {
+    new_frame = name => {
       if (frame) {
         frames.push(frame)
       }
       frame = { name, labels: {}, global: frames.length === 0 }
-      code.line_s('let', 'frame', '=', '{', '}')
+      return frame
     }
 
-    let end_frame = () => {
+    end_frame = () => {
       if (frame) {
-        let l = _.filter(_.keys(frame.labels), (k) => { return !frame.labels[k].fn })
+        frame = frames.pop()
+      }
+      return frame
+    }
+
+    new_frame_code = () => {
+      // code.line_s('var', 'frame', '=', '{', '}')
+    }
+
+    end_frame_code = () => {
+      if (frame) {
+        let l = _.filter(_.keys(frame.labels), k => { return !frame.labels[k].fn })
         if (l.length) {
           code.line_s('_vm.mm.free', '(', comma_array(l), ')')
         }
-        frame = frames.pop()
       }
     }
 
-    let check_constant = () => {
+    check_constant = () => {
       if (find_constant(t.value)) {
         constant(false)
         return true
@@ -258,12 +333,12 @@ export class Assembler {
       return false
     }
 
-    let check_label = () => {
+    check_label = () => {
       let l = find_label(t.value)
       return l && !l.fn ? l : null
     }
 
-    let check_port = () => {
+    check_port = () => {
       return t.type === 'port' || t.type === 'port_indirect'
     }
 
@@ -272,11 +347,11 @@ export class Assembler {
       return l && l.fn ? l : null
     }
 
-    let check_port_call = () => {
+    check_port_call = () => {
       return t.type === 'port_call'
     }
 
-    let term = () => {
+    term = () => {
       let r = []
       if (is_type(['+', '-'])) {
         r.push(t)
@@ -286,7 +361,7 @@ export class Assembler {
       return r
     }
 
-    let factor = () => {
+    factor = () => {
       let r = []
       if (is_type(['*', '/', '%'])) {
         r.push(t)
@@ -296,7 +371,7 @@ export class Assembler {
       return r
     }
 
-    let conditional = () => {
+    conditional = () => {
       let r = []
       if (is_type(['<', '<=', '>', '>=', '==', '!='])) {
         r.push(t)
@@ -306,7 +381,7 @@ export class Assembler {
       return r
     }
 
-    let junction = () => {
+    junction = () => {
       let r = []
       if (is_type(['&', '|'])) {
         r.push(t)
@@ -316,7 +391,7 @@ export class Assembler {
       return r
     }
 
-    let simple_expr = () => {
+    simple_expr = () => {
       check_constant()
 
       let r = []
@@ -361,7 +436,7 @@ export class Assembler {
       return r
     }
 
-    let expr = () => {
+    expr = () => {
       let r = simple_expr()
       if (r.length) {
         let tm = term()
@@ -395,19 +470,19 @@ export class Assembler {
       return r
     }
 
-    let exprs = () => {
+    exprs = () => {
       return parameters(t.type === 'open_paren' ? 'open_paren' : null, t.type === 'open_paren' ? 'close_paren' : null, false, -1, true)
     }
 
-    let subexpr = () => {
+    subexpr = () => {
       return parameters('open_paren', 'close_paren', false, 1, true)
     }
 
-    let parameters = (open = null, close = null, single_term = false, limit = -1, allow_ws = true) => {
+    parameters = (open = null, close = null, single_term = false, limit = -1, allow_ws = true) => {
       let r = []
 
       if (open) {
-        expected_next_token(this, t, open)
+        expected_next_token(t, open)
       }
 
       if (close && t.type === close) {
@@ -448,13 +523,13 @@ export class Assembler {
       }
 
       if (close) {
-        expected_next_token(this, t, close)
+        expected_next_token(t, close)
       }
 
       return r
     }
 
-    let union = () => {
+    union = () => {
       let genvars = assign_name !== null
       let offset = 0
 
@@ -463,7 +538,7 @@ export class Assembler {
         for (let k in dd) {
           let vname = js_name([genvars ? name : '', k].join('.'))
           if (genvars) {
-            extra_statement_lines.push(['frame.' + vname, '=', ...ld(name), '+', offset + 4])
+            extra_statement_lines.push(['var', vname, '=', ...ld(name), '+', offset + 4])
             new_label(vname)
             offset += 8
           }
@@ -480,27 +555,27 @@ export class Assembler {
       let d = extract_union()
       let aa = gen(d, assign_name)
 
-      return ['_vm.union.make', '(', '{', aa, '}', ')']
+      return ['_vm.union_make', '(', '{', aa, '}', ')']
     }
 
-    let extract_union = () => {
+    extract_union = () => {
       let d = {}
 
       extracting_union = true
 
-      expected_next_token(this, t, 'open_curly')
+      expected_next_token(t, 'open_curly')
 
       let key = null
       while (i < len && !is_eos(t) && t.type !== 'close_curly') {
         if (t.type === 'label_def' && !key) {
           key = t
           next_token()
-          expected_next_token(this, t, 'assign')
+          expected_next_token(t, 'assign')
         }
         else if (key) {
           d[key.value] = t.type === 'open_curly' ? extract_union() : expr()
           key = null
-          expected(this, t, ['comma', 'close_curly'])
+          expected(t, ['comma', 'close_curly'])
           if (t.type === 'comma') {
             next_token()
           }
@@ -512,34 +587,34 @@ export class Assembler {
         }
       }
 
-      expected_next_token(this, t, 'close_curly')
+      expected_next_token(t, 'close_curly')
 
       extracting_union = false
 
       return d
     }
 
-    let port = () => {
+    port = () => {
       return indirect('_vm.ports[' + t.value + '].top')
     }
 
-    let port_call = () => {
+    port_call = () => {
       let parts = t.value.split(':')
       next_token()
-      return ['_vm.ports[' + parts[0] + '].' + parts[1], '(', comma_array(exprs()), ')']
+      return ['_vm.ports[' + parts[0] + '].publics.' + parts[1] + '.call', '(', comma_array(['_vm.ports[' + parts[0] + ']', ...exprs()]), ')']
     }
 
-    let bracket_def = () => {
+    bracket_def = () => {
       return parameters('open_bracket', 'close_bracket', false, -1, false)
     }
 
-    let indexed = () => {
+    indexed = () => {
       let r = ['+']
       r = r.concat(parameters('open_bracket', 'close_bracket', false, 1, false))
       return r
     }
 
-    let indirect = (value) => {
+    indirect = value => {
       let r = []
       let i
 
@@ -564,18 +639,18 @@ export class Assembler {
       return r
     }
 
-    let assign = (name, alloc, value) => {
-      return ['frame.' + name, '=', '_vm.mm.' + alloc, '(', codify(value), ')']
+    assign = (name, alloc, value) => {
+      return ['var', name, '=', '_vm.mm.' + alloc, '(', codify(value), ')']
     }
 
-    let label_def = (simple = false) => {
+    label_def = (simple = false) => {
       let name = js_name(t.value)
       let orig_name = name
 
       if (unions.length) {
         name = js_name(unions.join('.') + '.' + name)
-        if (!first_unions_var) {
-          first_unions_var = name
+        if (!first_unions_label) {
+          first_unions_label = name
         }
       }
 
@@ -609,9 +684,10 @@ export class Assembler {
       }
 
       else if (t.type === 'assign') {
-        expected_next_token(this, t, 'assign')
+        expected_next_token(t, 'assign')
 
         let v = expr()
+
         if (nw) {
           code.line_s(...assign(name, 'alloc_d', v))
         }
@@ -623,8 +699,7 @@ export class Assembler {
       else {
         let sz = 1
         let szfn = t.value
-        switch (t.value)
-        {
+        switch (t.value) {
           case 'db':
             sz = 1
             break
@@ -668,7 +743,7 @@ export class Assembler {
       assign_name = null
     }
 
-    let label_assign = () => {
+    label_assign = () => {
       let name = js_name(t.value)
       let _ind = _.endsWith(t.type, '_indirect')
       let count = t.count
@@ -688,7 +763,7 @@ export class Assembler {
 
       next_token()
 
-      expected_next_token(this, t, 'assign')
+      expected_next_token(t, 'assign')
 
       let v = expr()
 
@@ -712,48 +787,53 @@ export class Assembler {
       code.line_s(...write(r.concat(br).join(' '), v, l.unit_size))
     }
 
-    let label = () => { return indirect(js_name(t.value)) }
+    label = () => { return indirect(js_name(t.value)) }
 
-    let union_def = (name) => {
-      let old_first_union_var = first_unions_var
-      first_unions_var = null
+    union_def = name => {
+      let old_first_union_label = first_unions_label
+      first_unions_label = null
       next_token()
       unions.push(name)
       block('end')
-      code.line_s('frame.' + js_name(unions.join('.')), '=', first_unions_var)
+      code.line_s('var', js_name(unions.join('.')), '=', first_unions_label)
       unions.pop()
-      first_unions_var = old_first_union_var
+      first_unions_label = old_first_union_label
     }
 
-    let func_def = (name, l) => {
+    func_def = (name, l) => {
+      code.line('')
       new_frame()
       l.fn = true
       let parms = parameters('open_paren', 'close_paren', true, -1, true)
-      for (let p of parms) {
-        new_label(js_name(p.value))
-      }
-      code.line('let ' + name, '=', 'function', '(', comma_array(parms), ')', '{')
+      code.line('var', name, '=', 'function', '(', comma_array(_.map(parms, p => { return '__' + p.value })), ')', '{')
       this.indent++
+      new_frame_code()
+      for (let p of parms) {
+        let n = js_name(p.value)
+        new_label(n)
+        code.line_s(...assign(n, 'alloc_d', '__' + n))
+      }
       block('end')
+      end_frame_code()
       end_frame()
       this.indent--
       code.line_s('}')
     }
 
-    let func_def_expr = () => {
+    func_def_expr = () => {
       next_token()
       let tn = tmp_label('fn')
       func_def(tn, find_label(tn))
       return [tn]
     }
 
-    let func = () => {
+    func = () => {
       let name = js_name(t.value)
       next_token()
       return [name, '(', comma_array(exprs()), ')']
     }
 
-    let constant_def = () => {
+    constant_def = () => {
       let name = t.value
 
       next_token()
@@ -776,7 +856,7 @@ export class Assembler {
       return new_constant(name, a)
     }
 
-    let constant = () => {
+    constant = () => {
       let c = find_constant(t.value)
       let col = t.col
       let row = t.row
@@ -794,7 +874,7 @@ export class Assembler {
       len = tokens.length
     }
 
-    let opcode = (expr = false) => {
+    opcode = (expr = false) => {
       let r = []
 
       let name = is_opcode(t)
@@ -830,7 +910,7 @@ export class Assembler {
       return r
     }
 
-    let statements = () => {
+    statements = () => {
       while (i < len) {
         if (!is_eos(t)) {
           statement()
@@ -841,7 +921,7 @@ export class Assembler {
       }
     }
 
-    let block = (end = 'end') => {
+    block = (end = 'end') => {
       while (i < len && !is_type(end)) {
         if (!is_eos(t)) {
           statement()
@@ -850,10 +930,10 @@ export class Assembler {
           next_token()
         }
       }
-      expected_next_token(this, t, end)
+      expected_next_token(t, end)
     }
 
-    let statement = () => {
+    statement = () => {
       // while (i < len && is_eos(t)) {
         // next_token()
       // }
@@ -940,9 +1020,9 @@ export class Assembler {
         if (t.type === 'comma') {
           next_token()
         }
-        code.line('for', '(', 'frame.__' + name, '=', min, ';', 'frame.__' + name, '<=', max, ';', 'frame.__' + name, '+=', '1', ')', '{')
+        code.line('for', '(', 'var', '__' + name, '=', min, ';', '__' + name, '<=', max, ';', '__' + name, '+=', '1', ')', '{')
         this.indent++
-        code.line_s(...st(name, 'frame.__' + name))
+        code.line_s(...st(name, '__' + name))
         block('end')
         this.indent--
         code.line_s('}')
@@ -959,7 +1039,6 @@ export class Assembler {
           code.line_s(port_call())
         }
         else {
-          debugger
           error(t, 'syntax error')
           next_token()
         }
@@ -977,9 +1056,12 @@ export class Assembler {
       }
     }
 
+    code.line('')
     new_frame()
+    new_frame_code()
     statements()
-    code.line_s(['main', '(', 'args', ')'])
+    code.line_s('main', '(', 'args', ')')
+    end_frame_code()
     end_frame()
 
     return code.build()

@@ -1,5 +1,5 @@
 import hexy from 'hexy'
-import { runtime_error, buffer_to_string, hex } from './globals.js'
+import { runtime_error, hex } from './globals.js'
 
 
 export class Memory {
@@ -195,8 +195,7 @@ export class Memory {
   }
 
   read (addr, size = 4) {
-    switch (size)
-    {
+    switch (size) {
       case 1: return this.ldb(addr)
       case 2: return this.ldw(addr)
       case 4: return this.ld(addr)
@@ -206,8 +205,7 @@ export class Memory {
   }
 
   write (addr, value = 0, size = 4) {
-    switch (size)
-    {
+    switch (size) {
       case 1:
         this.stb(addr, value)
         break

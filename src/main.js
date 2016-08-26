@@ -6,7 +6,7 @@ import t from '../html/main.html'
 
 import { VM } from './interpreter/vm.js'
 
-setTimeout(function () {
+setTimeout(() => {
   let src = require('raw!../test/test1.x32')
   console.log(src)
 

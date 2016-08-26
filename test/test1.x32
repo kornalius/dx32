@@ -35,7 +35,7 @@ end
 
 :main()
   init()
-  #1:moveTo 10 2
+  #1:to 10 2
   :i = 0
   whl @i < 5
     #1:bs
@@ -47,9 +47,9 @@ end
     print(@x)
   end
 
-  :n db $01 $01 $02 \'F\' \'3\' $00 $03 $10 $08 $14 $30 $00 $00
-  :wad = #sound:note(n)
-  #sound:play(@wad)
+  :n db $01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00
+  :wad = #snd:note(n)
+  #snd:play(@wad)
 
   :stack dd [100]
   stk stack 100
@@ -57,7 +57,7 @@ end
   print pop stack
 
   print "-->", #1 + 32 / 2
-  print "-->", #video + 32 / 2
+  print "-->", #vid + 32 / 2
   int_start("my_int", :(ms) print "interrupt" ms end, 1000)
   ;hlt()
 

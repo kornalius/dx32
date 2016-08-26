@@ -1,13 +1,11 @@
-import _ from 'lodash'
 import { mixin } from '../../globals.js'
 import { Overlays } from './overlays.js'
-import { Sound } from '../sound.js'
 import { Palette } from './palette.js'
 import { Text } from './text.js'
 import { Sprite } from './sprite.js'
 
 
-PIXI.Point.prototype.distance = (target) => {
+PIXI.Point.prototype.distance = target => {
   Math.sqrt((this.x - target.x) * (this.x - target.x) + (this.y - target.y) * (this.y - target.y))
 }
 

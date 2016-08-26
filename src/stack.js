@@ -2,11 +2,11 @@
 
 export class Stack {
 
-  stk_init (max_stack = 255, entry_size = 4) {
+  stk_init (max_stack, entry_size) {
     this.stack_info = _vm.mm.alloc(20)
 
-    this.max_stack = max_stack
-    this.entry_size = entry_size
+    this.max_stack = max_stack || 255
+    this.entry_size = entry_size || 4
     this.stack_size = this.max_stack * this.entry_size
     this.stack_addr = _vm.mm.alloc(this.stack_size)
     this.stack_ptr = this.stack_addr

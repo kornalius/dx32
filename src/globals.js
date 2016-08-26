@@ -1,7 +1,39 @@
 import _ from 'lodash'
 
+export var defaults = {}
 
 export var errors = 0
+
+export var comma_array = args => {
+  let r = []
+  for (let a of args) {
+    r.push(a)
+    r.push(',')
+  }
+  r.splice(r.length - 1, 1)
+  return r
+}
+
+export var _vm_ldb = () => { return '_vm.ldb' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_ldw = () => { return '_vm.ldw' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_ld = () => { return '_vm.ld' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_ldl = () => { return '_vm.ldl' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_lds = () => { return '_vm.lds' + (defaults.boundscheck ? '_bc' : '') }
+
+export var _vm_stb = () => { return '_vm.stb' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_stw = () => { return '_vm.stw' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_st = () => { return '_vm.st' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_sts = () => { return '_vm.sts' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_stl = () => { return '_vm.stl' + (defaults.boundscheck ? '_bc' : '') }
+
+export var _vm_fill = () => { return '_vm.fill' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_copy = () => { return '_vm.copy' + (defaults.boundscheck ? '_bc' : '') }
+
+export var _vm_db = () => { return '_vm.db' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_dw = () => { return '_vm.dw' + (defaults.boundscheck ? '_bc' : '') }
+export var _vm_dd = () => { return '_vm.dd' + (defaults.boundscheck ? '_bc' : '') }
+
+export var hex = (value, size = 32) => { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0') }
 
 export var opcodes = {
   nop: {
@@ -9,7 +41,7 @@ export var opcodes = {
   },
   '@': {
     expr: true,
-    gen: (a) => { return [_vm_ld(), '(', a, ')'] },
+    gen: a => { return [_vm_ld(), '(', a, ')'] },
   },
   '>': {
     expr: true,
@@ -69,31 +101,31 @@ export var opcodes = {
   },
   '!': {
     expr: true,
-    gen: (a) => { return ['!' + a] },
+    gen: a => { return ['!' + a] },
   },
   inc: {
     expr: true,
-    gen: (a) => { return [a + '++'] },
+    gen: a => { return [a + '++'] },
   },
   dec: {
     expr: true,
-    gen: (a) => { return [a + '--'] },
+    gen: a => { return [a + '--'] },
   },
   ldb: {
     expr: true,
-    gen: (a) => { return [_vm_ldb(), '(', a, ')'] },
+    gen: a => { return [_vm_ldb(), '(', a, ')'] },
   },
   ldw: {
     expr: true,
-    gen: (a) => { return [_vm_ldw(), '(', a, ')'] },
+    gen: a => { return [_vm_ldw(), '(', a, ')'] },
   },
   ld: {
     expr: true,
-    gen: (a) => { return [_vm_ld(), '(', a, ')'] },
+    gen: a => { return [_vm_ld(), '(', a, ')'] },
   },
   lds: {
     expr: true,
-    gen: (a) => { return [_vm_lds(), '(', a, ')'] },
+    gen: a => { return [_vm_lds(), '(', a, ')'] },
   },
   ldl: {
     expr: true,
@@ -118,10 +150,10 @@ export var opcodes = {
     gen: (a, ...args) => { return ['_vm.' + a, '(', comma_array(args), ')'] },
   },
   callp: {
-    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].' + b, '(', comma_array(args), ')'] },
+    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].publics.' + b + '.call', '(', comma_array(['_vm.ports[' + a + ']', ...args]), ')'] },
   },
   ret: {
-    gen: (a) => { return ['return', a] },
+    gen: a => { return ['return', a] },
   },
   shl: {
     gen: () => { return [''] },
@@ -151,62 +183,62 @@ export var opcodes = {
     gen: (...args) => { return ['console.log', '(', comma_array(args), ')'] },
   },
   hlt: {
-    gen: (a) => { return ['_vm.hlt', '(', a || '', ')'] },
+    gen: a => { return ['_vm.hlt', '(', a || '', ')'] },
   },
   free: {
     gen: (...args) => { return ['_vm.mm.free', '(', comma_array(args), ')'] },
   },
   size: {
-    gen: (a) => { return ['_vm.mm.size', '(', a, ')'] },
+    gen: a => { return ['_vm.mm.size', '(', a, ')'] },
   },
   union: {
-    gen: (a, ...args) => { return ['_vm.union.make', '(', a, ',', comma_array(args), ')'] },
+    gen: (a, ...args) => { return ['_vm.union_make', '(', a, ',', comma_array(args), ')'] },
   },
   get: {
-    gen: (a, b) => { return ['_vm.union.get', '(', a, ',', b, ')'] },
+    gen: (a, b) => { return ['_vm.union_get', '(', a, ',', b, ')'] },
   },
   set: {
-    gen: (a, b, c) => { return ['_vm.union.set', '(', a, ',', b, ',', c, ')'] },
+    gen: (a, b, c) => { return ['_vm.union_set', '(', a, ',', b, ',', c, ')'] },
   },
   mix: {
-    gen: (a, ...args) => { return ['_vm.union.mix', '(', a, ',', comma_array(args), ')'] },
+    gen: (a, ...args) => { return ['_vm.union_mix', '(', a, ',', comma_array(args), ')'] },
   },
   stk: {
-    gen: (a, b, c) => { return ['_vm.stk', '(', a, ',', b, ',', c || 4, ')'] },
+    gen: (a, b, c) => { return ['_vm.stk_init', '(', a, ',', b, ',', c || 4, ')'] },
   },
   psh: {
-    gen: (a, ...args) => { return ['_vm.psh', '(', a, ',', comma_array(args), ')'] },
+    gen: (a, ...args) => { return ['_vm.stk_psh', '(', a, ',', comma_array(args), ')'] },
   },
   pop: {
     expr: true,
-    gen: (a) => { return ['_vm.pop', '(', a, ')'] },
+    gen: a => { return ['_vm.stk_pop', '(', a, ')'] },
   },
   hex: {
-    gen: (a) => { return ['_vm.hex', '(', a, ')'] },
+    gen: a => { return ['_vm.hex', '(', a, ')'] },
   },
   hex8: {
-    gen: (a) => { return ['_vm.hex', '(', a, ',', 8, ')'] },
+    gen: a => { return ['_vm.hex', '(', a, ',', 8, ')'] },
   },
   hex16: {
-    gen: (a) => { return ['_vm.hex', '(', a, ',', 16, ')'] },
+    gen: a => { return ['_vm.hex', '(', a, ',', 16, ')'] },
   },
   int_start: {
-    gen: (a, b, c) => { return ['_vm.int', '(', a, ',', b, ',', c, ')'] },
+    gen: (a, b, c) => { return ['_vm.int_create', '(', a, ',', b, ',', c, ')'] },
   },
   int_pause: {
-    gen: (a) => { return ['_vm.int_pause', '(', a, ')'] },
+    gen: a => { return ['_vm.int_pause', '(', a, ')'] },
   },
   int_resume: {
-    gen: (a) => { return ['_vm.int_resume', '(', a, ')'] },
+    gen: a => { return ['_vm.int_resume', '(', a, ')'] },
   },
   int_stop: {
-    gen: (a) => { return ['_vm.int_stop', '(', a, ')'] },
+    gen: a => { return ['_vm.int_stop', '(', a, ')'] },
   },
   ord: {
-    gen: (a) => { return [a + '.toString().charCodeAt[0]'] },
+    gen: a => { return [a + '.toString().charCodeAt[0]'] },
   },
   chr: {
-    gen: (a) => { return ['String.fromCharCode', '(', a, ')'] },
+    gen: a => { return ['String.fromCharCode', '(', a, ')'] },
   },
   brk: {
     gen: () => { return ['_vm.dbg.brk', '(', ')'] },
@@ -219,7 +251,7 @@ for (var k in opcodes) {
 }
 
 
-export var defaults = {
+defaults = {
   boundscheck: false,
 
   vm: {
@@ -259,24 +291,24 @@ export var defaults = {
   },
 
   floppy: {
-    size:        720 * 1024,
-    block_size:  512,
-    max_blocks:  1376,
-    entry_size:  32,
+    size: 720 * 1024,
+    block_size: 512,
+    max_blocks: 1376,
+    entry_size: 32,
     max_entries: 1024,
   },
 
 }
 
 export var error = (t, msg) => {
+  debugger
   errors++
   console.error(msg, 'at', t.value, '(' + t.row + ',' + t.col + ')')
 }
 
-export var runtime_error = (code) => {
+export var runtime_error = code => {
   let e = 'Unknown runtime error'
-  switch (code)
-  {
+  switch (code) {
     case 0x01:
       e = 'Out of memory'
       break
@@ -299,10 +331,9 @@ export var runtime_error = (code) => {
   console.error(e)
 }
 
-export var io_error = (code) => {
+export var io_error = code => {
   let e = 'I/O runtime error'
-  switch (code)
-  {
+  switch (code) {
     case 0x01:
       e = 'File not found'
       break
@@ -337,19 +368,9 @@ export var io_error = (code) => {
   console.error(e)
 }
 
-export var comma_array = (args) => {
-  let r = []
-  for (let a of args) {
-    r.push(a)
-    r.push(',')
-  }
-  r.splice(r.length - 1, 1)
-  return r
-}
-
 export var mixin = (proto, ...mixins) => {
-  mixins.forEach((mixin) => {
-    Object.getOwnPropertyNames(mixin).forEach((key) => {
+  mixins.forEach(mixin => {
+    Object.getOwnPropertyNames(mixin).forEach(key => {
       if (key !== 'constructor') {
         let descriptor = Object.getOwnPropertyDescriptor(mixin, key)
         Object.defineProperty(proto, key, descriptor)
@@ -360,14 +381,14 @@ export var mixin = (proto, ...mixins) => {
 
 export var rnd = (min, max) => { return Math.trunc(Math.random() * (max - min) + min) }
 
-export var delay = (ms) => {
+export var delay = ms => {
   let t = performance.now()
   while (performance.now() - t <= ms) {
     PIXI.ticker.shared.update()
   }
 }
 
-export var buffer_to_string = (b) => {
+export var buffer_to_string = b => {
   let len = b.length
   let i = 0
   let s = ''
@@ -377,7 +398,7 @@ export var buffer_to_string = (b) => {
   return s
 }
 
-export var string_to_buffer = (str) => {
+export var string_to_buffer = str => {
   let len = str.length
   let i = 0
   let b = new Buffer(Math.trunc(str.length / 2))
@@ -389,24 +410,3 @@ export var string_to_buffer = (str) => {
   }
   return b
 }
-
-export var _vm_ldb = () => { return '_vm.ldb' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_ldw = () => { return '_vm.ldw' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_ld = () => { return '_vm.ld' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_ldl = () => { return '_vm.ldl' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_lds = () => { return '_vm.lds' + (defaults.boundscheck ? '_bc' : '') }
-
-export var _vm_stb = () => { return '_vm.stb' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_stw = () => { return '_vm.stw' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_st = () => { return '_vm.st' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_sts = () => { return '_vm.sts' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_stl = () => { return '_vm.stl' + (defaults.boundscheck ? '_bc' : '') }
-
-export var _vm_fill = () => { return '_vm.fill' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_copy = () => { return '_vm.copy' + (defaults.boundscheck ? '_bc' : '') }
-
-export var _vm_db = () => { return '_vm.db' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_dw = () => { return '_vm.dw' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_dd = () => { return '_vm.dd' + (defaults.boundscheck ? '_bc' : '') }
-
-export var hex = (value, size = 32) => { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0') }

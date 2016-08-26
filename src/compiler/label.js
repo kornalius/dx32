@@ -1,4 +1,3 @@
-import _ from 'lodash';
 
 
 export class Label {
@@ -24,8 +23,7 @@ export class Label {
   is_fn () { return _.isFunction(this.addr) }
 
   get () {
-    switch (this._sz)
-    {
+    switch (this._sz) {
       case 1:
         return _vm.rb(this.addr)
       case 2:
@@ -40,8 +38,7 @@ export class Label {
   }
 
   set (value) {
-    switch (this._sz)
-    {
+    switch (this._sz) {
       case 1:
         return _vm.wb(this.addr, value)
       case 2:
@@ -50,7 +47,7 @@ export class Label {
         return _vm.wd(this.addr, value)
       default:
         value.copy(_vm.mem_buffer, this.addr, 0, this._sz - 1)
-        break
+        return this.addr
     }
   }
 

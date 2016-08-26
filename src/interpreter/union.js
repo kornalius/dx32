@@ -3,11 +3,11 @@ import _ from 'lodash'
 
 export class Union {
 
-  constructor () {
+  union_init () {
   }
 
-  make (d) {
-    let find_size = (dd) => {
+  union_make (d) {
+    let find_size = dd => {
       let size = 0
       for (let k in dd) {
         let value = dd[k]
@@ -19,7 +19,7 @@ export class Union {
     let addr = _vm.mm.alloc(find_size(d))
     let a = addr
 
-    let gen = (dd) => {
+    let gen = dd => {
       for (let k in dd) {
         let value = dd[k]
         if (_.isObject(value)) {
@@ -42,6 +42,7 @@ export class Union {
     return addr
   }
 
-  mix (addr, ...d) {
+  union_mix (addr, ...d) {
   }
+
 }

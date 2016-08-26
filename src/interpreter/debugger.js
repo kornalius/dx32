@@ -54,8 +54,7 @@ export class Debugger {
   list (type) {
     let l = []
 
-    switch (type)
-    {
+    switch (type) {
       case 'frames':
       case 'f':
         for (let f of this.frames) {
