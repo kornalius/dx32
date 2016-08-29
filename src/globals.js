@@ -1,265 +1,9 @@
 import _ from 'lodash'
 
-export var defaults = {}
-
-export var errors = 0
-
-export var comma_array = args => {
-  let r = []
-  for (let a of args) {
-    r.push(a)
-    r.push(',')
-  }
-  r.splice(r.length - 1, 1)
-  return r
-}
-
-export var string_buffer = (str, len = 0) => {
-  len = len || str.length
-  var b = new Buffer(len)
-  b.write(str, 0, str.length, 'ascii')
-  return b
-}
-
-export var _vm_ldb = () => { return '_vm.ldb' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_ldw = () => { return '_vm.ldw' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_ld = () => { return '_vm.ld' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_ldl = () => { return '_vm.ldl' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_lds = () => { return '_vm.lds' + (defaults.boundscheck ? '_bc' : '') }
-
-export var _vm_stb = () => { return '_vm.stb' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_stw = () => { return '_vm.stw' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_st = () => { return '_vm.st' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_sts = () => { return '_vm.sts' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_stl = () => { return '_vm.stl' + (defaults.boundscheck ? '_bc' : '') }
-
-export var _vm_fill = () => { return '_vm.fill' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_copy = () => { return '_vm.copy' + (defaults.boundscheck ? '_bc' : '') }
-
-export var _vm_db = () => { return '_vm.db' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_dw = () => { return '_vm.dw' + (defaults.boundscheck ? '_bc' : '') }
-export var _vm_dd = () => { return '_vm.dd' + (defaults.boundscheck ? '_bc' : '') }
-
-export var hex = (value, size = 32) => { return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0') }
-
-export var opcodes = {
-  nop: {
-    fn: () => {},
-  },
-  '@': {
-    expr: true,
-    gen: a => { return [_vm_ld(), '(', a, ')'] },
-  },
-  '>': {
-    expr: true,
-    gen: (a, b) => { return [a, '>', b] },
-  },
-  '<': {
-    expr: true,
-    gen: (a, b) => { return [a, '<', b] },
-  },
-  '>=': {
-    expr: true,
-    gen: (a, b) => { return [a, '>=', b] },
-  },
-  '<=': {
-    expr: true,
-    gen: (a, b) => { return [a, '<=', b] },
-  },
-  '!=': {
-    expr: true,
-    gen: (a, b) => { return [a, '!==', b] },
-  },
-  '==': {
-    expr: true,
-    gen: (a, b) => { return [a, '===', b] },
-  },
-  '+': {
-    expr: true,
-    gen: (a, b) => { return [a, '+', b] },
-  },
-  '-': {
-    expr: true,
-    gen: (a, b) => { return [a, '-', b] },
-  },
-  '*': {
-    expr: true,
-    gen: (a, b) => { return [a, '*', b] },
-  },
-  '/': {
-    expr: true,
-    gen: (a, b) => { return [a, '/', b] },
-  },
-  '&': {
-    expr: true,
-    gen: (a, b) => { return [a, '&', b] },
-  },
-  '|': {
-    expr: true,
-    gen: (a, b) => { return [a, '|', b] },
-  },
-  '^': {
-    expr: true,
-    gen: (a, b) => { return [a, '^', b] },
-  },
-  '%': {
-    expr: true,
-    gen: (a, b) => { return [a, '%', b] },
-  },
-  '!': {
-    expr: true,
-    gen: a => { return ['!' + a] },
-  },
-  inc: {
-    expr: true,
-    gen: a => { return [a + '++'] },
-  },
-  dec: {
-    expr: true,
-    gen: a => { return [a + '--'] },
-  },
-  ldb: {
-    expr: true,
-    gen: a => { return [_vm_ldb(), '(', a, ')'] },
-  },
-  ldw: {
-    expr: true,
-    gen: a => { return [_vm_ldw(), '(', a, ')'] },
-  },
-  ld: {
-    expr: true,
-    gen: a => { return [_vm_ld(), '(', a, ')'] },
-  },
-  lds: {
-    expr: true,
-    gen: a => { return [_vm_lds(), '(', a, ')'] },
-  },
-  ldl: {
-    expr: true,
-    gen: (a, b) => { return [_vm_ldl(), '(', a, ',', b, ')'] },
-  },
-  stb: {
-    gen: (a, b) => { return [_vm_stb(), '(', a, ',', b, ')'] },
-  },
-  stw: {
-    gen: (a, b) => { return [_vm_stw(), '(', a, ',', b, ')'] },
-  },
-  st: {
-    gen: (a, b) => { return [_vm_st(), '(', a, ',', b, ')'] },
-  },
-  sts: {
-    gen: (a, b) => { return [_vm_sts(), '(', a, ',', b, ')'] },
-  },
-  stl: {
-    gen: (a, b) => { return [_vm_stl(), '(', a, ',', b, ')'] },
-  },
-  call: {
-    gen: (a, ...args) => { return ['_vm.' + a, '(', comma_array(args), ')'] },
-  },
-  callp: {
-    gen: (a, b, ...args) => { return ['_vm.ports[' + a + '].publics.' + b + '.call', '(', comma_array(['_vm.ports[' + a + ']', ...args]), ')'] },
-  },
-  ret: {
-    gen: a => { return ['return', a] },
-  },
-  shl: {
-    gen: () => { return [''] },
-  },
-  shr: {
-    gen: () => { return [''] },
-  },
-  rol: {
-    gen: () => { return [''] },
-  },
-  ror: {
-    gen: () => { return [''] },
-  },
-  lo: {
-    gen: () => { return [''] },
-  },
-  hi: {
-    gen: () => { return [''] },
-  },
-  copy: {
-    gen: (s, t, sz) => { return [_vm_copy(), '(', s, ',', t, ',', sz, ')'] },
-  },
-  fill: {
-    gen: (a, v, sz) => { return [_vm_fill(), '(', a, ',', v, ',', sz, ')'] },
-  },
-  print: {
-    gen: (...args) => { return ['console.log', '(', comma_array(args), ')'] },
-  },
-  hlt: {
-    gen: a => { return ['_vm.hlt', '(', a || '', ')'] },
-  },
-  free: {
-    gen: (...args) => { return ['_vm.mm.free', '(', comma_array(args), ')'] },
-  },
-  size: {
-    gen: a => { return ['_vm.mm.size', '(', a, ')'] },
-  },
-  union: {
-    gen: (a, ...args) => { return ['_vm.union_make', '(', a, ',', comma_array(args), ')'] },
-  },
-  get: {
-    gen: (a, b) => { return ['_vm.union_get', '(', a, ',', b, ')'] },
-  },
-  set: {
-    gen: (a, b, c) => { return ['_vm.union_set', '(', a, ',', b, ',', c, ')'] },
-  },
-  mix: {
-    gen: (a, ...args) => { return ['_vm.union_mix', '(', a, ',', comma_array(args), ')'] },
-  },
-  stk: {
-    gen: (a, b, c) => { return ['_vm.stack', '(', a, ',', b, ',', c || 4, ')'] },
-  },
-  psh: {
-    gen: (a, ...args) => { return ['_vm.push', '(', a, ',', comma_array(args), ')'] },
-  },
-  pop: {
-    expr: true,
-    gen: a => { return ['_vm.pop', '(', a, ')'] },
-  },
-  hex: {
-    gen: a => { return ['_vm.hex', '(', a, ')'] },
-  },
-  hex8: {
-    gen: a => { return ['_vm.hex', '(', a, ',', 8, ')'] },
-  },
-  hex16: {
-    gen: a => { return ['_vm.hex', '(', a, ',', 16, ')'] },
-  },
-  int_start: {
-    gen: (a, b, c) => { return ['_vm.int_create', '(', a, ',', b, ',', c, ')'] },
-  },
-  int_pause: {
-    gen: a => { return ['_vm.int_pause', '(', a, ')'] },
-  },
-  int_resume: {
-    gen: a => { return ['_vm.int_resume', '(', a, ')'] },
-  },
-  int_stop: {
-    gen: a => { return ['_vm.int_stop', '(', a, ')'] },
-  },
-  ord: {
-    gen: a => { return [a + '.toString().charCodeAt[0]'] },
-  },
-  chr: {
-    gen: a => { return ['String.fromCharCode', '(', a, ')'] },
-  },
-  brk: {
-    gen: () => { return ['_vm.dbg.brk', '(', ')'] },
-  },
-}
-
-var x = 0
-for (var k in opcodes) {
-  opcodes[k].idx = x++
-}
-
-
-defaults = {
+export var defaults = {
   boundscheck: false,
+
+  type: 'i32',
 
   vm: {
     mem_size: 512 * 1024,
@@ -305,6 +49,166 @@ defaults = {
     max_entries: 1024,
   },
 
+}
+
+export var data_types = {
+  i8: 1,
+  s8: 1,
+  i16: 2,
+  s16: 2,
+  i32: 4,
+  s32: 4,
+  f32: 4,
+  i64: 8,
+  s64: 8,
+}
+
+export var data_type_size = name => data_types[name]
+
+export var errors = 0
+
+export var comma_array = args => {
+  let r = []
+  for (let a of args) {
+    r.push(a)
+    r.push(',')
+  }
+  r.splice(r.length - 1, 1)
+  return r
+}
+
+export var string_buffer = (str, len = 0) => {
+  len = len || str.length
+  var b = new Buffer(len)
+  b.write(str, 0, str.length, 'ascii')
+  return b
+}
+
+export var _vm_ldb = (bc, signed = false) => '_vm.ldb' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldw = (bc, signed = false) => '_vm.ldw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ld = (bc, signed = false) => '_vm.ld' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldf = (bc, signed = false) => '_vm.ldf' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldd = (bc, signed = false) => '_vm.ldd' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldl = (bc, signed = false) => '_vm.ldl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_lds = (bc, signed = false) => '_vm.lds' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+
+export var _vm_stb = (bc, signed = false) => '_vm.stb' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_stw = (bc, signed = false) => '_vm.stw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_st = (bc, signed = false) => '_vm.st' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_stf = (bc, signed = false) => '_vm.stf' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_std = (bc, signed = false) => '_vm.std' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_stl = (bc, signed = false) => '_vm.stl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_sts = (bc, signed = false) => '_vm.sts' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+
+export var _vm_db = (bc, signed = false) => '_vm.db' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_dw = (bc, signed = false) => '_vm.dw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_dl = (bc, signed = false) => '_vm.dl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_df = (bc, signed = false) => '_vm.df' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_dd = (bc, signed = false) => '_vm.dd' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+
+export var _vm_fill = bc => '_vm.fill' + (bc ? '_bc' : '')
+export var _vm_copy = bc => '_vm.copy' + (bc ? '_bc' : '')
+
+export var hex = (value, size = 32) => '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0')
+
+export var opcodes = {
+  nop: { fn: () => {} },
+
+  '@': { gen: a => [_vm_ld(defaults.boundscheck), '(', a, ')'], expr: true },
+  '>': { gen: (a, b) => [a, '>', b], expr: true },
+  '<': { gen: (a, b) => [a, '<', b], expr: true },
+  '>=': { gen: (a, b) => [a, '>=', b], expr: true },
+  '<=': { gen: (a, b) => [a, '<=', b], expr: true },
+  '!=': { gen: (a, b) => [a, '!==', b], expr: true },
+  '==': { gen: (a, b) => [a, '===', b], expr: true },
+  '+': { gen: (a, b) => [a, '+', b], expr: true },
+  '-': { gen: (a, b) => [a, '-', b], expr: true },
+  '*': { gen: (a, b) => [a, '*', b], expr: true },
+  '/': { gen: (a, b) => [a, '/', b], expr: true },
+  '&': { gen: (a, b) => [a, '&', b], expr: true },
+  '|': { gen: (a, b) => [a, '|', b], expr: true },
+  '^': { gen: (a, b) => [a, '^', b], expr: true },
+  '%': { gen: (a, b) => [a, '%', b], expr: true },
+  '!': { gen: a => ['!' + a], expr: true },
+
+  inc: { gen: a => [a + '++'], expr: true },
+  dec: { gen: a => [a + '--'], expr: true },
+
+  ldb: { gen: a => [_vm_ldb(defaults.boundscheck), '(', a, ')'], expr: true },
+  ldw: { gen: a => [_vm_ldw(defaults.boundscheck), '(', a, ')'], expr: true },
+  ld: { gen: a => [_vm_ld(defaults.boundscheck), '(', a, ')'], expr: true },
+  ldf: { gen: a => [_vm_ldf(defaults.boundscheck), '(', a, ')'], expr: true },
+  ldd: { gen: a => [_vm_ldd(defaults.boundscheck), '(', a, ')'], expr: true },
+  ldl: { gen: (a, b) => [_vm_ldl(defaults.boundscheck), '(', a, ',', b, ')'], expr: true },
+  lds: { gen: a => [_vm_lds(defaults.boundscheck), '(', a, ')'], expr: true },
+
+  lsb: { gen: a => [_vm_ldb(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  lsw: { gen: a => [_vm_ldw(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  ls: { gen: a => [_vm_ld(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  lsd: { gen: a => [_vm_ldd(defaults.boundscheck, true), '(', a, ')'], expr: true },
+
+  stb: { gen: (a, b) => [_vm_stb(defaults.boundscheck), '(', a, ',', b, ')'] },
+  stw: { gen: (a, b) => [_vm_stw(defaults.boundscheck), '(', a, ',', b, ')'] },
+  st: { gen: (a, b) => [_vm_st(defaults.boundscheck), '(', a, ',', b, ')'] },
+  std: { gen: (a, b) => [_vm_std(defaults.boundscheck), '(', a, ',', b, ')'] },
+  stf: { gen: (a, b) => [_vm_stf(defaults.boundscheck), '(', a, ',', b, ')'] },
+  stl: { gen: (a, b) => [_vm_stl(defaults.boundscheck), '(', a, ',', b, ')'] },
+  sts: { gen: (a, b) => [_vm_sts(defaults.boundscheck), '(', a, ',', b, ')'] },
+
+  ssb: { gen: (a, b) => [_vm_stb(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  ssw: { gen: (a, b) => [_vm_stw(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  ss: { gen: (a, b) => [_vm_st(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  ssd: { gen: (a, b) => [_vm_std(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+
+  call: { gen: (a, ...args) => ['_vm.' + a, '(', comma_array(args), ')'] },
+  callp: { gen: (a, b, ...args) => ['_vm.ports[' + a + '].publics.' + b + '.call', '(', comma_array(['_vm.ports[' + a + ']', ...args]), ')'] },
+  ret: { gen: a => ['return', a] },
+
+  shl: { gen: () => [''] },
+  shr: { gen: () => [''] },
+
+  rol: { gen: () => [''] },
+  ror: { gen: () => [''] },
+
+  lo: { gen: () => [''] },
+  hi: { gen: () => [''] },
+
+  ord: { gen: a => [a + '.toString().charCodeAt[0]'] },
+  chr: { gen: a => ['String.fromCharCode', '(', a, ')'] },
+
+  copy: { gen: (s, t, sz) => [_vm_copy(defaults.boundscheck), '(', s, ',', t, ',', sz, ')'] },
+  fill: { gen: (a, v, sz) => [_vm_fill(defaults.boundscheck), '(', a, ',', v, ',', sz, ')'] },
+
+  print: { gen: (...args) => ['console.log', '(', comma_array(args), ')'] },
+
+  free: { gen: (...args) => ['_vm.mm.free', '(', comma_array(args), ')'] },
+  size: { gen: a => ['_vm.mm.size', '(', a, ')'] },
+
+  union: { gen: (a, ...args) => ['_vm.union_make', '(', a, ',', comma_array(args), ')'] },
+  get: { gen: (a, b) => ['_vm.union_get', '(', a, ',', b, ')'] },
+  set: { gen: (a, b, c) => ['_vm.union_set', '(', a, ',', b, ',', c, ')'] },
+  mix: { gen: (a, ...args) => ['_vm.union_mix', '(', a, ',', comma_array(args), ')'] },
+
+  stk: { gen: (a, b, c) => ['_vm.stack', '(', a, ',', b, ',', c || 4, ')'] },
+  psh: { gen: (a, ...args) => ['_vm.push', '(', a, ',', comma_array(args), ')'] },
+  pop: { gen: a => ['_vm.pop', '(', a, ')'], expr: true },
+
+  hex: { gen: a => ['_vm.hex', '(', a, ')'] },
+  hex8: { gen: a => ['_vm.hex', '(', a, ',', 8, ')'] },
+  hex16: { gen: a => ['_vm.hex', '(', a, ',', 16, ')'] },
+
+  int_start: { gen: (a, b, c) => ['_vm.int_create', '(', a, ',', b, ',', c, ')'] },
+  int_pause: { gen: a => ['_vm.int_pause', '(', a, ')'] },
+  int_resume: { gen: a => ['_vm.int_resume', '(', a, ')'] },
+  int_stop: { gen: a => ['_vm.int_stop', '(', a, ')'] },
+
+  hlt: { gen: a => ['_vm.hlt', '(', a || '', ')'] },
+  brk: { gen: () => ['_vm.dbg.brk', '(', ')'] },
+}
+
+var x = 0
+for (var k in opcodes) {
+  opcodes[k].idx = x++
 }
 
 export var error = (t, msg) => {

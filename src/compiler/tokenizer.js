@@ -51,6 +51,30 @@ export class Tokenizer {
 
       constant_def: /::([A-Z_][A-Z_0-9]*)/i,
 
+      type_def: {
+        match: /\b(i8|byte|i16|word|short|i32|dword|int|i64|double|f32|float|s8|s16|s32)\b/,
+        value (v, d) {
+          if (v === 'byte') {
+            return 'i8'
+          }
+          else if (v === 'word' || v === 'short') {
+            return 'i16'
+          }
+          else if (v === 'dword' || v === 'int') {
+            return 'i32'
+          }
+          else if (v === 'double') {
+            return 'i64'
+          }
+          else if (v === 'float') {
+            return 'f32'
+          }
+          else {
+            return v
+          }
+        }
+      },
+
       label_def: /:([A-Z_][A-Z_0-9]*)/i,
 
       func_def_expr: /:(?=\()/i,
@@ -168,17 +192,24 @@ export class Tokenizer {
       id: /([A-Z_][A-Z_0-9\.]*)(?!\s*=)/i,
 
       digit: {
-        match: /[0-9]+/,
+        match: /[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?/,
         type (k, v) {
-          v = parseInt(v)
-          if (v >= 0x00 && v <= 0xFF) {
-            return 'byte'
+          let r = parseInt(v)
+          if (_.isNaN(r)) {
+            r = parseFloat(v)
+            return 'f32'
           }
-          else if (v > 0xFF && v <= 0xFFFF) {
-            return 'word'
+          else if (r >= 0x00 && r <= 0xFF) {
+            return 'i8'
           }
-          else if (v > 0xFFFF && v <= 0xFFFFFFFF) {
-            return 'dword'
+          else if (r > 0xFF && r <= 0xFFFF) {
+            return 'i16'
+          }
+          else if (r > 0xFFFF && r <= 0xFFFFFFFF) {
+            return 'i32'
+          }
+          else if (r > 0xFFFFFFFF && r <= 0xFFFFFFFFFFFFFFFF) {
+            return 'i64'
           }
           else {
             error({ v, row, col }, 'value out of bounds')
@@ -187,13 +218,28 @@ export class Tokenizer {
         },
       },
 
-      byte: {
+      i8: {
       },
 
-      word: {
+      s8: {
       },
 
-      dword: {
+      i16: {
+      },
+
+      s16: {
+      },
+
+      i32: {
+      },
+
+      s32: {
+      },
+
+      f32: {
+      },
+
+      i64: {
       },
 
       hex: {

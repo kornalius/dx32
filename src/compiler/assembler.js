@@ -1,31 +1,61 @@
 import _ from 'lodash'
-import { defaults, opcodes, comma_array, error, _vm_ldb, _vm_ldw, _vm_ld, _vm_stb, _vm_stw, _vm_st } from '../globals.js'
+import { defaults, opcodes, comma_array, error, _vm_ldb, _vm_ldw, _vm_ld, _vm_ldf, _vm_ldd, _vm_ldl, _vm_lds, _vm_stb, _vm_stw, _vm_st, _vm_stf, _vm_std, _vm_stl, _vm_sts, data_type_size } from '../globals.js'
 import { codify, CodeGenerator, _PRETTY } from './codegen.js'
 
 
-export var is_eos = t => {
-  return t.type === 'comment' || t.type === 'eol'
+export var data_type_to_alloc = type => {
+  switch (type) {
+    case 'i8': return 'alloc_b'
+    case 's8': return 'alloc_b_s'
+    case 'i16': return 'alloc_w'
+    case 's16': return 'alloc_w_s'
+    case 'i32': return 'alloc_dw'
+    case 's32': return 'alloc_dw_s'
+    case 'f32': return 'alloc_f'
+    case 'i64': return 'alloc_dd'
+    default: return 'alloc'
+  }
 }
 
-export var is_symbol = t => {
-  return t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectSymbol'
+export var define_to_data_type = def_name => {
+  switch (def_name) {
+    case 'db': return 'i8'
+    case 'dbs': return 's8'
+    case 'dw': return 'i16'
+    case 'dws': return 's16'
+    case 'dl': return 'i32'
+    case 'dls': return 's32'
+    case 'df': return 'f32'
+    case 'dd': return 'i64'
+    default: return null
+  }
 }
 
-export var is_opcode = t => {
-  return (is_symbol(t) || t.type === 'id') && opcodes[t.value] ? t.value : null
+export var data_type_to_define = type => {
+  switch (type) {
+    case 'i8': return 'db'
+    case 's8': return 'dbs'
+    case 'i16': return 'dw'
+    case 's16': return 'dws'
+    case 'i32': return 'dl'
+    case 's32': return 'dls'
+    case 'f32': return 'df'
+    case 'i64': return 'dd'
+    default: return null
+  }
 }
 
-export var is_digit = t => {
-  return t.type === 'byte' || t.type === 'word' || t.type === 'dword'
-}
+export var is_eos = t => t.type === 'comment' || t.type === 'eol'
 
-export var is_string = t => {
-  return t.type === 'string'
-}
+export var is_symbol = t => t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectSymbol'
 
-export var is_value = t => {
-  return is_digit(t) || is_string(t)
-}
+export var is_opcode = t => (is_symbol(t) || t.type === 'id') && opcodes[t.value] ? t.value : null
+
+export var is_digit = t => t.type === 'i8' || t.type === 's8' || t.type === 'i16' || t.type === 's16' || t.type === 'i32' || t.type === 's32' || t.type === 'f32' || t.type === 'i64'
+
+export var is_string = t => t.type === 'string'
+
+export var is_value = t => is_digit(t) || is_string(t)
 
 export var peek_token = (p, type) => {
   if (_.isString(type)) {
@@ -68,9 +98,7 @@ export var peek_token = (p, type) => {
   return false
 }
 
-export var peek_at = (x, type, tokens) => {
-  return peek_token(tokens[x], type)
-}
+export var peek_at = (x, type, tokens) => peek_token(tokens[x], type)
 
 export var peeks_at = (x, arr, tokens) => {
   let len = tokens.length
@@ -135,9 +163,23 @@ export class Assembler {
     var ldb
     var ldw
     var ld
+    var ldb_s
+    var ldw_s
+    var ld_s
+    var ldf
+    var ldd
+    var ldl
+    var lds
     var stb
     var stw
     var st
+    var stb_s
+    var stw_s
+    var st_s
+    var stf
+    var std
+    var stl
+    var sts
     var read
     var write
     var find_label
@@ -170,6 +212,7 @@ export class Assembler {
     var indexed
     var indirect
     var assign
+    var type_def
     var label_def
     var label_assign
     var label
@@ -184,7 +227,20 @@ export class Assembler {
     var block
     var statement
 
-    js_name = name => { return _.camelCase(name.replace('.', '-')) }
+    var code_init = () => {
+      code.line_s('var', 'alloc', '=', '_vm.mm.alloc')
+      code.line_s('var', 'alloc_b', '=', '_vm.mm.alloc_b')
+      code.line_s('var', 'alloc_b_s', '=', '_vm.mm.alloc_b_s')
+      code.line_s('var', 'alloc_w', '=', '_vm.mm.alloc_w')
+      code.line_s('var', 'alloc_w_s', '=', '_vm.mm.alloc_w_s')
+      code.line_s('var', 'alloc_dw', '=', '_vm.mm.alloc_dw')
+      code.line_s('var', 'alloc_dw_s', '=', '_vm.mm.alloc_dw_s')
+      code.line_s('var', 'alloc_dd', '=', '_vm.mm.alloc_dd')
+      code.line_s('var', 'alloc_str', '=', '_vm.mm.alloc_str')
+      code.line_s('var', 'free', '=', '_vm.mm.free')
+    }
+
+    js_name = name => _.camelCase(name.replace('.', '-'))
 
     next_token = () => { t = tokens[++i]; return t }
 
@@ -198,13 +254,13 @@ export class Assembler {
       return p ? t : false
     }
 
-    peek_token = type => { return peek_at(i + 1, type, tokens) }
+    peek_token = type => peek_at(i + 1, type, tokens)
 
-    is_type = type => { return peek_at(i, type, tokens) }
+    is_type = type => peek_at(i, type, tokens)
 
-    is_token = o => { return _.isObject(o) && o.type && o.value }
+    is_token = o => _.isObject(o) && o.type && o.value
 
-    token_peeks = arr => { return peeks_at(i + 1, arr, tokens) }
+    token_peeks = arr => peeks_at(i + 1, arr, tokens)
 
     expected_next_token = (t, type) => {
       if (expected(t, type)) {
@@ -212,44 +268,68 @@ export class Assembler {
       }
     }
 
-    ldb = offset => {
-      return [_vm_ldb(), '(', offset, ')']
-    }
+    ldb = offset => [_vm_ldb(defaults.boundscheck), '(', offset, ')']
 
-    ldw = offset => {
-      return [_vm_ldw(), '(', offset, ')']
-    }
+    ldb_s = offset => [_vm_ldb(defaults.boundscheck, true), '(', offset, ')']
 
-    ld = offset => {
-      return [_vm_ld(), '(', offset, ')']
-    }
+    ldw = offset => [_vm_ldw(defaults.boundscheck), '(', offset, ')']
 
-    stb = (offset, value) => {
-      return [_vm_stb(), '(', offset, ',', value, ')']
-    }
+    ldw_s = offset => [_vm_ldw(defaults.boundscheck, true), '(', offset, ')']
 
-    stw = (offset, value) => {
-      return [_vm_stw(), '(', offset, ',', value, ')']
-    }
+    ld = offset => [_vm_ld(defaults.boundscheck), '(', offset, ')']
 
-    st = (offset, value) => {
-      return [_vm_st(), '(', offset, ',', value, ')']
-    }
+    ldf = offset => [_vm_ldf(defaults.boundscheck), '(', offset, ')']
 
-    read = (offset, size = 4) => {
-      switch (size) {
-        case 1: return ldb(offset)
-        case 2: return ldw(offset)
-        case 4: return ld(offset)
+    ldd = offset => [_vm_ldd(defaults.boundscheck), '(', offset, ')']
+
+    ldl = (offset, size) => [_vm_ldl(defaults.boundscheck), '(', offset, size, ')']
+
+    lds = offset => [_vm_lds(defaults.boundscheck), '(', offset, ')']
+
+    stb = (offset, value) => [_vm_stb(defaults.boundscheck), '(', offset, ',', value, ')']
+
+    stb_s = (offset, value) => [_vm_stb(defaults.boundscheck, true), '(', offset, ',', value, ')']
+
+    stw = (offset, value) => [_vm_stw(defaults.boundscheck), '(', offset, ',', value, ')']
+
+    stw_s = (offset, value) => [_vm_stw(defaults.boundscheck, true), '(', offset, ',', value, ')']
+
+    st = (offset, value) => [_vm_st(defaults.boundscheck), '(', offset, ',', value, ')']
+
+    st_s = (offset, value) => [_vm_st(defaults.boundscheck, true), '(', offset, ',', value, ')']
+
+    stf = (offset, value) => [_vm_stf(defaults.boundscheck), '(', offset, ',', value, ')']
+
+    std = (offset, value) => [_vm_std(defaults.boundscheck), '(', offset, ',', value, ')']
+
+    stl = (offset, value, size) => [_vm_stl(defaults.boundscheck), '(', offset, ',', value, size, ')']
+
+    sts = (offset, value) => [_vm_sts(defaults.boundscheck), '(', offset, ',', value, ')']
+
+    read = (offset, type) => {
+      switch (type || defaults.type) {
+        case 'i8': return ldb(offset)
+        case 'i16': return ldw(offset)
+        case 'i32': return ld(offset)
+        case 's8': return ldb_s(offset)
+        case 's16': return ldw_s(offset)
+        case 's32': return ld_s(offset)
+        case 'f32': return ldf(offset)
+        case 'i64': return ldd(offset)
         default: return []
       }
     }
 
-    write = (offset, value, size = 4) => {
-      switch (size) {
-        case 1: return stb(offset, value)
-        case 2: return stw(offset, value)
-        case 4: return st(offset, value)
+    write = (offset, value, type) => {
+      switch (type || defaults.type) {
+        case 'i8': return stb(offset, value)
+        case 'i16': return stw(offset, value)
+        case 'i32': return st(offset, value)
+        case 's8': return stb_s(offset, value)
+        case 's16': return stw_s(offset, value)
+        case 's32': return st_s(offset, value)
+        case 'f32': return stf(offset, value)
+        case 'i64': return std(offset, value)
         default: return []
       }
     }
@@ -263,11 +343,12 @@ export class Assembler {
       return l
     }
 
-    new_label = (name, fn = false, unit_size = 4, sizes = []) => {
+    new_label = (name, fn = false, data_type, dimensions = []) => {
+      data_type = data_type || defaults.type
       name = js_name(name)
       let l = find_label(name)
       if (!l) {
-        l = { fn, local: !frame.global, frame, unit_size, sizes }
+        l = { fn, local: !frame.global, frame, data_type, data_size: data_type_size(data_type), dimensions }
         frame.labels[name] = l
       }
       else {
@@ -277,13 +358,14 @@ export class Assembler {
       return l
     }
 
-    tmp_label = (name, fn = false, unit_size = 4, sizes = []) => {
+    tmp_label = (name, fn = false, data_type, dimensions = []) => {
+      data_type = data_type || defaults.type
       let tn = js_name(name || 'tmp' + '_' + _.uniqueId())
-      new_label(tn, fn, unit_size, sizes)
+      new_label(tn, fn, data_type, dimensions)
       return tn
     }
 
-    find_constant = name => { return contants[name] }
+    find_constant = name => contants[name]
 
     new_constant = (name, args) => {
       if (!find_constant(name)) {
@@ -318,9 +400,9 @@ export class Assembler {
 
     end_frame_code = () => {
       if (frame) {
-        let l = _.filter(_.keys(frame.labels), k => { return !frame.labels[k].fn })
+        let l = _.filter(_.keys(frame.labels), k => !frame.labels[k].fn)
         if (l.length) {
-          code.line_s('_vm.mm.free', '(', comma_array(l), ')')
+          code.line_s('free', '(', comma_array(l), ')')
         }
       }
     }
@@ -338,18 +420,14 @@ export class Assembler {
       return l && !l.fn ? l : null
     }
 
-    check_port = () => {
-      return t.type === 'port' || t.type === 'port_indirect'
-    }
+    check_port = () => t.type === 'port' || t.type === 'port_indirect'
 
     let check_func = () => {
       let l = find_label(t.value)
       return l && l.fn ? l : null
     }
 
-    check_port_call = () => {
-      return t.type === 'port_call'
-    }
+    check_port_call = () => t.type === 'port_call'
 
     term = () => {
       let r = []
@@ -470,13 +548,9 @@ export class Assembler {
       return r
     }
 
-    exprs = () => {
-      return parameters(t.type === 'open_paren' ? 'open_paren' : null, t.type === 'open_paren' ? 'close_paren' : null, false, -1, true)
-    }
+    exprs = () => parameters(t.type === 'open_paren' ? 'open_paren' : null, t.type === 'open_paren' ? 'close_paren' : null, false, -1, true)
 
-    subexpr = () => {
-      return parameters('open_paren', 'close_paren', false, 1, true)
-    }
+    subexpr = () => parameters('open_paren', 'close_paren', false, 1, true)
 
     parameters = (open = null, close = null, single_term = false, limit = -1, allow_ws = true) => {
       let r = []
@@ -566,15 +640,32 @@ export class Assembler {
       expected_next_token(t, 'open_curly')
 
       let key = null
+      let type = null
+
       while (i < len && !is_eos(t) && t.type !== 'close_curly') {
-        if (t.type === 'label_def' && !key) {
+        if (t.type === 'type_def' && !key) {
+          type = t.value
+          expected_next_token('label_def')
+          key = t
+          next_token()
+          expected_next_token(t, 'assign')
+        }
+        else if (t.type === 'label_def' && !key) {
+          if (!type) {
+            type = defaults.type
+          }
           key = t
           next_token()
           expected_next_token(t, 'assign')
         }
         else if (key) {
-          d[key.value] = t.type === 'open_curly' ? extract_union() : expr()
+          let kv = {
+            type,
+            value: t.type === 'open_curly' ? extract_union() : expr(),
+          }
+          d[key.value] = kv
           key = null
+          type = null
           expected(t, ['comma', 'close_curly'])
           if (t.type === 'comma') {
             next_token()
@@ -594,9 +685,7 @@ export class Assembler {
       return d
     }
 
-    port = () => {
-      return indirect('_vm.ports[' + t.value + '].top')
-    }
+    port = () => indirect('_vm.ports[' + t.value + '].top')
 
     port_call = () => {
       let parts = t.value.split(':')
@@ -604,9 +693,7 @@ export class Assembler {
       return ['_vm.ports[' + parts[0] + '].publics.' + parts[1] + '.call', '(', comma_array(['_vm.ports[' + parts[0] + ']', ...exprs()]), ')']
     }
 
-    bracket_def = () => {
-      return parameters('open_bracket', 'close_bracket', false, -1, false)
-    }
+    bracket_def = () => parameters('open_bracket', 'close_bracket', false, -1, false)
 
     indexed = () => {
       let r = ['+']
@@ -622,7 +709,7 @@ export class Assembler {
 
       if (_ind) {
         for (i = 0; i < t.count; i++) {
-          r = r.concat([_vm_ld(), '('])
+          r = r.concat([_vm_ld(defaults.boundscheck), '('])
         }
       }
 
@@ -639,11 +726,17 @@ export class Assembler {
       return r
     }
 
-    assign = (name, alloc, value) => {
-      return ['var', name, '=', '_vm.mm.' + alloc, '(', codify(value), ')']
+    assign = (name, alloc, value) => ['var', name, '=', alloc, '(', codify(value), ')']
+
+    type_def = (simple = false) => {
+      let type = t.value
+      expected_next_token(t, 'label_def')
+      label_def(type, simple)
     }
 
-    label_def = (simple = false) => {
+    label_def = (type, simple = false) => {
+      type = type || defaults.type
+
       let name = js_name(t.value)
       let orig_name = name
 
@@ -654,11 +747,11 @@ export class Assembler {
         }
       }
 
-      let nw = false
+      let _new = false
       let l = find_label(name)
       if (!l) {
         l = new_label(name)
-        nw = true
+        _new = true
       }
 
       assign_name = name
@@ -666,11 +759,11 @@ export class Assembler {
       next_token()
 
       if (is_eos(t) || simple) {
-        if (nw) {
-          code.line_s(...assign(name, 'alloc', 4))
+        if (_new) {
+          code.line_s(...assign(name, data_type_to_alloc(type), 0))
         }
         else {
-          code.line_s(...st(name, 0))
+          code.line_s(...write(name, type, 0))
         }
       }
 
@@ -688,55 +781,47 @@ export class Assembler {
 
         let v = expr()
 
-        if (nw) {
-          code.line_s(...assign(name, 'alloc_d', v))
+        if (_new) {
+          code.line_s(...assign(name, data_type_to_alloc(type), v))
         }
         else {
-          code.line_s(...st(name, v))
+          code.line_s(...write(name, type, v))
         }
       }
 
       else {
-        let sz = 1
-        let szfn = t.value
-        switch (t.value) {
-          case 'db':
-            sz = 1
-            break
-          case 'dw':
-            sz = 2
-            break
-          case 'dd':
-            sz = 4
-            break
-          default:
-            error(t, 'db, dw, dd expected')
-            next_token()
-            assign_name = null
-            return
+        let def_fn = t.value
+        type = define_to_data_type(t.value)
+        if (!type) {
+          error(t, 'data define token expected')
+          next_token()
+          assign_name = null
+          return
         }
 
-        l.unit_size = sz
+        let size = data_type_size(type)
+        l.data_size = size
+        l.data_type = type
 
         next_token()
 
         if (t.type === 'open_bracket') {
           let aa = bracket_def()
-          if (nw) {
-            code.line_s(...assign(name, 'alloc', [sz, '*', aa]))
+          if (_new) {
+            code.line_s(...assign(name, 'alloc', [size, '*', aa]))
           }
           else {
-            code.line_s('_vm.mm.free', '(', name, ')')
-            code.line_s(name, '=', '_vm.mm.alloc', '(', sz, '*', aa, ')')
+            code.line_s('free', '(', name, ')')
+            code.line_s(name, '=', 'alloc', '(', size, '*', aa, ')')
           }
         }
 
         else {
           let p = parameters(null, null, false, -1, true)
-          if (nw) {
-            code.line_s(...assign(name, 'alloc', sz * p.length))
+          if (_new) {
+            code.line_s(...assign(name, 'alloc', size * p.length))
           }
-          code.line_s('_vm.' + szfn + (defaults.boundscheck ? '_bc' : ''), '(', name, ',', comma_array(p), ')')
+          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.starsWith('s') ? '_s' : ''), '(', name, ',', comma_array(p), ')')
         }
       }
 
@@ -765,12 +850,12 @@ export class Assembler {
 
       expected_next_token(t, 'assign')
 
-      let v = expr()
+      let value = expr()
 
       let r = []
       if (_ind) {
         for (i = 0; i < count; i++) {
-          r = r.concat([_vm_ld(), '('])
+          r = r.concat([_vm_ld(defaults.boundscheck), '('])
         }
 
         r.push(name)
@@ -784,10 +869,10 @@ export class Assembler {
         r.push(name)
       }
 
-      code.line_s(...write(r.concat(br).join(' '), v, l.unit_size))
+      code.line_s(...write(r.concat(br).join(' '), value, l.data_type))
     }
 
-    label = () => { return indirect(js_name(t.value)) }
+    label = () => indirect(js_name(t.value))
 
     union_def = name => {
       let old_first_union_label = first_unions_label
@@ -805,13 +890,13 @@ export class Assembler {
       new_frame()
       l.fn = true
       let parms = parameters('open_paren', 'close_paren', true, -1, true)
-      code.line('var', name, '=', 'function', '(', comma_array(_.map(parms, p => { return '__' + p.value })), ')', '{')
+      code.line('var', name, '=', 'function', '(', comma_array(_.map(parms, p => '__' + p.value)), ')', '{')
       this.indent++
       new_frame_code()
       for (let p of parms) {
         let n = js_name(p.value)
         new_label(n)
-        code.line_s(...assign(n, 'alloc_d', '__' + n))
+        code.line_s(...assign(n, data_type_to_alloc(defaults.type), '__' + n))
       }
       block('end')
       end_frame_code()
@@ -941,8 +1026,8 @@ export class Assembler {
       let l
 
       if (unions.length > 0) {
-        if (t.type === 'label_def') {
-          label_def()
+        if (t.type === 'type_def') {
+          type_def()
         }
         else if (!is_eos(t)) {
           error(t, 'label or union definition expected')
@@ -960,8 +1045,8 @@ export class Assembler {
       else if (t.type === 'label_assign' || t.type === 'label_assign_indirect') {
         label_assign()
       }
-      else if (t.type === 'label_def') {
-        label_def()
+      else if (t.type === 'type_def') {
+        type_def()
       }
       else if (t.type === 'constant_def') {
         constant_def()
@@ -1004,8 +1089,8 @@ export class Assembler {
       else if (t.value === 'for') {
         next_token()
         let name = js_name(t.value)
-        if (t.type === 'label_def') {
-          label_def(true)
+        if (t.type === 'type_def') {
+          type_def(true)
         }
         else {
           error(t, 'label definition expected')
@@ -1057,6 +1142,7 @@ export class Assembler {
     }
 
     code.line('')
+    code_init()
     new_frame()
     new_frame_code()
     statements()

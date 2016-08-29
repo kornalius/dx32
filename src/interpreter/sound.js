@@ -110,13 +110,13 @@ export class Sound {
             note.source = 'sawtooth'
           }
           else if (value === 5) {
-            note.source = _vm.lds(addr)
+            note.source = _vm.ldstr(addr)
             addr += note.source.length + 1
           }
           break
 
         case 2:  // pitch
-          note.pitch = _vm.lds(addr, 3)
+          note.pitch = _vm.ldstr(addr, 3)
           addr += 3
           break
 

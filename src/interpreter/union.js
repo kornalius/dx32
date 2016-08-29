@@ -26,9 +26,9 @@ export class Union {
           gen(value)
         }
         else {
-          let key = _vm.mm.alloc_s(k)
+          let key = _vm.mm.alloc_str(k)
           if (_.isString(value)) {
-            value = _vm.mm.alloc_s(value)
+            value = _vm.mm.alloc_str(value)
           }
           _vm.st(a, key)
           _vm.st(a + 4, value)
