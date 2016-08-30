@@ -143,7 +143,7 @@ export class Assembler {
     var frame = null
     var frames = []
 
-    var assign_name = null
+    var assign_label_name = null
 
     var unions = []
     var first_unions_label = null
@@ -228,16 +228,39 @@ export class Assembler {
     var statement
 
     var code_init = () => {
-      code.line_s('var', 'alloc', '=', '_vm.mm.alloc')
-      code.line_s('var', 'alloc_b', '=', '_vm.mm.alloc_b')
-      code.line_s('var', 'alloc_b_s', '=', '_vm.mm.alloc_b_s')
-      code.line_s('var', 'alloc_w', '=', '_vm.mm.alloc_w')
-      code.line_s('var', 'alloc_w_s', '=', '_vm.mm.alloc_w_s')
-      code.line_s('var', 'alloc_dw', '=', '_vm.mm.alloc_dw')
-      code.line_s('var', 'alloc_dw_s', '=', '_vm.mm.alloc_dw_s')
-      code.line_s('var', 'alloc_dd', '=', '_vm.mm.alloc_dd')
-      code.line_s('var', 'alloc_str', '=', '_vm.mm.alloc_str')
-      code.line_s('var', 'free', '=', '_vm.mm.free')
+      code.line_s('var', 'alloc', '=', '_vm.alloc.bind(_vm)')
+      code.line_s('var', 'alloc_b', '=', '_vm.alloc_b.bind(_vm)')
+      code.line_s('var', 'alloc_b_s', '=', '_vm.alloc_b_s.bind(_vm)')
+      code.line_s('var', 'alloc_w', '=', '_vm.alloc_w.bind(_vm)')
+      code.line_s('var', 'alloc_w_s', '=', '_vm.alloc_w_s.bind(_vm)')
+      code.line_s('var', 'alloc_dw', '=', '_vm.alloc_dw.bind(_vm)')
+      code.line_s('var', 'alloc_dw_s', '=', '_vm.alloc_dw_s.bind(_vm)')
+      code.line_s('var', 'alloc_dd', '=', '_vm.alloc_dd.bind(_vm)')
+      code.line_s('var', 'alloc_str', '=', '_vm.alloc_str.bind(_vm)')
+      code.line_s('var', 'free', '=', '_vm.free.bind(_vm)')
+
+      code.line_s('var', 'db', '=', '_vm.db.bind(_vm)')
+      code.line_s('var', 'db_bc', '=', '_vm.db_bc.bind(_vm)')
+      code.line_s('var', 'db_s', '=', '_vm.db_s.bind(_vm)')
+      code.line_s('var', 'db_s_bc', '=', '_vm.db_s_bc.bind(_vm)')
+
+      code.line_s('var', 'dw', '=', '_vm.dw.bind(_vm)')
+      code.line_s('var', 'dw_bc', '=', '_vm.dw_bc.bind(_vm)')
+      code.line_s('var', 'dw_s', '=', '_vm.dw_s.bind(_vm)')
+      code.line_s('var', 'dw_s_bc', '=', '_vm.dw_s_bc.bind(_vm)')
+
+      code.line_s('var', 'dl', '=', '_vm.dl.bind(_vm)')
+      code.line_s('var', 'dl_bc', '=', '_vm.dl_bc.bind(_vm)')
+      code.line_s('var', 'dl_s', '=', '_vm.dl_s.bind(_vm)')
+      code.line_s('var', 'dl_s_bc', '=', '_vm.dl_s_bc.bind(_vm)')
+
+      code.line_s('var', 'df', '=', '_vm.df.bind(_vm)')
+      code.line_s('var', 'df_bc', '=', '_vm.df_bc.bind(_vm)')
+
+      code.line_s('var', 'dd', '=', '_vm.dd.bind(_vm)')
+      code.line_s('var', 'dd_bc', '=', '_vm.dd_bc.bind(_vm)')
+
+      code.line('')
     }
 
     js_name = name => _.camelCase(name.replace('.', '-'))
@@ -343,12 +366,20 @@ export class Assembler {
       return l
     }
 
-    new_label = (name, fn = false, data_type, dimensions = []) => {
+    new_label = (name, fn, data_type, dimensions) => {
       data_type = data_type || defaults.type
       name = js_name(name)
       let l = find_label(name)
       if (!l) {
-        l = { fn, local: !frame.global, frame, data_type, data_size: data_type_size(data_type), dimensions }
+        l = {
+          name,
+          fn,
+          local: !frame.global,
+          frame,
+          data_type,
+          data_size: data_type_size(data_type),
+          dimensions: dimensions || []
+        }
         frame.labels[name] = l
       }
       else {
@@ -358,11 +389,9 @@ export class Assembler {
       return l
     }
 
-    tmp_label = (name, fn = false, data_type, dimensions = []) => {
+    tmp_label = (name, fn, data_type, dimensions) => {
       data_type = data_type || defaults.type
-      let tn = js_name(name || 'tmp' + '_' + _.uniqueId())
-      new_label(tn, fn, data_type, dimensions)
-      return tn
+      return new_label(name || 'tmp' + '_' + _.uniqueId(), fn, data_type, dimensions)
     }
 
     find_constant = name => contants[name]
@@ -604,7 +633,7 @@ export class Assembler {
     }
 
     union = () => {
-      let genvars = assign_name !== null
+      let genvars = assign_label_name !== null
       let offset = 0
 
       let gen = (dd, name) => {
@@ -616,18 +645,18 @@ export class Assembler {
             new_label(vname)
             offset += 8
           }
-          if (!_.isArray(dd[k]) && !is_token(dd[k])) {
-            a.push('"' + k + '": ' + '{ ' + gen(dd[k], vname).join(' ') + ' }')
+          if (!_.isArray(dd[k].value) && !is_token(dd[k].value)) {
+            a.push('"' + k + '": ' + '{ ' + gen(dd[k].value, vname).join(' ') + ' }')
           }
           else {
-            a.push('"' + k + '": ' + codify(dd[k]))
+            a.push('"' + k + '": ' + codify(dd[k].value))
           }
         }
         return comma_array(a)
       }
 
       let d = extract_union()
-      let aa = gen(d, assign_name)
+      let aa = gen(d, assign_label_name)
 
       return ['_vm.union_make', '(', '{', aa, '}', ')']
     }
@@ -651,16 +680,13 @@ export class Assembler {
           expected_next_token(t, 'assign')
         }
         else if (t.type === 'label_def' && !key) {
-          if (!type) {
-            type = defaults.type
-          }
           key = t
           next_token()
           expected_next_token(t, 'assign')
         }
         else if (key) {
           let kv = {
-            type,
+            type: type || defaults.type,
             value: t.type === 'open_curly' ? extract_union() : expr(),
           }
           d[key.value] = kv
@@ -754,7 +780,7 @@ export class Assembler {
         _new = true
       }
 
-      assign_name = name
+      assign_label_name = name
 
       next_token()
 
@@ -795,7 +821,7 @@ export class Assembler {
         if (!type) {
           error(t, 'data define token expected')
           next_token()
-          assign_name = null
+          assign_label_name = null
           return
         }
 
@@ -821,11 +847,11 @@ export class Assembler {
           if (_new) {
             code.line_s(...assign(name, 'alloc', size * p.length))
           }
-          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.starsWith('s') ? '_s' : ''), '(', name, ',', comma_array(p), ')')
+          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.startsWith('s') ? '_s' : ''), '(', name, ',', comma_array(p), ')')
         }
       }
 
-      assign_name = null
+      assign_label_name = null
     }
 
     label_assign = () => {
@@ -894,8 +920,8 @@ export class Assembler {
       this.indent++
       new_frame_code()
       for (let p of parms) {
-        let n = js_name(p.value)
-        new_label(n)
+        let l = new_label(p.value)
+        let n = l.name
         code.line_s(...assign(n, data_type_to_alloc(defaults.type), '__' + n))
       }
       block('end')
@@ -907,8 +933,9 @@ export class Assembler {
 
     func_def_expr = () => {
       next_token()
-      let tn = tmp_label('fn')
-      func_def(tn, find_label(tn))
+      let l = tmp_label('fn')
+      let tn = l.name
+      func_def(tn, l)
       return [tn]
     }
 
@@ -1029,6 +1056,9 @@ export class Assembler {
         if (t.type === 'type_def') {
           type_def()
         }
+        else if (t.type === 'label_def') {
+          label_def()
+        }
         else if (!is_eos(t)) {
           error(t, 'label or union definition expected')
           next_token()
@@ -1047,6 +1077,9 @@ export class Assembler {
       }
       else if (t.type === 'type_def') {
         type_def()
+      }
+      else if (t.type === 'label_def') {
+        label_def()
       }
       else if (t.type === 'constant_def') {
         constant_def()
@@ -1091,6 +1124,9 @@ export class Assembler {
         let name = js_name(t.value)
         if (t.type === 'type_def') {
           type_def(true)
+        }
+        else if (t.type === 'label_def') {
+          label_def(null, true)
         }
         else {
           error(t, 'label definition expected')

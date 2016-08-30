@@ -23,7 +23,7 @@ export class Sprite {
   spr_reset () {
     this.force_sprites = false
     this.sprites = []
-    this.sprites_addr = _vm.mm.alloc(this.sprites_size)
+    this.sprites_addr = _vm.alloc(this.sprites_size)
   }
 
   spr_shut () {

@@ -4,25 +4,29 @@ import prettyBytes from 'pretty-bytes'
 
 export class MemoryManager {
 
-  constructor (mem_buffer, mem_size) {
-    this.mem_buffer = mem_buffer
-    this.mem_size = mem_size
-    this.mem_top = 0
-    this.mem_bottom = this.mem_size - 1
+  mm_init () {
+    this.mm_blocks = []
+    this.mm_last = 0
+  }
 
-    this.blocks = []
+  mm_tick (t) {
+    if (t - this.mm_last >= 30720) {
+      this.mm_collect()
+      this.mm_last = t
+    }
+  }
 
-    let that = this
-    setInterval(() => {
-      that.collect()
-    }, 30 * 1024)
+  mm_reset () {
+  }
+
+  mm_shut () {
   }
 
   avail_mem () { return this.mem_size }
 
   used_mem () {
     let size = 0
-    for (let b of this.blocks) {
+    for (let b of this.mm_blocks) {
       if (b.used) {
         size += b.size
       }
@@ -37,7 +41,7 @@ export class MemoryManager {
   alloc (size = 1, type = 'i8') {
     let n = 0
 
-    for (let b of this.blocks) {
+    for (let b of this.mm_blocks) {
       if (b.mem_bottom > n) {
         n = b.mem_bottom
       }
@@ -52,7 +56,7 @@ export class MemoryManager {
         b.size = size
         b.used = true
 
-        this.blocks.push({ mem_top: b.mem_bottom + 1, mem_bottom: ob, size: ob - (b.mem_bottom + 1), type, used: false })
+        this.mm_blocks.push({ mem_top: b.mem_bottom + 1, mem_bottom: ob, size: ob - (b.mem_bottom + 1), type, used: false })
 
         return b.mem_top
       }
@@ -63,20 +67,20 @@ export class MemoryManager {
       return 0
     }
 
-    this.blocks.push({ mem_top: n + 1, mem_bottom: n + 1 + size, size, type, used: true })
+    this.mm_blocks.push({ mem_top: n + 1, mem_bottom: n + 1 + size, size, type, used: true })
 
     return n + 1
   }
 
   alloc_b (v) {
     let addr = this.alloc(1, 'i8')
-    _vm.mem_buffer.writeUInt8LE(v, addr)
+    _vm.mem_buffer.writeUInt8(v, addr)
     return addr
   }
 
   alloc_b_s (v) {
     let addr = this.alloc(1, 's8')
-    _vm.mem_buffer.writeInt8LE(v, addr)
+    _vm.mem_buffer.writeInt8(v, addr)
     return addr
   }
 
@@ -128,7 +132,7 @@ export class MemoryManager {
   }
 
   free (addr) {
-    for (let b of this.blocks) {
+    for (let b of this.mm_blocks) {
       if (b.mem_top === addr) {
         b.used = false
         break
@@ -137,7 +141,7 @@ export class MemoryManager {
   }
 
   type (addr) {
-    for (let b of this.blocks) {
+    for (let b of this.mm_blocks) {
       if (b.mem_top === addr && b.used) {
         return b.type
       }
@@ -146,7 +150,7 @@ export class MemoryManager {
   }
 
   size (addr) {
-    for (let b of this.blocks) {
+    for (let b of this.mm_blocks) {
       if (b.mem_top === addr && b.used) {
         return b.size
       }
@@ -154,19 +158,19 @@ export class MemoryManager {
     return -1
   }
 
-  collect () {
+  mm_collect () {
     let n = []
-    for (let b of this.blocks) {
+    for (let b of this.mm_blocks) {
       if (!b.used) {
         n.push(b)
       }
     }
-    this.blocks = n
+    this.mm_blocks = n
   }
 
   dump () {
     console.log('memory blocks dump', 'avail:', prettyBytes(this.avail_mem()), 'used:', prettyBytes(this.used_mem()), 'free:', prettyBytes(this.free_mem()))
-    for (let b of this.blocks) {
+    for (let b of this.mm_blocks) {
       console.log(hexy.hexy(_vm.mem_buffer, { offset: b.mem_top, length: Math.min(255, b.size), display_offset: b.mem_top, width: 16, caps: 'upper', indent: 2 }))
     }
   }

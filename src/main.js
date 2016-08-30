@@ -13,7 +13,7 @@ setTimeout(() => {
   let vm = new VM()
   vm.load(src)
   vm.run()
-  vm.mm.dump()
+  vm.dump()
 }, 100)
 
 // console.log(hexy.hexy(vm.mem_buffer, { offset: 0, length: 512, display_offset: 0x00, width: 16, caps: 'upper', indent: 2 }))

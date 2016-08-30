@@ -271,9 +271,9 @@ export class Memory {
     this.sts(addr, str, len)
   }
 
-  stb (addr, value) { this.mem_buffer.writeUInt8LE(value, addr) }
+  stb (addr, value) { this.mem_buffer.writeUInt8(value, addr) }
 
-  stb_s (addr, value) { this.mem_buffer.writeInt8LE(value, addr) }
+  stb_s (addr, value) { this.mem_buffer.writeInt8(value, addr) }
 
   stw (addr, value) { this.mem_buffer.writeUInt16LE(value, addr) }
 
@@ -291,10 +291,11 @@ export class Memory {
 
   sts (addr, str, len = 0) {
     len = len || str.length
+    let mem = this.mem_buffer
     for (let i = 0; i < len; i++) {
-      this.mem_buffer[addr++] = str.charCodeAt(i)
+      mem[addr++] = str.charCodeAt(i)
     }
-    this.mem_buffer[addr] = 0
+    mem[addr] = 0
   }
 
   fill_bc (addr, value, size) {

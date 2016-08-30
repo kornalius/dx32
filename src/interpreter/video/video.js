@@ -19,11 +19,11 @@ export class Video {
     this.width = width || 378
     this.height = height || 264
     this.scale = scale || 3
-    this.offset = offset || new PIXI.Point(16, 16)
+    this.offset = offset || new PIXI.Point(0, 0)
 
     this.screen_size = this.width * this.height
 
-    this.screen_addr = _vm.mm.alloc(this.screen_size)
+    this.screen_addr = _vm.alloc(this.screen_size)
 
     this.stage = new PIXI.Container()
 
@@ -102,8 +102,10 @@ export class Video {
     let pixels = data.data
 
     let end = this.screen_addr + this.screen_size
+    let mem = _vm.mem_buffer
+    let pal = this.palette_addr
     for (let si = this.screen_addr, pi = 0; si < end; si++, pi += 4) {
-      this.rgba_to_mem(pixels, pi, _vm.mem_buffer.readUInt32LE(this.palette_addr + _vm.mem_buffer[si] * 4))
+      this.rgba_to_mem(pixels, pi, mem.readUInt32LE(pal + mem[si] * 4))
     }
 
     screenOverlay.context.putImageData(data, 0, 0)
@@ -120,16 +122,17 @@ export class Video {
 
   pixel (i, c) {
     let pi = this.screen_addr + i
-    if (c !== undefined && _vm.mem_buffer[pi] !== c) {
-      _vm.mem_buffer[pi] = c
+    let mem = _vm.mem_buffer
+    if (c !== undefined && mem[pi] !== c) {
+      mem[pi] = c
     }
-    return _vm.mem_buffer[pi]
+    return mem[pi]
   }
 
   pixel_to_index (x, y) { return y * this.width + x }
 
   index_to_pixel (i) {
-    let y = Math.trunc(i / this.width)
+    let y = Math.min(Math.trunc(i / this.width), this.height - 1)
     let x = i - y
     return { x, y }
   }

@@ -181,15 +181,15 @@ export var opcodes = {
 
   print: { gen: (...args) => ['console.log', '(', comma_array(args), ')'] },
 
-  free: { gen: (...args) => ['_vm.mm.free', '(', comma_array(args), ')'] },
-  size: { gen: a => ['_vm.mm.size', '(', a, ')'] },
+  free: { gen: (...args) => ['_vm.free', '(', comma_array(args), ')'] },
+  size: { gen: a => ['_vm.size', '(', a, ')'] },
 
   union: { gen: (a, ...args) => ['_vm.union_make', '(', a, ',', comma_array(args), ')'] },
   get: { gen: (a, b) => ['_vm.union_get', '(', a, ',', b, ')'] },
   set: { gen: (a, b, c) => ['_vm.union_set', '(', a, ',', b, ',', c, ')'] },
   mix: { gen: (a, ...args) => ['_vm.union_mix', '(', a, ',', comma_array(args), ')'] },
 
-  stk: { gen: (a, b, c) => ['_vm.stack', '(', a, ',', b, ',', c || 4, ')'] },
+  stk: { gen: (a, b, c) => ['_vm.stack', '(', a, ',', b, ',', c || '\'i32\'', ')'] },
   psh: { gen: (a, ...args) => ['_vm.push', '(', a, ',', comma_array(args), ')'] },
   pop: { gen: a => ['_vm.pop', '(', a, ')'], expr: true },
 
@@ -239,6 +239,7 @@ export var runtime_error = code => {
       e = 'Interrupt not found'
       break
   }
+  debugger;
   console.error(e)
 }
 

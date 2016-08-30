@@ -11,7 +11,7 @@ export class Palette {
   }
 
   pal_reset () {
-    this.palette_addr = _vm.mm.alloc(this.palette_size)
+    this.palette_addr = _vm.alloc(this.palette_size)
 
     this.palette_rgba(0, 0x000000ff)
     this.palette_rgba(1, 0xffffffff)

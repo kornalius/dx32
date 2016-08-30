@@ -17,6 +17,14 @@ export class Tokenizer {
     let row = 1
     let col = 1
 
+    let indirect_count = v => {
+      let i = 0
+      while (v[i] === '@') {
+        i++
+      }
+      return i
+    }
+
     let defs = {
       eol: /[\r\n]/,
 
@@ -82,12 +90,8 @@ export class Tokenizer {
       label_indirect: {
         match: /(@+[A-Z_][A-Z_0-9\.]*)/i,
         value (v, d) {
-          let i = 0
-          while (v[0] === '@') {
-            i++
-            v = v.substr(1)
-          }
-          d.count = i
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
           return v
         },
       },
@@ -97,12 +101,8 @@ export class Tokenizer {
       label_assign_indirect: {
         match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
         value (v, d) {
-          let i = 0
-          while (v[0] === '@') {
-            i++
-            v = v.substr(1)
-          }
-          d.count = i
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
           return v
         },
       },
@@ -115,12 +115,8 @@ export class Tokenizer {
       label_assign_indirect_bracket: {
         match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
         value (v, d) {
-          let i = 0
-          while (v[0] === '@') {
-            i++
-            v = v.substr(1)
-          }
-          d.count = i
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
           return v
         },
         type () { return 'label_assign_indirect' },
@@ -150,16 +146,11 @@ export class Tokenizer {
       port_indirect: {
         match: /(@#[0-9]+)(?!:)/i,
         value (v, d) {
-          let i = 0
-          while (v[0] === '@') {
-            i++
-            v = v.substr(1)
-          }
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
           if (v[0] === '#') {
             v = v.substr(1)
           }
-          d.count = i
-          debugger
           return v
         },
       },
@@ -167,18 +158,14 @@ export class Tokenizer {
       port_name_indirect: {
         match: /(@#[A-Z]+)(?!:)/i,
         value (v, d) {
-          let i = 0
-          while (v[0] === '@') {
-            i++
-            v = v.substr(1)
-          }
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
           if (v[0] === '#') {
             v = v.substr(1)
           }
-          d.count = i
           v = v.toLowerCase()
           for (let k in _vm.ports) {
-            if (_vm.ports[k].constructor.name.toLowerCase() === v) {
+            if (_vm.ports[k].name.toLowerCase() === v) {
               return k
             }
           }
@@ -192,28 +179,34 @@ export class Tokenizer {
       id: /([A-Z_][A-Z_0-9\.]*)(?!\s*=)/i,
 
       digit: {
-        match: /[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?/,
+        match: /([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/,
         type (k, v) {
           let r = parseInt(v)
           if (_.isNaN(r)) {
             r = parseFloat(v)
             return 'f32'
           }
-          else if (r >= 0x00 && r <= 0xFF) {
-            return 'i8'
-          }
-          else if (r > 0xFF && r <= 0xFFFF) {
-            return 'i16'
-          }
-          else if (r > 0xFFFF && r <= 0xFFFFFFFF) {
-            return 'i32'
-          }
-          else if (r > 0xFFFFFFFF && r <= 0xFFFFFFFFFFFFFFFF) {
-            return 'i64'
-          }
           else {
-            error({ v, row, col }, 'value out of bounds')
-            return null
+            let t = 'i'
+            if (r < 0) {
+              t = 's'
+            }
+            if (r >= 0x00 && r <= 0xFF) {
+              return t + '8'
+            }
+            else if (r > 0xFF && r <= 0xFFFF) {
+              return t + '16'
+            }
+            else if (r > 0xFFFF && r <= 0xFFFFFFFF) {
+              return t + '32'
+            }
+            else if (r > 0xFFFFFFFF && r <= 0xFFFFFFFFFFFFFFFF) {
+              return 'i64'
+            }
+            else {
+              error({ v, row, col }, 'value out of bounds')
+              return null
+            }
           }
         },
       },

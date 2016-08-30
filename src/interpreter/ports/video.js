@@ -74,7 +74,7 @@ export class VideoPort extends Port {
 
   write_info () {
     if (!this.info) {
-      this.info = _vm.mm.alloc(80)
+      this.info = _vm.alloc(80)
     }
 
     _vm.seq_start(this.info)
@@ -129,13 +129,13 @@ export class VideoPort extends Port {
       chars += String.fromCharCode(i)
     }
     this.txt_move_to(1, 2)
-    this.txt_print(chars, 1, 0)
+    this.txt_print(chars, 26, 0)
 
     this.txt_move_to(1, 23)
     this.txt_print('Second to last line', 30, 0)
 
     this.txt_move_to(1, 24)
-    this.txt_print('012345678901234567890123456789012345678901234567890123', 1, 0)
+    this.txt_print('012345678901234567890123456789012345678901234567890123', 20, 0)
 
     this.txt_refresh()
   }

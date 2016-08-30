@@ -120,13 +120,13 @@ class BDF {
 
 export class Text {
 
-  txt_init (count, width, height) {
-    this.char_count = count || 256
-    this.char_width = width || 7
-    this.char_height = height || 11
+  txt_init (char_count, char_width, char_height) {
+    this.char_count = char_count || 256
+    this.char_width = char_width || 6
+    this.char_height = char_height || 10
 
     this.char_offset_x = 0
-    this.char_offset_y = 1
+    this.char_offset_y = 4
 
     this.text_width = Math.round(this.width / this.char_width)
     this.text_height = Math.round(this.height / this.char_height)
@@ -158,8 +158,8 @@ export class Text {
     this.force_text = false
     this.last_text_cursor = 0
 
-    this.text_addr = _vm.mm.alloc(this.text_size)
-    this.fonts_addr = _vm.mm.alloc(this.fonts_size)
+    this.text_addr = _vm.alloc(this.text_size)
+    this.fonts_addr = _vm.alloc(this.fonts_size)
     this.txt_load_fnt()
   }
 
@@ -168,24 +168,30 @@ export class Text {
 
   txt_load_fnt () {
     let b = new BDF()
-    let f = require('raw!../../../fonts/ctrld-fixed-10r.bdf')
-    b.load(f)
+    let ff = require('raw!../../../fonts/ctrld-fixed-10r.bdf')
+    b.load(ff)
 
     // let points = b.meta.size.points
     let fontAscent = b.meta.properties.fontAscent
     // let fontDescent = b.meta.properties.fontDescent
     let baseline = fontAscent + this.char_offset_y
 
+    let cw = this.char_width
+    let f = this.fonts_addr
+    let fs = this.font_size
+    let osx = this.char_offset_x
+    var mem = _vm.mem_buffer
+
     for (let k in b.glyphs) {
       let g = b.glyphs[k]
       let bb = g.boundingBox
       let dsc = baseline - bb.height - bb.y
-      let ptr = this.fonts_addr + g.code * this.font_size
+      let ptr = f + g.code * fs
 
       for (let y = 0; y < bb.height; y++) {
-        let p = ptr + (y + dsc) * this.char_width
+        let p = ptr + (y + dsc) * cw
         for (let x = 0; x < bb.width; x++) {
-          _vm.mem_buffer[p + x + bb.x + this.char_offset_x] |= g.bitmap[y][x]
+          mem[p + x + bb.x + osx] |= g.bitmap[y][x]
         }
       }
     }
@@ -198,23 +204,27 @@ export class Text {
     let ch = this.char_height
     let tw = this.text_width
     let th = this.text_height
+    let w = this.width
+    let f = this.fonts_addr
+    let fs = this.font_size
+    var mem = _vm.mem_buffer
 
     let idx = this.text_addr
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
-        let c = _vm.mem_buffer[idx]
+        let c = mem[idx]
         if (c) {
-          let fg = _vm.mem_buffer[idx + 1]
-          let bg = _vm.mem_buffer[idx + 2]
+          let fg = mem[idx + 1]
+          let bg = mem[idx + 2]
 
           let px = x * cw
           let py = y * ch
 
-          let ptr = this.fonts + c * this.font_size
+          let ptr = f + c * fs
           for (let by = 0; by < ch; by++) {
-            let pi = (py + by) * this.width + px
+            let pi = (py + by) * w + px
             for (let bx = 0; bx < cw; bx++) {
-              this.pixel(pi++, _vm.mem_buffer[ptr++] ? fg : bg)
+              this.pixel(pi++, mem[ptr++] ? fg : bg)
             }
           }
         }
@@ -239,7 +249,8 @@ export class Text {
 
   txt_char_at (x, y) {
     let tidx = this.txt_index(x, y)
-    return { ch: _vm.mem_buffer[tidx], fg: _vm.mem_buffer[tidx + 1], bg: _vm.mem_buffer[tidx + 2] }
+    let mem = _vm.mem_buffer
+    return { ch: mem[tidx], fg: mem[tidx + 1], bg: mem[tidx + 2] }
   }
 
   txt_put_char (ch, fg = 1, bg = 0) {
@@ -349,11 +360,12 @@ export class Text {
   }
 
   txt_copy_col (sx, tx) {
+    var mem = _vm.mem_buffer
     for (let y = 0; y < this.text_height; y++) {
       let i = this.txt_line(y)
       let si = i.start + sx * 3
       let ti = i.start + tx * 3
-      _vm.mem_buffer.copy(_vm.mem_buffer, ti, si, 3)
+      mem.copy(mem, ti, si, 3)
     }
   }
 
@@ -363,9 +375,10 @@ export class Text {
   }
 
   txt_erase_col (x) {
+    var mem = _vm.mem_buffer
     for (let y = 0; y < this.text_height; y++) {
       let i = this.txt_line(y).start + x * 3
-      _vm.mem_buffer.fill(0, i, i + 3)
+      mem.fill(0, i, i + 3)
     }
   }
 

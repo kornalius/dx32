@@ -28,8 +28,7 @@ export class VM {
     window._vm = this
 
     this.mem_init(mem_size)
-
-    this.mm = new MemoryManager(this.mem_buffer, this.mem_size)
+    this.mm_init()
 
     this.dbg = new Debugger()
 
@@ -80,8 +79,9 @@ export class VM {
       this.ports[k].reset()
     }
 
-    this.mem_reset()
     this.int_reset()
+    this.mm_reset()
+    this.mem_reset()
   }
 
   shut () {
@@ -90,8 +90,9 @@ export class VM {
     }
     this.ports = {}
 
-    this.mem_shut()
     this.int_shut()
+    this.mm_shut()
+    this.mem_shut()
   }
 
   hlt (code) {
@@ -156,4 +157,4 @@ export class VM {
   }
 }
 
-mixin(VM.prototype, Memory.prototype, Union.prototype, Interrupt.prototype)
+mixin(VM.prototype, Memory.prototype, MemoryManager.prototype, Union.prototype, Interrupt.prototype)

@@ -2,7 +2,7 @@
 export class Port {
 
   constructor (port_number) {
-    let top = _vm.mm.alloc(4)
+    let top = _vm.alloc(4)
     // _vm.st(top, port_number)
 
     this.name = ''
@@ -24,7 +24,7 @@ export class Port {
 
   shut () {
     this.reset()
-    // _vm.mm.free(this.top)
+    // _vm.free(this.top)
     _vm.ports[this.port_number] = null
   }
 

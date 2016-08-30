@@ -55,7 +55,7 @@ module.exports = {
   plugins: [
     new BrowserSyncPlugin({
       host: 'localhost',
-      port: 3001,
+      port: 3100,
       server: { baseDir: ['./'] },
       browser: "google chrome",
       notify: false

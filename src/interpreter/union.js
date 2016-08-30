@@ -16,7 +16,7 @@ export class Union {
       return size
     }
 
-    let addr = _vm.mm.alloc(find_size(d))
+    let addr = _vm.alloc(find_size(d))
     let a = addr
 
     let gen = dd => {
@@ -26,9 +26,9 @@ export class Union {
           gen(value)
         }
         else {
-          let key = _vm.mm.alloc_str(k)
+          let key = _vm.alloc_str(k)
           if (_.isString(value)) {
-            value = _vm.mm.alloc_str(value)
+            value = _vm.alloc_str(value)
           }
           _vm.st(a, key)
           _vm.st(a + 4, value)
