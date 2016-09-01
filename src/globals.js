@@ -1,11 +1,5 @@
 import _ from 'lodash'
 
-export var error = (t, msg) => {
-  debugger
-  errors++
-  console.error(msg, 'at', t.value, '(' + t.row + ',' + t.col + ')')
-}
-
 export var defaults = {
   boundscheck: false,
 
@@ -57,62 +51,19 @@ export var defaults = {
 
 }
 
-export var types = {
-  i8: { size: 1, className: 'TByte', signed: false, array: false },
-  s8: { size: 1, className: 'TSignedByte', signed: true, array: false },
-  i16: { size: 2, className: 'TWord', signed: false, array: false },
-  s16: { size: 2, className: 'TSignedWord', signed: true, array: false },
-  i32: { size: 4, className: 'TDWord', signed: false, array: false },
-  s32: { size: 4, className: 'TSignedDWord', signed: true, array: false },
-  f32: { size: 4, className: 'TFloat', signed: false, array: false },
-  i64: { size: 8, className: 'TDouble', signed: false, array: false },
-  str: { size: 4, className: 'TString', signed: false, array: false },
-  uni: { size: 4, className: 'TUnion', signed: false, array: false },
-
-  $i8: { size: 1, className: 'TArrayByte', signed: false, array: true },
-  $s8: { size: 1, className: 'TArraySignedByte', signed: true, array: true },
-  $i16: { size: 2, className: 'TArrayWord', signed: false, array: true },
-  $s16: { size: 2, className: 'TArraySignedWord', signed: true, array: true },
-  $i32: { size: 4, className: 'TArrayDWord', signed: false, array: true },
-  $s32: { size: 4, className: 'TArraySignedDWord', signed: true, array: true },
-  $f32: { size: 4, className: 'TArrayFloat', signed: false, array: true },
-  $i64: { size: 8, className: 'TArrayDouble', signed: false, array: true },
-  $str: { size: 4, className: 'TArrayString', signed: false, array: true },
-  $uni: { size: 4, className: 'TArrayUnion', signed: false, array: true },
+export var data_types = {
+  i8: 1,
+  s8: 1,
+  i16: 2,
+  s16: 2,
+  i32: 4,
+  s32: 4,
+  f32: 4,
+  i64: 8,
+  s64: 8,
 }
 
-export var to_type = (name, signed = false, array = false) => {
-  if (signed) {
-    switch (name) {
-      case 'i8': {
-        name = 's8'
-        break
-      }
-      case 'i16': {
-        name = 's16'
-        break
-      }
-      case 'i32': {
-        name = 's32'
-        break
-      }
-      default: {
-        error(null, 'invalid type provided')
-      }
-    }
-  }
-  return array ? '$' + name : name
-}
-
-export var type_size = (name, signed = false, array = false) => types[to_type(name, signed, array)].size
-
-export var type_class = (name, signed = false, array = false) => types[to_type(name, signed, array)].className
-
-export var type_signed = (name, signed = false, array = false) => types[to_type(name, signed, array)].signed
-
-export var type_array = (name, signed = false, array = false) => types[to_type(name, signed, array)].array
-
-export var to_type_class = (name, signed = false, array = false) => type_class(to_type(name, signed, array))
+export var data_type_size = name => data_types[name]
 
 export var errors = 0
 
@@ -133,50 +84,37 @@ export var string_buffer = (str, len = 0) => {
   return b
 }
 
-export var _vm_ldb = (bc = false, si = false) => '_vm.ldb' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_ldw = (bc = false, si = false) => '_vm.ldw' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_ld = (bc = false, si = false) => '_vm.ld' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_ldf = (bc = false, si = false) => '_vm.ldf' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_ldd = (bc = false, si = false) => '_vm.ldd' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_ldl = (bc = false, si = false) => '_vm.ldl' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_lds = (bc = false, si = false) => '_vm.lds' + (bc ? '_bc' : '') + (si ? '_s' : '')
+export var _vm_ldb = (bc, signed = false) => '_vm.ldb' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldw = (bc, signed = false) => '_vm.ldw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ld = (bc, signed = false) => '_vm.ld' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldf = (bc, signed = false) => '_vm.ldf' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldd = (bc, signed = false) => '_vm.ldd' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_ldl = (bc, signed = false) => '_vm.ldl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_lds = (bc, signed = false) => '_vm.lds' + (bc ? '_bc' : '') + (signed ? '_s' : '')
 
-export var _vm_stb = (bc = false, si = false) => '_vm.stb' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_stw = (bc = false, si = false) => '_vm.stw' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_st = (bc = false, si = false) => '_vm.st' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_stf = (bc = false, si = false) => '_vm.stf' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_std = (bc = false, si = false) => '_vm.std' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_stl = (bc = false, si = false) => '_vm.stl' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_sts = (bc = false, si = false) => '_vm.sts' + (bc ? '_bc' : '') + (si ? '_s' : '')
+export var _vm_stb = (bc, signed = false) => '_vm.stb' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_stw = (bc, signed = false) => '_vm.stw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_st = (bc, signed = false) => '_vm.st' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_stf = (bc, signed = false) => '_vm.stf' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_std = (bc, signed = false) => '_vm.std' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_stl = (bc, signed = false) => '_vm.stl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_sts = (bc, signed = false) => '_vm.sts' + (bc ? '_bc' : '') + (signed ? '_s' : '')
 
-export var _vm_db = (bc = false, si = false) => '_vm.db' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_dw = (bc = false, si = false) => '_vm.dw' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_dl = (bc = false, si = false) => '_vm.dl' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_df = (bc = false, si = false) => '_vm.df' + (bc ? '_bc' : '') + (si ? '_s' : '')
-export var _vm_dd = (bc = false, si = false) => '_vm.dd' + (bc ? '_bc' : '') + (si ? '_s' : '')
+export var _vm_db = (bc, signed = false) => '_vm.db' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_dw = (bc, signed = false) => '_vm.dw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_dl = (bc, signed = false) => '_vm.dl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_df = (bc, signed = false) => '_vm.df' + (bc ? '_bc' : '') + (signed ? '_s' : '')
+export var _vm_dd = (bc, signed = false) => '_vm.dd' + (bc ? '_bc' : '') + (signed ? '_s' : '')
 
-export var _vm_fill = (bc = false) => '_vm.fill' + (bc ? '_bc' : '')
-export var _vm_copy = (bc = false) => '_vm.copy' + (bc ? '_bc' : '')
-
-export var _vm_byte = () => '_vm.TByte'
-export var _vm_word = () => '_vm.TWord'
-export var _vm_dword = () => '_vm.TDword'
-export var _vm_signed_byte = () => '_vm.TSignedByte'
-export var _vm_signed_word = () => '_vm.TSignedWord'
-export var _vm_signed_dword = () => '_vm.TSignedDword'
-export var _vm_double = () => '_vm.TDouble'
-export var _vm_float = () => '_vm.TFloat'
-export var _vm_string = () => '_vm.TString'
-export var _vm_array = () => '_vm.TArray'
-export var _vm_union = () => '_vm.TUnion'
-
+export var _vm_fill = bc => '_vm.fill' + (bc ? '_bc' : '')
+export var _vm_copy = bc => '_vm.copy' + (bc ? '_bc' : '')
 
 export var hex = (value, size = 32) => '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0')
 
 export var opcodes = {
   nop: { fn: () => {} },
 
-  '@': { gen: a => [a, '.addr'], expr: true },
+  '@': { gen: a => [_vm_ld(defaults.boundscheck), '(', a, ')'], expr: true },
   '>': { gen: (a, b) => [a, '>', b], expr: true },
   '<': { gen: (a, b) => [a, '<', b], expr: true },
   '>=': { gen: (a, b) => [a, '>=', b], expr: true },
@@ -204,10 +142,10 @@ export var opcodes = {
   ldl: { gen: (a, b) => [_vm_ldl(defaults.boundscheck), '(', a, ',', b, ')'], expr: true },
   lds: { gen: a => [_vm_lds(defaults.boundscheck), '(', a, ')'], expr: true },
 
-  ldb_s: { gen: a => [_vm_ldb(defaults.boundscheck, true), '(', a, ')'], expr: true },
-  ldw_s: { gen: a => [_vm_ldw(defaults.boundscheck, true), '(', a, ')'], expr: true },
-  ld_s: { gen: a => [_vm_ld(defaults.boundscheck, true), '(', a, ')'], expr: true },
-  ldd_s: { gen: a => [_vm_ldd(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  lsb: { gen: a => [_vm_ldb(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  lsw: { gen: a => [_vm_ldw(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  ls: { gen: a => [_vm_ld(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  lsd: { gen: a => [_vm_ldd(defaults.boundscheck, true), '(', a, ')'], expr: true },
 
   stb: { gen: (a, b) => [_vm_stb(defaults.boundscheck), '(', a, ',', b, ')'] },
   stw: { gen: (a, b) => [_vm_stw(defaults.boundscheck), '(', a, ',', b, ')'] },
@@ -217,9 +155,10 @@ export var opcodes = {
   stl: { gen: (a, b) => [_vm_stl(defaults.boundscheck), '(', a, ',', b, ')'] },
   sts: { gen: (a, b) => [_vm_sts(defaults.boundscheck), '(', a, ',', b, ')'] },
 
-  stb_s: { gen: (a, b) => [_vm_stb(defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  stw_s: { gen: (a, b) => [_vm_stw(defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  st_s: { gen: (a, b) => [_vm_st(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  ssb: { gen: (a, b) => [_vm_stb(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  ssw: { gen: (a, b) => [_vm_stw(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  ss: { gen: (a, b) => [_vm_st(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  ssd: { gen: (a, b) => [_vm_std(defaults.boundscheck, true), '(', a, ',', b, ')'] },
 
   call: { gen: (a, ...args) => ['_vm.' + a, '(', comma_array(args), ')'] },
   callp: { gen: (a, b, ...args) => ['_vm.ports[' + a + '].publics.' + b + '.call', '(', comma_array(['_vm.ports[' + a + ']', ...args]), ')'] },
@@ -245,7 +184,7 @@ export var opcodes = {
   free: { gen: (...args) => ['_vm.free', '(', comma_array(args), ')'] },
   size: { gen: a => ['_vm.size', '(', a, ')'] },
 
-  union: { gen: (a, ...args) => ['new', '_vm.union_make', '(', a, ',', comma_array(args), ')'] },
+  union: { gen: (a, ...args) => ['_vm.union_make', '(', a, ',', comma_array(args), ')'] },
   get: { gen: (a, b) => ['_vm.union_get', '(', a, ',', b, ')'] },
   set: { gen: (a, b, c) => ['_vm.union_set', '(', a, ',', b, ',', c, ')'] },
   mix: { gen: (a, ...args) => ['_vm.union_mix', '(', a, ',', comma_array(args), ')'] },
@@ -270,6 +209,12 @@ export var opcodes = {
 var x = 0
 for (var k in opcodes) {
   opcodes[k].idx = x++
+}
+
+export var error = (t, msg) => {
+  debugger
+  errors++
+  console.error(msg, 'at', t.value, '(' + t.row + ',' + t.col + ')')
 }
 
 export var runtime_error = code => {
@@ -332,7 +277,6 @@ export var io_error = code => {
       e = 'Drive is not spinning'
       break
   }
-  debugger;
   console.error(e)
 }
 

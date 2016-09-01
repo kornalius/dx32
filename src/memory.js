@@ -1,5 +1,5 @@
 import hexy from 'hexy'
-import { defaults, runtime_error, hex, type_size } from './globals.js'
+import { defaults, runtime_error, hex, data_type_size } from './globals.js'
 
 
 export class Memory {
@@ -376,7 +376,7 @@ export class Memory {
   }
 
   stack (addr, count, entry_type = 'i8') {
-    let entry_size = type_size(entry_type)
+    let entry_size = data_type_size(entry_type)
     this.stacks[addr] = { top: addr, bottom: addr + (count - 1) * entry_size, ptr: addr, count, entry_type, entry_size }
   }
 

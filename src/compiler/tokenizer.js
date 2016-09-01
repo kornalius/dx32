@@ -17,10 +17,20 @@ export class Tokenizer {
     let row = 1
     let col = 1
 
+    let indirect_count = v => {
+      let i = 0
+      while (v[i] === '@') {
+        i++
+      }
+      return i
+    }
+
     let defs = {
       eol: /[\r\n]/,
 
       comma: /,/,
+
+      union: /\bunion\b/i,
 
       boundscheck: /\/bounds\b/i,
       debug: /\/debug\b/i,
@@ -49,10 +59,8 @@ export class Tokenizer {
 
       constant_def: /::([A-Z_][A-Z_0-9]*)/i,
 
-      signed_def: /\bsigned\b/,
-
       type_def: {
-        match: /\b(i8|byte|i16|word|short|i32|dword|int|i64|double|f32|float|s8|s16|s32|string)\b/,
+        match: /\b(i8|byte|i16|word|short|i32|dword|int|i64|double|f32|float|s8|s16|s32)\b/,
         value (v, d) {
           if (v === 'byte') {
             return 'i8'
@@ -69,9 +77,6 @@ export class Tokenizer {
           else if (v === 'float') {
             return 'f32'
           }
-          else if (v === 'string') {
-            return 'str'
-          }
           else {
             return v
           }
@@ -84,16 +89,46 @@ export class Tokenizer {
 
       label_indirect: {
         match: /(@+[A-Z_][A-Z_0-9\.]*)/i,
-        value (v, d) { return v.substr(1) },
+        value (v, d) {
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
+          return v
+        },
       },
 
       label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
+
+      label_assign_indirect: {
+        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
+        value (v, d) {
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
+          return v
+        },
+      },
+
+      label_assign_bracket: {
+        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
+        type () { return 'label_assign' },
+      },
+
+      label_assign_indirect_bracket: {
+        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
+        value (v, d) {
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
+          return v
+        },
+        type () { return 'label_assign_indirect' },
+      },
 
       port: /#([0-9]+)(?!:)/i,
 
       port_name: {
         match: /#([A-Z]+\b)(?!:)/i,
-        value (v) { return _vm.port_by_name(v) },
+        value (v) {
+          return _vm.port_by_name(v)
+        },
         type () { return 'port' },
       },
 
@@ -111,7 +146,8 @@ export class Tokenizer {
       port_indirect: {
         match: /(@#[0-9]+)(?!:)/i,
         value (v, d) {
-          v = v.substr(1)
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
           if (v[0] === '#') {
             v = v.substr(1)
           }
@@ -122,7 +158,8 @@ export class Tokenizer {
       port_name_indirect: {
         match: /(@#[A-Z]+)(?!:)/i,
         value (v, d) {
-          v = v.substr(1)
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
           if (v[0] === '#') {
             v = v.substr(1)
           }
@@ -196,9 +233,6 @@ export class Tokenizer {
       },
 
       i64: {
-      },
-
-      str: {
       },
 
       hex: {
