@@ -3,7 +3,7 @@ import { defaults, mixin, runtime_error } from '../globals.js'
 import { Memory } from '../memory.js'
 import { MemoryManager } from './memorymanager.js'
 import { Debugger } from './debugger.js'
-import { Union } from './union.js'
+import { Struct } from './struct.js'
 import { Interrupt } from './interrupt.js'
 
 import { Tokenizer } from '../compiler/tokenizer.js'
@@ -30,14 +30,14 @@ export class VM {
     this.mem_init(mem_size)
     this.mm_init()
 
-    this.dbg = new Debugger()
-
     this.int_init()
 
     this.ports = []
 
     this.code = ''
     this.fn = null
+
+    this.dbg_init()
 
     this.boot(true)
 
@@ -82,6 +82,7 @@ export class VM {
     this.int_reset()
     this.mm_reset()
     this.mem_reset()
+    this.dbg_reset()
   }
 
   shut () {
@@ -93,6 +94,7 @@ export class VM {
     this.int_shut()
     this.mm_shut()
     this.mem_shut()
+    this.dbg_shut()
   }
 
   hlt (code) {
@@ -129,12 +131,15 @@ export class VM {
     if (this.status === _VM_RUNNING) {
       let t = performance.now()
 
-      this.mem_tick(t, delta)
       this.int_tick(t, delta)
+      this.mem_tick(t, delta)
 
       for (let k in this.ports) {
         this.ports[k].tick(t, delta)
       }
+
+      this.mm_tick(t, delta)
+      this.dbg_tick(t, delta)
     }
   }
 
@@ -157,4 +162,4 @@ export class VM {
   }
 }
 
-mixin(VM.prototype, Memory.prototype, MemoryManager.prototype, Union.prototype, Interrupt.prototype)
+mixin(VM.prototype, Memory.prototype, MemoryManager.prototype, Struct.prototype, Interrupt.prototype, Debugger.prototype)

@@ -12,7 +12,7 @@ export class KeyboardPort extends Port {
 
     this.keys = {}
 
-    this.stk_init(1024, 4)
+    this.stk_init(1024, 4, true)
 
     window.addEventListener('keydown', this.onKeydown.bind(this))
     window.addEventListener('keyup', this.onKeyup.bind(this))

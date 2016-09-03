@@ -30,7 +30,7 @@ export class Tokenizer {
 
       comma: /,/,
 
-      union: /\bunion\b/i,
+      struct: /\bstruct\b/i,
 
       boundscheck: /\/bounds\b/i,
       debug: /\/debug\b/i,

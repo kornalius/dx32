@@ -145,9 +145,9 @@ export class Assembler {
 
     var assign_label_name = null
 
-    var unions = []
-    var first_unions_label = null
-    var extracting_union = false
+    var structs = []
+    var first_structs_label = null
+    var extracting_struct = false
 
     var contants = {}
 
@@ -204,8 +204,8 @@ export class Assembler {
     var exprs
     var subexpr
     var parameters
-    var union
-    var extract_union
+    var struct
+    var extract_struct
     var port
     var port_call
     var bracket_def
@@ -216,7 +216,7 @@ export class Assembler {
     var label_def
     var label_assign
     var label
-    var union_def
+    var struct_def
     var func_def
     var func_def_expr
     var func
@@ -511,7 +511,7 @@ export class Assembler {
         r = r.concat(subexpr())
       }
       else if (t.type === 'open_curly') {
-        r = r.concat(union())
+        r = r.concat(struct())
       }
       else if (check_port()) {
         r = r.concat(port())
@@ -532,7 +532,7 @@ export class Assembler {
         r = r.concat(opcode())
       }
       else {
-        error(t, 'number, string, union, port, label, function call or opcode expected')
+        error(t, 'number, string, struct, port, label, function call or opcode expected')
         next_token()
       }
 
@@ -632,7 +632,7 @@ export class Assembler {
       return r
     }
 
-    union = () => {
+    struct = () => {
       let genvars = assign_label_name !== null
       let offset = 0
 
@@ -655,16 +655,16 @@ export class Assembler {
         return comma_array(a)
       }
 
-      let d = extract_union()
+      let d = extract_struct()
       let aa = gen(d, assign_label_name)
 
-      return ['_vm.union_make', '(', '{', aa, '}', ')']
+      return ['_vm.struct_make', '(', '{', aa, '}', ')']
     }
 
-    extract_union = () => {
+    extract_struct = () => {
       let d = {}
 
-      extracting_union = true
+      extracting_struct = true
 
       expected_next_token(t, 'open_curly')
 
@@ -687,7 +687,7 @@ export class Assembler {
         else if (key) {
           let kv = {
             type: type || defaults.type,
-            value: t.type === 'open_curly' ? extract_union() : expr(),
+            value: t.type === 'open_curly' ? extract_struct() : expr(),
           }
           d[key.value] = kv
           key = null
@@ -706,7 +706,7 @@ export class Assembler {
 
       expected_next_token(t, 'close_curly')
 
-      extracting_union = false
+      extracting_struct = false
 
       return d
     }
@@ -766,10 +766,10 @@ export class Assembler {
       let name = js_name(t.value)
       let orig_name = name
 
-      if (unions.length) {
-        name = js_name(unions.join('.') + '.' + name)
-        if (!first_unions_label) {
-          first_unions_label = name
+      if (structs.length) {
+        name = js_name(structs.join('.') + '.' + name)
+        if (!first_structs_label) {
+          first_structs_label = name
         }
       }
 
@@ -797,9 +797,9 @@ export class Assembler {
         func_def(name, l)
       }
 
-      else if (t.type === 'union') {
+      else if (t.type === 'struct') {
         delete frame.labels[orig_name]
-        union_def(orig_name)
+        struct_def(orig_name)
       }
 
       else if (t.type === 'assign') {
@@ -900,15 +900,15 @@ export class Assembler {
 
     label = () => indirect(js_name(t.value))
 
-    union_def = name => {
-      let old_first_union_label = first_unions_label
-      first_unions_label = null
+    struct_def = name => {
+      let old_first_struct_label = first_structs_label
+      first_structs_label = null
       next_token()
-      unions.push(name)
+      structs.push(name)
       block('end')
-      code.line_s('var', js_name(unions.join('.')), '=', first_unions_label)
-      unions.pop()
-      first_unions_label = old_first_union_label
+      code.line_s('var', js_name(structs.join('.')), '=', first_structs_label)
+      structs.pop()
+      first_structs_label = old_first_struct_label
     }
 
     func_def = (name, l) => {
@@ -1052,7 +1052,7 @@ export class Assembler {
 
       let l
 
-      if (unions.length > 0) {
+      if (structs.length > 0) {
         if (t.type === 'type_def') {
           type_def()
         }
@@ -1060,7 +1060,7 @@ export class Assembler {
           label_def()
         }
         else if (!is_eos(t)) {
-          error(t, 'label or union definition expected')
+          error(t, 'label or struct definition expected')
           next_token()
         }
       }
@@ -1173,7 +1173,7 @@ export class Assembler {
       }
 
       if (this.debug) {
-        code.line_s('_vm.dbg.line', '(', t.row, ')')
+        code.line_s('_vm.dbg_line', '(', t.row, ')')
       }
     }
 
@@ -1182,7 +1182,9 @@ export class Assembler {
     new_frame()
     new_frame_code()
     statements()
+    code.line('if', '(', 'main', ')', '{')
     code.line_s('main', '(', 'args', ')')
+    code.line('}')
     end_frame_code()
     end_frame()
 

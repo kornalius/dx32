@@ -12,7 +12,7 @@ PIXI.Point.prototype.distance = target => {
 
 export class Video {
 
-  vid_init (width, height, scale, offset) {
+  vid_init (width, height, scale, offset, margins) {
     this.force_update = false
     this.force_flip = false
 
@@ -20,6 +20,7 @@ export class Video {
     this.height = height || 264
     this.scale = scale || 3
     this.offset = offset || new PIXI.Point(0, 0)
+    this.margins = margins || new PIXI.Point(32, 32)
 
     this.screen_size = this.width * this.height
 
@@ -27,19 +28,26 @@ export class Video {
 
     this.stage = new PIXI.Container()
 
-    this.renderer = new PIXI.autoDetectRenderer(this.width * this.scale + this.offset.x * 2, this.height * this.scale + this.offset.y * 2, null, { })
+    this.renderer = new PIXI.autoDetectRenderer(this.width * this.scale + this.margins.x, this.height * this.scale + this.margins.y, null, { })
     this.renderer.view.style.position = 'absolute'
-    this.renderer.view.style.top = '0px'
-    this.renderer.view.style.left = '0px'
+    this.renderer.view.style.top = Math.trunc(this.margins.x / 2) + 'px'
+    this.renderer.view.style.left = Math.trunc(this.margins.y / 2) + 'px'
 
     window.addEventListener('resize', this.vid_resize.bind(this))
 
     document.body.appendChild(this.renderer.view)
 
-    this.overlays_init()
     this.pal_init()
+    this.pal_reset()
+
     this.spr_init()
+    this.spr_reset()
+
     this.txt_init()
+    this.txt_reset()
+
+    this.overlays_init()
+    this.overlays_reset()
 
     this.vid_resize()
 
@@ -103,9 +111,10 @@ export class Video {
 
     let end = this.screen_addr + this.screen_size
     let mem = _vm.mem_buffer
-    let pal = this.palette_addr
+    let c
     for (let si = this.screen_addr, pi = 0; si < end; si++, pi += 4) {
-      this.rgba_to_mem(pixels, pi, mem.readUInt32LE(pal + mem[si] * 4))
+      c = this.palette_rgba(mem[si])
+      pixels.set([c >> 24 & 0xFF, c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF], pi)
     }
 
     screenOverlay.context.putImageData(data, 0, 0)
@@ -137,7 +146,7 @@ export class Video {
     return { x, y }
   }
 
-  split_rgba (rgba) { return { r: rgba >> 24 & 0xFF, g: rgba >> 16 & 0xFF, b: rgba >> 8 & 0xFF, a: rgba >> 0xFF } }
+  split_rgba (rgba) { return { r: this.red(rgba), g: this.green(rgba), b: this.blue(rgba), a: this.alpha(rgba) } }
 
   red (rgba) { return rgba >> 24 & 0xFF }
 
@@ -145,21 +154,27 @@ export class Video {
 
   blue (rgba) { return rgba >> 8 & 0xFF }
 
-  alpha (rgba) { return rgba >> 0xFF }
+  alpha (rgba) { return rgba & 0xFF }
 
   rgba_to_num (r, g, b, a) { return r << 24 | g << 16 | b << 8 | a }
 
-  rgba_to_mem (mem_buffer, i, r, g, b, a) {
+  rgba_to_mem (buffer, i, r, g, b, a) {
     if (r && !g) {
-      g = r >> 16 & 0xFF
-      b = r >> 8 & 0xFF
-      a = r & 0xFF
-      r = r >> 24 & 0xFF
+      let rgb = this.split_rgba(r)
+      r = rgb.r
+      g = rgb.g
+      b = rgb.b
+      a = rgb.a
     }
-    mem_buffer[i] = r
-    mem_buffer[i + 1] = g
-    mem_buffer[i + 2] = b
-    mem_buffer[i + 3] = a
+    if (buffer instanceof Buffer) {
+      buffer[i] = r
+      buffer[i + 1] = g
+      buffer[i + 2] = b
+      buffer[i + 3] = a
+    }
+    else {
+      buffer.set([r, g, b, a], i)
+    }
   }
 
   scroll (x, y) {

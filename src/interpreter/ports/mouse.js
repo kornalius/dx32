@@ -10,21 +10,29 @@ export class MousePort extends Port {
 
     this.name = 'mse'
 
+    this.video = _vm.ports[_vm.port_by_name('vid')]
+
+    let video = this.video
+    let renderer = video.renderer
+    let margins = video.margins
+    let cursor = video.overlays.mouseCursor
+
+    this.size = new PIXI.Point(renderer.width - margins.x / 2 - cursor.sprite.width, renderer.height - margins.y / 2 - cursor.sprite.height)
     this.last_mouse = new PIXI.Point()
 
-    this.stk_init(1024, 8)
+    this.stk_init(1024, 8, true)
 
-    let stage = _vm.ports[1].stage
+    let stage = this.video.stage
     if (stage) {
       stage.interactive = true
       stage.on('mousedown', this.onLeftButtonDown.bind(this))
       stage.on('rightdown', this.onRightButtonDown.bind(this))
       stage.on('touchstart', this.onLeftButtonDown.bind(this))
-      stage.on('mousemove', this.onButtonMove.bind(this))
-      stage.on('mouseup', this.onButtonUp.bind(this))
-      stage.on('touchend', this.onButtonUp.bind(this))
-      stage.on('mouseupoutside', this.onButtonUp.bind(this))
-      stage.on('touchendoutside', this.onButtonUp.bind(this))
+      stage.on('mousemove', this.onMouseMove.bind(this))
+      stage.on('mouseup', this.onMouseUp.bind(this))
+      stage.on('touchend', this.onMouseUp.bind(this))
+      stage.on('mouseupoutside', this.onMouseUp.bind(this))
+      stage.on('touchendoutside', this.onMouseUp.bind(this))
     }
   }
 
@@ -46,11 +54,18 @@ export class MousePort extends Port {
     this.stk_push(2)
   }
 
-  onButtonMove (e) {
-    this.stk_push(3, e.data.global.x, e.data.global.y)
+  onMouseMove (e) {
+    let video = this.video
+    let margins = video.margins
+    let cursor = video.overlays.mouseCursor
+    let x = Math.trunc(Math.min(this.size.x, Math.max(margins.x / 2, e.data.global.x)) / cursor.sprite.scale.x)
+    let y = Math.trunc(Math.min(this.size.y, Math.max(margins.y / 2, e.data.global.y)) / cursor.sprite.scale.y)
+    this.stk_push(3, x, y)
+    cursor.x = x
+    cursor.y = y
   }
 
-  onButtonUp () {
+  onMouseUp () {
     this.stk_push(4)
   }
 }

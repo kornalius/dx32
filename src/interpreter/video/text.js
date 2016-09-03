@@ -121,6 +121,8 @@ class BDF {
 export class Text {
 
   txt_init (char_count, char_width, char_height) {
+    this.txt_offset = new PIXI.Point(0, 0)
+
     this.char_count = char_count || 256
     this.char_width = char_width || 6
     this.char_height = char_height || 10
@@ -139,15 +141,6 @@ export class Text {
   }
 
   txt_tick (t) {
-    if (t - this.last_text_cursor >= 500) {
-      this.overlays.text.sprite.visible = !this.overlays.text.sprite.visible
-      this.last_text_cursor = t
-      this.force_update = true
-    }
-
-    this.overlays.text.sprite.x = (this.overlays.text.x - 1) * this.overlays.text.sprite.width + this.offset.x
-    this.overlays.text.sprite.y = (this.overlays.text.y - 1) * this.overlays.text.sprite.height + this.offset.y
-
     if (this.force_text) {
       this.txt_draw()
       this.force_text = false
@@ -156,7 +149,6 @@ export class Text {
 
   txt_reset () {
     this.force_text = false
-    this.last_text_cursor = 0
 
     this.text_addr = _vm.alloc(this.text_size)
     this.fonts_addr = _vm.alloc(this.fonts_size)
@@ -177,8 +169,8 @@ export class Text {
     let baseline = fontAscent + this.char_offset_y
 
     let cw = this.char_width
-    let f = this.fonts_addr
-    let fs = this.font_size
+    let fnt = this.fonts_addr
+    let fnt_sz = this.font_size
     let osx = this.char_offset_x
     var mem = _vm.mem_buffer
 
@@ -186,7 +178,7 @@ export class Text {
       let g = b.glyphs[k]
       let bb = g.boundingBox
       let dsc = baseline - bb.height - bb.y
-      let ptr = f + g.code * fs
+      let ptr = fnt + g.code * fnt_sz
 
       for (let y = 0; y < bb.height; y++) {
         let p = ptr + (y + dsc) * cw
@@ -205,8 +197,8 @@ export class Text {
     let tw = this.text_width
     let th = this.text_height
     let w = this.width
-    let f = this.fonts_addr
-    let fs = this.font_size
+    let fnt = this.fonts_addr
+    let fnt_sz = this.font_size
     var mem = _vm.mem_buffer
 
     let idx = this.text_addr
@@ -220,7 +212,7 @@ export class Text {
           let px = x * cw
           let py = y * ch
 
-          let ptr = f + c * fs
+          let ptr = fnt + c * fnt_sz
           for (let by = 0; by < ch; by++) {
             let pi = (py + by) * w + px
             for (let bx = 0; bx < cw; bx++) {
@@ -270,8 +262,8 @@ export class Text {
     _vm.mem_buffer[tidx + 1] = fg
     _vm.mem_buffer[tidx + 2] = bg
 
-    this.overlays.text.x++
-    if (this.overlays.text.x > this.text_width) {
+    this.overlays.textCursor.x++
+    if (this.overlays.textCursor.x > this.text_width) {
       this.txt_cr()
     }
 
@@ -285,7 +277,7 @@ export class Text {
     return this
   }
 
-  txt_pos () { return { x: this.overlays.text.x, y: this.overlays.text.y } }
+  txt_pos () { return { x: this.overlays.textCursor.x, y: this.overlays.textCursor.y } }
 
   txt_move_to (x, y) {
     if (x > this.text_width) {
@@ -300,16 +292,16 @@ export class Text {
     else if (y < 1) {
       y = 1
     }
-    this.overlays.text.x = x
-    this.overlays.text.y = y
+    this.overlays.textCursor.x = x
+    this.overlays.textCursor.y = y
     this.txt_refresh()
   }
 
-  txt_move_by (x, y) { return this.txt_move_to(this.overlays.text.x + x, this.overlays.text.y + y) }
+  txt_move_by (x, y) { return this.txt_move_to(this.overlays.textCursor.x + x, this.overlays.textCursor.y + y) }
 
-  txt_bol () { return this.txt_move_to(1, this.overlays.text.y) }
+  txt_bol () { return this.txt_move_to(1, this.overlays.textCursor.y) }
 
-  txt_eol () { return this.txt_move_to(this.text_width, this.overlays.text.y) }
+  txt_eol () { return this.txt_move_to(this.text_width, this.overlays.textCursor.y) }
 
   txt_bos () { return this.txt_move_to(1, 1) }
 
@@ -317,17 +309,17 @@ export class Text {
 
   txt_bs () { this.txt_left(); this.txt_put_char(' '); return this.txt_left() }
 
-  txt_cr () { return this.txt_move_to(1, this.overlays.text.y + 1) }
+  txt_cr () { return this.txt_move_to(1, this.overlays.textCursor.y + 1) }
 
-  txt_lf () { return this.txt_move_to(this.overlays.text.x, this.overlays.text.y + 1) }
+  txt_lf () { return this.txt_move_to(this.overlays.textCursor.x, this.overlays.textCursor.y + 1) }
 
-  txt_up () { return this.txt_move_to(this.overlays.text.x, this.overlays.text.y - 1) }
+  txt_up () { return this.txt_move_to(this.overlays.textCursor.x, this.overlays.textCursor.y - 1) }
 
-  txt_left () { return this.txt_move_to(this.overlays.text.x - 1, this.overlays.text.y) }
+  txt_left () { return this.txt_move_to(this.overlays.textCursor.x - 1, this.overlays.textCursor.y) }
 
-  txt_down () { return this.txt_move_to(this.overlays.text.x, this.overlays.text.y + 1) }
+  txt_down () { return this.txt_move_to(this.overlays.textCursor.x, this.overlays.textCursor.y + 1) }
 
-  txt_right () { return this.txt_move_to(this.overlays.text.x + 1, this.overlays.text.y) }
+  txt_right () { return this.txt_move_to(this.overlays.textCursor.x + 1, this.overlays.textCursor.y) }
 
   txt_clear () {
     _vm.mem_buffer.fill(0, this.text_addr, this.text_addr + this.text_size)

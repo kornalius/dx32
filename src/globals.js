@@ -184,10 +184,10 @@ export var opcodes = {
   free: { gen: (...args) => ['_vm.free', '(', comma_array(args), ')'] },
   size: { gen: a => ['_vm.size', '(', a, ')'] },
 
-  union: { gen: (a, ...args) => ['_vm.union_make', '(', a, ',', comma_array(args), ')'] },
-  get: { gen: (a, b) => ['_vm.union_get', '(', a, ',', b, ')'] },
-  set: { gen: (a, b, c) => ['_vm.union_set', '(', a, ',', b, ',', c, ')'] },
-  mix: { gen: (a, ...args) => ['_vm.union_mix', '(', a, ',', comma_array(args), ')'] },
+  struct: { gen: (a, ...args) => ['_vm.struct_make', '(', a, ',', comma_array(args), ')'] },
+  get: { gen: (a, b) => ['_vm.struct_get', '(', a, ',', b, ')'] },
+  set: { gen: (a, b, c) => ['_vm.struct_set', '(', a, ',', b, ',', c, ')'] },
+  mix: { gen: (a, ...args) => ['_vm.struct_mix', '(', a, ',', comma_array(args), ')'] },
 
   stk: { gen: (a, b, c) => ['_vm.stack', '(', a, ',', b, ',', c || '\'i32\'', ')'] },
   psh: { gen: (a, ...args) => ['_vm.push', '(', a, ',', comma_array(args), ')'] },
@@ -203,7 +203,7 @@ export var opcodes = {
   int_stop: { gen: a => ['_vm.int_stop', '(', a, ')'] },
 
   hlt: { gen: a => ['_vm.hlt', '(', a || '', ')'] },
-  brk: { gen: () => ['_vm.dbg.brk', '(', ')'] },
+  brk: { gen: () => ['_vm.dbg_brk', '(', ')'] },
 }
 
 var x = 0

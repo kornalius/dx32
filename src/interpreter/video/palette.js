@@ -53,14 +53,9 @@ export class Palette {
   palette_rgba (c, r, g, b, a) {
     let pi = this.palette_addr + c * 4
     if (r) {
-      if (r && g && b) {
-        this.rgba_to_mem(_vm.mem_buffer, pi, r, g, b, a)
-      }
-      else {
-        _vm.mem_buffer.writeUInt32LE(r, pi)
-      }
+      this.rgba_to_mem(_vm.mem_buffer, pi, r, g, b, a)
     }
-    return _vm.mem_buffer.readUInt32LE(pi)
+    return _vm.mem_buffer.readUInt32BE(pi)
   }
 
   rgba_to_palette (r, g, b, a) {

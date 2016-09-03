@@ -1,12 +1,12 @@
 import _ from 'lodash'
 
 
-export class Union {
+export class Struct {
 
-  union_init () {
+  struct_init () {
   }
 
-  union_make (d) {
+  struct_make (d) {
     let find_size = dd => {
       let size = 0
       for (let k in dd) {
@@ -42,7 +42,7 @@ export class Union {
     return addr
   }
 
-  union_mix (addr, ...d) {
+  struct_mix (addr, ...d) {
   }
 
 }
