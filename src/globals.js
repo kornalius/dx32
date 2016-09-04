@@ -184,10 +184,10 @@ export var opcodes = {
   free: { gen: (...args) => ['_vm.free', '(', comma_array(args), ')'] },
   size: { gen: a => ['_vm.size', '(', a, ')'] },
 
-  struct: { gen: (a, ...args) => ['_vm.struct_make', '(', a, ',', comma_array(args), ')'] },
-  get: { gen: (a, b) => ['_vm.struct_get', '(', a, ',', b, ')'] },
-  set: { gen: (a, b, c) => ['_vm.struct_set', '(', a, ',', b, ',', c, ')'] },
-  mix: { gen: (a, ...args) => ['_vm.struct_mix', '(', a, ',', comma_array(args), ')'] },
+  dict: { gen: (a, ...args) => ['_vm.dict_make', '(', a, ',', comma_array(args), ')'] },
+  get: { gen: (a, b) => ['_vm.dict_get', '(', a, ',', b, ')'] },
+  set: { gen: (a, b, c) => ['_vm.dict_set', '(', a, ',', b, ',', c, ')'] },
+  mix: { gen: (a, ...args) => ['_vm.dict_mix', '(', a, ',', comma_array(args), ')'] },
 
   stk: { gen: (a, b, c) => ['_vm.stack', '(', a, ',', b, ',', c || '\'i32\'', ')'] },
   psh: { gen: (a, ...args) => ['_vm.push', '(', a, ',', comma_array(args), ')'] },

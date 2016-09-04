@@ -1,6 +1,8 @@
 import _ from 'lodash'
 import { defaults, opcodes, comma_array, error, _vm_ldb, _vm_ldw, _vm_ld, _vm_ldf, _vm_ldd, _vm_ldl, _vm_lds, _vm_stb, _vm_stw, _vm_st, _vm_stf, _vm_std, _vm_stl, _vm_sts, data_type_size } from '../globals.js'
 import { codify, CodeGenerator, _PRETTY } from './codegen.js'
+import { Label } from './label.js'
+import { frames, Frame } from './frame.js'
 
 
 export var data_type_to_alloc = type => {
@@ -44,6 +46,8 @@ export var data_type_to_define = type => {
     default: return null
   }
 }
+
+export var js_name = name => _.camelCase(name.replace('.', '-'))
 
 export var is_eos = t => t.type === 'comment' || t.type === 'eol'
 
@@ -138,23 +142,15 @@ export class Assembler {
 
     var code = new CodeGenerator(_PRETTY, this)
 
-    var extra_statement_lines = []
-
     var frame = null
-    var frames = []
 
-    var assign_label_name = null
+    var current_custom_type_def = null
 
-    var structs = []
-    var first_structs_label = null
-    var extracting_struct = false
+    var constants = {}
 
-    var contants = {}
-
-    var js_name
     var next_token
     var prev_token
-    var next_if_token
+    var skip_token
     var peek_token
     var is_type
     var is_token
@@ -182,6 +178,7 @@ export class Assembler {
     var sts
     var read
     var write
+    var tmp_name
     var find_label
     var new_label
     var tmp_label
@@ -191,10 +188,11 @@ export class Assembler {
     var end_frame
     var new_frame_code
     var end_frame_code
-    var check_constant
-    var check_label
-    var check_port
-    var check_port_call
+    var is_constant
+    var is_label
+    var is_func
+    var is_port
+    var is_port_call
     var term
     var factor
     var conditional
@@ -202,24 +200,23 @@ export class Assembler {
     var simple_expr
     var expr
     var exprs
-    var subexpr
+    var sub_expr
     var parameters
-    var struct
-    var extract_struct
     var port
     var port_call
-    var bracket_def
+    var array_def
+    var array_dimensions_def
     var indexed
     var indirect
     var assign
     var type_def
     var label_def
-    var label_assign
+    var assign_def
     var label
-    var struct_def
-    var func_def
-    var func_def_expr
+    var custom_type_def
     var func
+    var func_def
+    var func_expr_def
     var constant_def
     var constant
     var opcode
@@ -263,16 +260,24 @@ export class Assembler {
       code.line('')
     }
 
-    js_name = name => _.camelCase(name.replace('.', '-'))
+    var code_end = () => {
+      code.line('')
+    }
 
-    next_token = () => { t = tokens[++i]; return t }
+    next_token = () => {
+      t = tokens[++i]
+      return t
+    }
 
-    prev_token = () => { t = tokens[--i]; return t }
+    prev_token = () => {
+      t = tokens[--i]
+      return t
+    }
 
-    next_if_token = type => {
-      let p = peek_at(i + 1, type, tokens)
+    skip_token = type => {
+      let p = peek_at(i, type, tokens)
       if (p) {
-        t = tokens[++i]
+        next_token()
       }
       return p ? t : false
     }
@@ -285,7 +290,7 @@ export class Assembler {
 
     token_peeks = arr => peeks_at(i + 1, arr, tokens)
 
-    expected_next_token = (t, type) => {
+    expected_next_token = type => {
       if (expected(t, type)) {
         next_token()
       }
@@ -357,30 +362,14 @@ export class Assembler {
       }
     }
 
-    find_label = name => {
-      name = js_name(name)
-      let l = frame.labels[name]
-      if (!l && !frame.global) {
-        l = frames[0].labels[name]
-      }
-      return l
-    }
+    tmp_name = name => name || 'tmp' + '_' + _.uniqueId()
 
-    new_label = (name, fn, data_type, dimensions) => {
-      data_type = data_type || defaults.type
-      name = js_name(name)
+    find_label = name => frame.find(name)
+
+    new_label = (name, type, size) => {
       let l = find_label(name)
       if (!l) {
-        l = {
-          name,
-          fn,
-          local: !frame.global,
-          frame,
-          data_type,
-          data_size: data_type_size(data_type),
-          dimensions: dimensions || []
-        }
-        frame.labels[name] = l
+        l = frame.add(name, type, size)
       }
       else {
         error(t, 'duplicate label')
@@ -389,17 +378,16 @@ export class Assembler {
       return l
     }
 
-    tmp_label = (name, fn, data_type, dimensions) => {
-      data_type = data_type || defaults.type
-      return new_label(name || 'tmp' + '_' + _.uniqueId(), fn, data_type, dimensions)
+    tmp_label = (name, type, size) => {
+      return new_label(tmp_name(name), type, size)
     }
 
-    find_constant = name => contants[name]
+    find_constant = name => constants[name]
 
     new_constant = (name, args) => {
       if (!find_constant(name)) {
-        contants[name] = args
-        return contants[name]
+        constants[name] = args
+        return constants[name]
       }
       else {
         error(t, 'duplicate constant')
@@ -412,7 +400,7 @@ export class Assembler {
       if (frame) {
         frames.push(frame)
       }
-      frame = { name, labels: {}, global: frames.length === 0 }
+      frame = new Frame(null, name)
       return frame
     }
 
@@ -423,20 +411,11 @@ export class Assembler {
       return frame
     }
 
-    new_frame_code = () => {
-      // code.line_s('var', 'frame', '=', '{', '}')
-    }
+    new_frame_code = () => frame.start_code(code)
 
-    end_frame_code = () => {
-      if (frame) {
-        let l = _.filter(_.keys(frame.labels), k => !frame.labels[k].fn)
-        if (l.length) {
-          code.line_s('free', '(', comma_array(l), ')')
-        }
-      }
-    }
+    end_frame_code = () => frame.end_code(code)
 
-    check_constant = () => {
+    is_constant = () => {
       if (find_constant(t.value)) {
         constant(false)
         return true
@@ -444,19 +423,19 @@ export class Assembler {
       return false
     }
 
-    check_label = () => {
+    is_label = () => {
       let l = find_label(t.value)
-      return l && !l.fn ? l : null
+      return l && !l.is_func ? l : null
     }
 
-    check_port = () => t.type === 'port' || t.type === 'port_indirect'
+    is_port = () => t.type === 'port' || t.type === 'port_indirect'
 
-    let check_func = () => {
+    is_func = () => {
       let l = find_label(t.value)
-      return l && l.fn ? l : null
+      return l && l.is_func ? l : null
     }
 
-    check_port_call = () => t.type === 'port_call'
+    is_port_call = () => t.type === 'port_call'
 
     term = () => {
       let r = []
@@ -490,7 +469,7 @@ export class Assembler {
 
     junction = () => {
       let r = []
-      if (is_type(['&', '|'])) {
+      if (is_type(['!', '&&', '||'])) {
         r.push(t)
         next_token()
         r = r.concat(expr())
@@ -499,7 +478,7 @@ export class Assembler {
     }
 
     simple_expr = () => {
-      check_constant()
+      is_constant()
 
       let r = []
 
@@ -508,31 +487,28 @@ export class Assembler {
         next_token()
       }
       else if (t.type === 'open_paren') {
-        r = r.concat(subexpr())
+        r = r.concat(sub_expr())
       }
-      else if (t.type === 'open_curly') {
-        r = r.concat(struct())
-      }
-      else if (check_port()) {
+      else if (is_port()) {
         r = r.concat(port())
       }
-      else if (check_label()) {
+      else if (is_label()) {
         r = r.concat(label())
       }
-      else if (t.type === 'func_def_expr') {
-        r = r.concat(func_def_expr())
-      }
-      else if (check_func()) {
+      else if (is_func()) {
         r = r.concat(func())
       }
-      else if (check_port_call()) {
+      else if (is_port_call()) {
         r = r.concat(port_call())
       }
       else if (is_opcode(t)) {
         r = r.concat(opcode())
       }
+      else if (t.type === 'func_expr_def') {
+        r = r.concat(func_expr_def())
+      }
       else {
-        error(t, 'number, string, struct, port, label, function call or opcode expected')
+        error(t, 'number, string, port, label, function call or opcode expected')
         next_token()
       }
 
@@ -579,18 +555,166 @@ export class Assembler {
 
     exprs = () => parameters(t.type === 'open_paren' ? 'open_paren' : null, t.type === 'open_paren' ? 'close_paren' : null, false, -1, true)
 
-    subexpr = () => parameters('open_paren', 'close_paren', false, 1, true)
+    sub_expr = () => parameters('open_paren', 'close_paren', false, 1, true)
+
+    statements = () => {
+      while (i < len) {
+        if (!is_eos(t)) {
+          statement()
+        }
+        else {
+          next_token()
+        }
+      }
+    }
+
+    block = (end = 'end') => {
+      while (i < len && !is_type(end)) {
+        if (!is_eos(t)) {
+          statement()
+        }
+        else {
+          next_token()
+        }
+      }
+      expected_next_token(end)
+    }
+
+    statement = () => {
+      // while (i < len && is_eos(t)) {
+        // next_token()
+      // }
+
+      if (current_custom_type_def && current_custom_type_def.length > 0) {
+        if (t.type === 'type_def') {
+          type_def()
+        }
+        else if (!is_eos(t)) {
+          error(t, 'label definition expected')
+          next_token()
+        }
+      }
+
+      else if (t.type === 'boundscheck') {
+        defaults.boundscheck = true
+        next_token()
+      }
+      else if (t.type === 'debug') {
+        this.debug = true
+        next_token()
+      }
+      else if (t.type === 'type_def') {
+        type_def()
+      }
+      else if (t.type === 'custom_type_def') {
+        custom_type_def()
+      }
+      else if (t.type === 'func_def') {
+        func_def()
+      }
+      else if (t.type === 'constant_def') {
+        constant_def()
+      }
+      else if (t.value === 'if') {
+        next_token()
+        code.line('if', '(', expr(), ')', '{')
+        this.indent++
+        block('end')
+        this.indent--
+        code.line('}')
+      }
+      else if (t.value === 'elif') {
+        next_token()
+        this.indent--
+        code.line('}', 'else', 'if', '(', expr(), ')', '{')
+        this.indent++
+        block(['elif', 'else'])
+      }
+      else if (t.value === 'else') {
+        next_token()
+        this.indent--
+        code.line('}', 'else', '{')
+        this.indent++
+        block('end')
+        prev_token()
+      }
+      else if (t.value === 'brk') {
+        next_token()
+        code.line_s('break')
+      }
+      else if (t.value === 'whl') {
+        next_token()
+        code.line('while', '(', expr(), ')', '{')
+        this.indent++
+        block('end')
+        this.indent--
+        code.line_s('}')
+      }
+      else if (t.value === 'for') {
+        next_token()
+        let l
+        if (t.type === 'type_def') {
+          l = type_def(true, false)
+        }
+        else {
+          error(t, 'label definition expected')
+          next_token()
+          return
+        }
+        debugger;
+        expected_next_token('assign')
+        let min = expr()
+        skip_token('comma')
+        let max = expr()
+        skip_token('comma')
+        code.line('for', '(', ...assign(l.name, l.type, min), ';', l.name, '<=', max, ';', l.name, '++', ')', '{')
+        this.indent++
+        block('end')
+        this.indent--
+        code.line_s('}')
+      }
+      else if (is_opcode(t)) {
+        code.line_s(opcode())
+      }
+      else {
+        let l = find_label(t.value)
+        if (l && l.is_func) {
+          code.line_s(func())
+        }
+        else if (l && !l.is_func) {
+          if (peek_token('assign')) {
+            next_token()
+            assign_def(l)
+          }
+          else {
+            label()
+            next_token()
+          }
+        }
+        else if (is_port_call()) {
+          code.line_s(port_call())
+        }
+        else {
+          error(t, 'syntax error')
+          next_token()
+        }
+      }
+
+      if (this.debug) {
+        code.line_s('_vm.dbg_line', '(', t.row, ')')
+      }
+    }
 
     parameters = (open = null, close = null, single_term = false, limit = -1, allow_ws = true) => {
       let r = []
 
       if (open) {
-        expected_next_token(t, open)
+        expected_next_token(open)
       }
 
       if (close && t.type === close) {
         next_token()
-        return []
+        return r
       }
 
       while (i < len && !is_eos(t)) {
@@ -619,96 +743,174 @@ export class Assembler {
             break
           }
 
-          if (allow_ws && t.type === 'comma') {
-            next_token()
+          if (allow_ws) {
+            skip_token('comma')
           }
         }
       }
 
       if (close) {
-        expected_next_token(t, close)
+        expected_next_token(close)
       }
 
       return r
     }
 
-    struct = () => {
-      let genvars = assign_label_name !== null
-      let offset = 0
+    assign = (name, type, value, _write = false, entry_type) => {
+      let r = ['var', name, '=']
 
-      let gen = (dd, name) => {
-        let a = []
-        for (let k in dd) {
-          let vname = js_name([genvars ? name : '', k].join('.'))
-          if (genvars) {
-            extra_statement_lines.push(['var', vname, '=', ...ld(name), '+', offset + 4])
-            new_label(vname)
-            offset += 8
-          }
-          if (!_.isArray(dd[k].value) && !is_token(dd[k].value)) {
-            a.push('"' + k + '": ' + '{ ' + gen(dd[k].value, vname).join(' ') + ' }')
-          }
-          else {
-            a.push('"' + k + '": ' + codify(dd[k].value))
-          }
-        }
-        return comma_array(a)
+      if (type === 'arr') {
+        r = r.concat(['_vm.arr_make', '(', '\'' + (entry_type || defaults.type) + '\'', ',', '[', comma_array(_.map(value, p => p.value)), ']', ')'])
+      }
+      else if (type === 'fun') {
+        r = r.concat(['function', '(', comma_array(_.map(value, p => p.value)), ')'])
+      }
+      else if (!_write) {
+        r = r.concat([data_type_to_alloc(type), '(', codify(value), ')'])
+      }
+      else {
+        r = write(name, type, value)
       }
 
-      let d = extract_struct()
-      let aa = gen(d, assign_label_name)
-
-      return ['_vm.struct_make', '(', '{', aa, '}', ')']
+      return r
     }
 
-    extract_struct = () => {
-      let d = {}
+    array_def = () => parameters('open_bracket', 'close_bracket', false, -1, true)
 
-      extracting_struct = true
+    array_dimensions_def = () => parameters('open_bracket', 'close_bracket', true, -1, true)
 
-      expected_next_token(t, 'open_curly')
+    type_def = (simple = false, _assign = true) => {
+      let type = t.value
+      next_token()
+      return label_def(type, simple, _assign)
+    }
 
-      let key = null
-      let type = null
+    label_def = (type, simple = false, _assign = true) => {
+      let name = t.value
 
-      while (i < len && !is_eos(t) && t.type !== 'close_curly') {
-        if (t.type === 'type_def' && !key) {
-          type = t.value
-          expected_next_token('label_def')
-          key = t
-          next_token()
-          expected_next_token(t, 'assign')
-        }
-        else if (t.type === 'label_def' && !key) {
-          key = t
-          next_token()
-          expected_next_token(t, 'assign')
-        }
-        else if (key) {
-          let kv = {
-            type: type || defaults.type,
-            value: t.type === 'open_curly' ? extract_struct() : expr(),
-          }
-          d[key.value] = kv
-          key = null
-          type = null
-          expected(t, ['comma', 'close_curly'])
-          if (t.type === 'comma') {
-            next_token()
-          }
-        }
-        else {
-          error(t, 'syntax error')
-          next_token()
-          break
+      if (current_custom_type_def) {
+        name = current_custom_type_def.$name + '.' + name
+      }
+
+      let _new = false
+      let l = find_label(name)
+      if (!l) {
+        l = new_label(name, type)
+        _new = true
+      }
+
+      if (current_custom_type_def) {
+        current_custom_type_def[js_name(t.value)] = l
+      }
+
+      next_token()
+
+      if (is_eos(t) || simple) {
+        if (_assign) {
+          code.line_s(...assign(l.name, l.type, 0, _new))
         }
       }
 
-      expected_next_token(t, 'close_curly')
+      else {
+        if (t.type === 'open_bracket') {
+          l.dimensions = array_dimensions_def()
+          if (!_new) {
+            code.line_s('free', '(', l.name, ')')
+          }
+          code.line_s(...assign(l.name, 'arr', [l.size, '*', l.dimensions], _new))
+          next_token()
+        }
 
-      extracting_struct = false
+        if (t.type === 'assign') {
+          assign_def(l)
+        }
+      }
 
-      return d
+      return l
+    }
+
+    assign_def = (l, indirect = false) => {
+      next_token()
+
+      if (t.type === 'open_bracket') {
+        code.line_s(...assign(l.name, 'arr', ...array_def(), false, l.type))
+      }
+      else {
+        code.line_s(...assign(l.name, l.type, expr()))
+      }
+    }
+
+    custom_type_def = () => {
+      next_token()
+      let name = t.value
+      let l = new_label(name)
+      let prev_current_type = current_custom_type_def
+      current_custom_type_def = { $name: name, $offset: 0 }
+      l.custom_type = current_custom_type_def
+      next_token()
+      block('end')
+      l.data_size = current_custom_type_def.$offset
+      code.line_s(...assign(name, 'alloc', l.data_size))
+      current_custom_type_def = prev_current_type
+      return l
+    }
+
+    func_def = () => {
+      let l = new_label(t.value)
+      next_token()
+      code.line('')
+      new_frame()
+      l.fn = parameters('open_paren', 'close_paren', true, -1, true)
+      code.line(...assign(l.name, 'fun', l.fn), '{')
+      this.indent++
+      new_frame_code()
+      block('end')
+      end_frame_code()
+      end_frame()
+      this.indent--
+      code.line_s('}')
+    }
+
+    func_expr_def = () => {
+      let l = tmp_label('fn', 'fun')
+      next_token()
+      code.line('')
+      new_frame()
+      l.fn = parameters('open_paren', 'close_paren', true, -1, true)
+      code.line(...assign(l.name, 'fun', l.fn), '{')
+      this.indent++
+      new_frame_code()
+      block('end')
+      end_frame_code()
+      end_frame()
+      this.indent--
+      code.line_s('}')
+      return l
+    }
+
+    constant_def = () => {
+      next_token()
+
+      let name = t.value
+
+      next_token()
+
+      let a = []
+      let start = t.start
+      let col = t.col
+      let row = t.row
+      while (i < len && !is_eos(t)) {
+        t.col -= col
+        t.row -= row
+        t.start -= start
+        t.end -= start
+        a.push(t)
+        next_token()
+      }
+
+      next_token()
+
+      return new_constant(name, a)
     }
 
     port = () => indirect('_vm.ports[' + t.value + '].top')
@@ -719,11 +921,10 @@ export class Assembler {
       return ['_vm.ports[' + parts[0] + '].publics.' + parts[1] + '.call', '(', comma_array(['_vm.ports[' + parts[0] + ']', ...exprs()]), ')']
     }
 
-    bracket_def = () => parameters('open_bracket', 'close_bracket', false, -1, false)
-
     indexed = () => {
-      let r = ['+']
-      r = r.concat(parameters('open_bracket', 'close_bracket', false, 1, false))
+      let r = ['[']
+      r = r.concat(parameters('open_bracket', 'close_bracket', false, -1, false))
+      r.push(']')
       return r
     }
 
@@ -752,220 +953,12 @@ export class Assembler {
       return r
     }
 
-    assign = (name, alloc, value) => ['var', name, '=', alloc, '(', codify(value), ')']
-
-    type_def = (simple = false) => {
-      let type = t.value
-      expected_next_token(t, 'label_def')
-      label_def(type, simple)
-    }
-
-    label_def = (type, simple = false) => {
-      type = type || defaults.type
-
-      let name = js_name(t.value)
-      let orig_name = name
-
-      if (structs.length) {
-        name = js_name(structs.join('.') + '.' + name)
-        if (!first_structs_label) {
-          first_structs_label = name
-        }
-      }
-
-      let _new = false
-      let l = find_label(name)
-      if (!l) {
-        l = new_label(name)
-        _new = true
-      }
-
-      assign_label_name = name
-
-      next_token()
-
-      if (is_eos(t) || simple) {
-        if (_new) {
-          code.line_s(...assign(name, data_type_to_alloc(type), 0))
-        }
-        else {
-          code.line_s(...write(name, type, 0))
-        }
-      }
-
-      else if (t.type === 'open_paren') {
-        func_def(name, l)
-      }
-
-      else if (t.type === 'struct') {
-        delete frame.labels[orig_name]
-        struct_def(orig_name)
-      }
-
-      else if (t.type === 'assign') {
-        expected_next_token(t, 'assign')
-
-        let v = expr()
-
-        if (_new) {
-          code.line_s(...assign(name, data_type_to_alloc(type), v))
-        }
-        else {
-          code.line_s(...write(name, type, v))
-        }
-      }
-
-      else {
-        let def_fn = t.value
-        type = define_to_data_type(t.value)
-        if (!type) {
-          error(t, 'data define token expected')
-          next_token()
-          assign_label_name = null
-          return
-        }
-
-        let size = data_type_size(type)
-        l.data_size = size
-        l.data_type = type
-
-        next_token()
-
-        if (t.type === 'open_bracket') {
-          let aa = bracket_def()
-          if (_new) {
-            code.line_s(...assign(name, 'alloc', [size, '*', aa]))
-          }
-          else {
-            code.line_s('free', '(', name, ')')
-            code.line_s(name, '=', 'alloc', '(', size, '*', aa, ')')
-          }
-        }
-
-        else {
-          let p = parameters(null, null, false, -1, true)
-          if (_new) {
-            code.line_s(...assign(name, 'alloc', size * p.length))
-          }
-          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.startsWith('s') ? '_s' : ''), '(', name, ',', comma_array(p), ')')
-        }
-      }
-
-      assign_label_name = null
-    }
-
-    label_assign = () => {
-      let name = js_name(t.value)
-      let _ind = _.endsWith(t.type, '_indirect')
-      let count = t.count
-      let i
-
-      let l = find_label(name)
-      if (!l) {
-        error(t, 'variable ' + name + ' is undefined')
-        next_token()
-        return
-      }
-
-      let br = []
-      if (t.type === 'open_bracket') {
-        br = ['+'].concat(bracket_def())
-      }
-
-      next_token()
-
-      expected_next_token(t, 'assign')
-
-      let value = expr()
-
-      let r = []
-      if (_ind) {
-        for (i = 0; i < count; i++) {
-          r = r.concat([_vm_ld(defaults.boundscheck), '('])
-        }
-
-        r.push(name)
-
-        for (i = 0; i < count; i++) {
-          r.push(')')
-        }
-      }
-
-      else {
-        r.push(name)
-      }
-
-      code.line_s(...write(r.concat(br).join(' '), value, l.data_type))
-    }
-
     label = () => indirect(js_name(t.value))
-
-    struct_def = name => {
-      let old_first_struct_label = first_structs_label
-      first_structs_label = null
-      next_token()
-      structs.push(name)
-      block('end')
-      code.line_s('var', js_name(structs.join('.')), '=', first_structs_label)
-      structs.pop()
-      first_structs_label = old_first_struct_label
-    }
-
-    func_def = (name, l) => {
-      code.line('')
-      new_frame()
-      l.fn = true
-      let parms = parameters('open_paren', 'close_paren', true, -1, true)
-      code.line('var', name, '=', 'function', '(', comma_array(_.map(parms, p => '__' + p.value)), ')', '{')
-      this.indent++
-      new_frame_code()
-      for (let p of parms) {
-        let l = new_label(p.value)
-        let n = l.name
-        code.line_s(...assign(n, data_type_to_alloc(defaults.type), '__' + n))
-      }
-      block('end')
-      end_frame_code()
-      end_frame()
-      this.indent--
-      code.line_s('}')
-    }
-
-    func_def_expr = () => {
-      next_token()
-      let l = tmp_label('fn')
-      let tn = l.name
-      func_def(tn, l)
-      return [tn]
-    }
 
     func = () => {
       let name = js_name(t.value)
       next_token()
       return [name, '(', comma_array(exprs()), ')']
-    }
-
-    constant_def = () => {
-      let name = t.value
-
-      next_token()
-
-      let a = []
-      let start = t.start
-      let col = t.col
-      let row = t.row
-      while (i < len && !is_eos(t)) {
-        t.col -= col
-        t.row -= row
-        t.start -= start
-        t.end -= start
-        a.push(t)
-        next_token()
-      }
-
-      next_token()
-
-      return new_constant(name, a)
     }
 
     constant = () => {
@@ -1022,160 +1015,6 @@ export class Assembler {
       return r
     }
 
-    statements = () => {
-      while (i < len) {
-        if (!is_eos(t)) {
-          statement()
-        }
-        else {
-          next_token()
-        }
-      }
-    }
-
-    block = (end = 'end') => {
-      while (i < len && !is_type(end)) {
-        if (!is_eos(t)) {
-          statement()
-        }
-        else {
-          next_token()
-        }
-      }
-      expected_next_token(t, end)
-    }
-
-    statement = () => {
-      // while (i < len && is_eos(t)) {
-        // next_token()
-      // }
-
-      let l
-
-      if (structs.length > 0) {
-        if (t.type === 'type_def') {
-          type_def()
-        }
-        else if (t.type === 'label_def') {
-          label_def()
-        }
-        else if (!is_eos(t)) {
-          error(t, 'label or struct definition expected')
-          next_token()
-        }
-      }
-      else if (t.type === 'boundscheck') {
-        defaults.boundscheck = true
-        next_token()
-      }
-      else if (t.type === 'debug') {
-        this.debug = true
-        next_token()
-      }
-      else if (t.type === 'label_assign' || t.type === 'label_assign_indirect') {
-        label_assign()
-      }
-      else if (t.type === 'type_def') {
-        type_def()
-      }
-      else if (t.type === 'label_def') {
-        label_def()
-      }
-      else if (t.type === 'constant_def') {
-        constant_def()
-      }
-      else if (t.value === 'if') {
-        next_token()
-        code.line('if', '(', expr(), ')', '{')
-        this.indent++
-        block('end')
-        this.indent--
-        code.line('}')
-      }
-      else if (t.value === 'elif') {
-        next_token()
-        this.indent--
-        code.line('}', 'else', 'if', '(', expr(), ')', '{')
-        this.indent++
-        block(['elif', 'else'])
-      }
-      else if (t.value === 'else') {
-        next_token()
-        this.indent--
-        code.line('}', 'else', '{')
-        this.indent++
-        block('end')
-        prev_token()
-      }
-      else if (t.value === 'brk') {
-        next_token()
-        code.line_s('break')
-      }
-      else if (t.value === 'whl') {
-        next_token()
-        code.line('while', '(', expr(), ')', '{')
-        this.indent++
-        block('end')
-        this.indent--
-        code.line_s('}')
-      }
-      else if (t.value === 'for') {
-        next_token()
-        let name = js_name(t.value)
-        if (t.type === 'type_def') {
-          type_def(true)
-        }
-        else if (t.type === 'label_def') {
-          label_def(null, true)
-        }
-        else {
-          error(t, 'label definition expected')
-          next_token()
-          return
-        }
-        let min = expr()
-        if (t.type === 'comma') {
-          next_token()
-        }
-        let max = expr()
-        if (t.type === 'comma') {
-          next_token()
-        }
-        code.line('for', '(', 'var', '__' + name, '=', min, ';', '__' + name, '<=', max, ';', '__' + name, '+=', '1', ')', '{')
-        this.indent++
-        code.line_s(...st(name, '__' + name))
-        block('end')
-        this.indent--
-        code.line_s('}')
-      }
-      else if (is_opcode(t)) {
-        code.line_s(opcode())
-      }
-      else {
-        l = find_label(t.value)
-        if (l && l.fn) {
-          code.line_s(func())
-        }
-        else if (check_port_call()) {
-          code.line_s(port_call())
-        }
-        else {
-          error(t, 'syntax error')
-          next_token()
-        }
-      }
-
-      if (extra_statement_lines.length) {
-        for (l of extra_statement_lines) {
-          code.line_s(...l)
-        }
-        extra_statement_lines = []
-      }
-
-      if (this.debug) {
-        code.line_s('_vm.dbg_line', '(', t.row, ')')
-      }
-    }
 
     code.line('')
     code_init()
@@ -1187,6 +1026,8 @@ export class Assembler {
     code.line('}')
     end_frame_code()
     end_frame()
+    code_end()
+
 
     return code.build()
   }

@@ -1,5 +1,5 @@
 import { Port } from '../port.js'
-import { Stack } from '../../stack.js'
+import { Stack } from '../stack.js'
 import { mixin } from '../../globals.js'
 
 

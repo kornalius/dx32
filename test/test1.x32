@@ -1,28 +1,24 @@
-/bounds
+.bounds
 
-::my_const $F0 $20
-:my_label db $FF my_const, 40
-:my_dict = { :k1 = 3, :k2 = 100, :k3 = "string", :k4 = { :k5 = 32, :k6 = 1200 }, :k7 = 1 }
+const my_const $F0 $20
+byte my_label = [$FF my_const, 40]
 
-print(lds(@my_dict.k3))
-print(@my_dict.k4.k5)
-
-:s22 union
-  :a1 db 0
-  :b1 db 0
-  :st union
-    :a2 db 0
-    :b2 db 0
+type s22
+  byte a1 = 0
+  byte b1 = 0
+  type st
+    i8 a2 = 0
+    i8 b2 = 0
   end
 end
 
 :init()
-  :v = "a string now"
+  int v = "a string now"
   sts v ("a string now")
   if 10 > $A0 & 20 > $02
-    :v = $FFFF - 30
+    v = $FFFF - 30
   else
-    :v = ($FF + 30) ;this is a comment
+    v = ($FF + 30) ;this is a comment
   end
 
 end
@@ -36,22 +32,22 @@ end
 :main()
   init()
   #1:to 10 2
-  :i = 0
+  byte i = 0
   whl @i < 5
     #1:bs
     i = @i + 1
     print(@i)
   end
 
-  for :x 1, 5
+  for byte x = 1, 5
     print(@x)
   end
 
-  :n db $01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00
-  :wad = #snd:note(n)
-  #snd:play(@wad)
+  byte n = [$01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00]
+  int wad = #snd:note(n)
+  #snd:play(wad)
 
-  :stack dd [100]
+  double stack[100]
   stk stack 100
   psh stack 10 20 30
   print pop stack

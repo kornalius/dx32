@@ -1,17 +1,20 @@
 import _ from 'lodash'
+import { data_type_size, defaults } from '../globals.js'
 
 
-export class Struct {
+export class Dict {
 
-  struct_init () {
+  dict_init () {
   }
 
-  struct_make (d) {
+  dict_make (d) {
+    let dsz = data_type_size(defaults.type)
+
     let find_size = dd => {
       let size = 0
       for (let k in dd) {
         let value = dd[k]
-        size += _.isObject(value) ? find_size(value) : 8
+        size += _.isObject(value) ? find_size(value) : dsz
       }
       return size
     }
@@ -32,7 +35,7 @@ export class Struct {
           }
           _vm.st(a, key)
           _vm.st(a + 4, value)
-          a += 8
+          a += dsz
         }
       }
     }
@@ -42,7 +45,7 @@ export class Struct {
     return addr
   }
 
-  struct_mix (addr, ...d) {
+  dict_mix (addr, ...d) {
   }
 
 }
