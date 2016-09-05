@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import { defaults, opcodes, comma_array, error, _vm_ldb, _vm_ldw, _vm_ld, _vm_ldf, _vm_ldd, _vm_ldl, _vm_lds, _vm_stb, _vm_stw, _vm_st, _vm_stf, _vm_std, _vm_stl, _vm_sts, data_type_size } from '../globals.js'
 import { codify, CodeGenerator, _PRETTY } from './codegen.js'
-import { Label } from './label.js'
 import { global_frame, frames, Frame } from './frame.js'
 
 
@@ -15,6 +14,7 @@ export var data_type_to_alloc = type => {
     case 's32': return 'alloc_dw_s'
     case 'f32': return 'alloc_f'
     case 'i64': return 'alloc_dd'
+    case 'str': return 'alloc_str'
     default: return 'alloc'
   }
 }
@@ -60,6 +60,37 @@ export var is_digit = t => t.type === 'i8' || t.type === 's8' || t.type === 'i16
 export var is_string = t => t.type === 'string'
 
 export var is_value = t => is_digit(t) || is_string(t)
+
+export var is_comma = t => t.type === 'comma'
+
+export var is_open_paren = t => t.type === 'open_paren'
+export var is_close_paren = t => t.type === 'close_paren'
+
+export var is_open_bracket = t => t.type === 'open_bracket'
+export var is_close_bracket = t => t.type === 'close_bracket'
+
+export var is_open_curly = t => t.type === 'open_curly'
+export var is_close_curly = t => t.type === 'close_curly'
+
+export var is_end = t => t.value === 'end'
+
+export var is_constant_def = t => t.type === 'constant_def'
+export var is_label_def = t => t.type === 'label_def'
+export var is_struct_def = t => t.type === 'struct_def'
+export var is_func_expr_def = t => t.type === 'func_expr_def'
+
+export var is_label_assign = t => t.type === 'label_assign' || t.type === 'label_assign_indirect'
+export var is_assign = t => t.type === 'assign'
+
+export var is_if = t => t.value === 'if'
+export var is_elif = t => t.value === 'elif'
+export var is_else = t => t.value === 'else'
+export var is_brk = t => t.value === 'brk'
+export var is_whl = t => t.value === 'whl'
+export var is_for = t => t.value === 'for'
+
+export var is_port = t => t.type === 'port' || t.type === 'port_indirect'
+export var is_port_call = t => t.type === 'port_call'
 
 export var peek_token = (p, type) => {
   if (_.isString(type)) {
@@ -146,7 +177,7 @@ export class Assembler {
 
     var frame = null
 
-    var assign_label_name = null
+    var last_expr_type
 
     var structs = []
     var first_structs_label = null
@@ -193,11 +224,9 @@ export class Assembler {
     var end_frame
     var new_frame_code
     var end_frame_code
-    var check_constant
-    var check_label
-    let check_func
-    var check_port
-    var check_port_call
+    var is_constant
+    var is_label
+    let is_func
     var term
     var factor
     var conditional
@@ -212,6 +241,7 @@ export class Assembler {
     var bracket_def
     var indexed
     var indirect
+    var var_alloc
     var alloc
     var label_def
     var label_assign
@@ -268,7 +298,7 @@ export class Assembler {
     prev_token = () => { t = tokens[--i]; return t }
 
     skip_token = type => {
-      let p = peek_at(i + 1, type, tokens)
+      let p = peek_at(i, type, tokens)
       if (p) {
         next_token()
       }
@@ -337,6 +367,7 @@ export class Assembler {
         case 's32': return ld_s(offset)
         case 'f32': return ldf(offset)
         case 'i64': return ldd(offset)
+        case 'str': return lds(offset)
         default: return []
       }
     }
@@ -351,6 +382,7 @@ export class Assembler {
         case 's32': return st_s(offset, value)
         case 'f32': return stf(offset, value)
         case 'i64': return std(offset, value)
+        case 'str': return sts(offset, value)
         default: return []
       }
     }
@@ -410,7 +442,7 @@ export class Assembler {
 
     end_frame_code = () => frame.end_code(code)
 
-    check_constant = () => {
+    is_constant = () => {
       if (find_constant(t.value)) {
         constant(false)
         return true
@@ -418,19 +450,15 @@ export class Assembler {
       return false
     }
 
-    check_label = () => {
+    is_label = () => {
       let l = find_label(t.value)
       return l && !l.is_func ? l : null
     }
 
-    check_port = () => t.type === 'port' || t.type === 'port_indirect'
-
-    check_func = () => {
+    is_func = () => {
       let l = find_label(t.value)
       return l && l.is_func ? l : null
     }
-
-    check_port_call = () => t.type === 'port_call'
 
     term = () => {
       let r = []
@@ -473,41 +501,49 @@ export class Assembler {
     }
 
     simple_expr = () => {
-      check_constant()
+      is_constant()
 
       let r = []
 
-      if (is_digit(t) || is_string(t)) {
+      last_expr_type = defaults.type
+
+      if (is_digit(t)) {
+        last_expr_type = t.type
         r.push(t)
         next_token()
       }
-      else if (t.type === 'open_paren') {
+      else if (is_string(t)) {
+        last_expr_type = 'str'
+        r.push(t)
+        next_token()
+      }
+      else if (is_open_paren(t)) {
         r = r.concat(subexpr())
       }
-      else if (check_port()) {
+      else if (is_port(t)) {
         r = r.concat(port())
       }
-      else if (check_label()) {
+      else if (is_label()) {
         r = r.concat(label())
       }
-      else if (t.type === 'func_expr_def') {
+      else if (is_func_expr_def(t)) {
         r = r.concat(func_expr_def())
       }
-      else if (check_func()) {
+      else if (is_func()) {
         r = r.concat(func())
       }
-      else if (check_port_call()) {
+      else if (is_port_call(t)) {
         r = r.concat(port_call())
       }
       else if (is_opcode(t)) {
         r = r.concat(opcode())
       }
       else {
-        error(t, 'number, string, port, label, function call or opcode expected')
+        error(t, 'number, string, port, label, function call/expression or opcode expected')
         next_token()
       }
 
-      if (t.type === 'open_bracket') {
+      if (is_open_bracket(t)) {
         r = r.concat(indexed())
       }
 
@@ -516,6 +552,9 @@ export class Assembler {
 
     expr = () => {
       let r = simple_expr()
+
+      let old_expr_type = last_expr_type
+
       if (r.length) {
         let tm = term()
         if (tm.length) {
@@ -539,6 +578,8 @@ export class Assembler {
             }
           }
         }
+
+        last_expr_type = old_expr_type
       }
 
       // if (r.length === 1) {
@@ -548,7 +589,7 @@ export class Assembler {
       return r
     }
 
-    exprs = () => parameters(t.type === 'open_paren' ? 'open_paren' : null, t.type === 'open_paren' ? 'close_paren' : null, false, -1, true)
+    exprs = () => parameters(is_open_paren(t) ? 'open_paren' : null, is_open_paren(t) ? 'close_paren' : null, false, -1, true)
 
     subexpr = () => parameters('open_paren', 'close_paren', false, 1, true)
 
@@ -581,16 +622,16 @@ export class Assembler {
           if (close && t.type === close) {
             break
           }
-          else if (t.value === 'end') {
+          else if (is_end(t)) {
             break
           }
-          else if (!allow_ws && t.type !== 'comma') {
+          else if (!allow_ws && !is_comma(t)) {
             error(t, 'comma' + (close ? ', ' + close : '') + ' or end of line expected')
             next_token()
             break
           }
 
-          if (allow_ws && t.type === 'comma') {
+          if (allow_ws && is_comma(t)) {
             next_token()
           }
         }
@@ -644,7 +685,9 @@ export class Assembler {
       return r
     }
 
-    alloc = (name, type, value) => ['var', name, '=', data_type_to_alloc(type), '(', codify(value), ')']
+    var_alloc = (name, type, dimensions = []) => ['var', name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
+
+    alloc = (name, type, dimensions = []) => [name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
 
     label_def = (simple = false) => {
       let name = js_name(t.value)
@@ -664,38 +707,40 @@ export class Assembler {
         _new = true
       }
 
-      assign_label_name = name
-
       next_token()
 
       if (is_eos(t) || simple) {
         if (_new) {
-          code.line_s(...alloc(name, l.type, 0))
+          code.line_s(...var_alloc(l.name, l.type))
         }
         else {
-          code.line_s(...write(name, l.type, 0))
+          code.line_s(...write(l.name, l.type, 0))
         }
       }
 
-      else if (t.type === 'open_paren') {
-        func_def(name, l)
+      else if (is_open_paren(t)) {
+        func_def(l.name, l)
       }
 
-      else if (t.type === 'struct_def') {
+      else if (is_struct_def(t)) {
         delete frame.labels[orig_name]
         struct_def(orig_name)
       }
 
-      else if (t.type === 'assign') {
+      else if (is_assign(t)) {
         expected_next_token('assign')
 
         let v = expr()
 
+        if (last_expr_type === 'str') {
+          l.type = 'str'
+        }
+
         if (_new) {
-          code.line_s(...alloc(name, l.type, v))
+          code.line_s(...var_alloc(l.name, l.type, v))
         }
         else {
-          code.line_s(...write(name, l.type, v))
+          code.line_s(...write(l.name, l.type, v))
         }
       }
 
@@ -705,35 +750,34 @@ export class Assembler {
         if (!type) {
           error(t, 'data define token expected')
           next_token()
-          assign_label_name = null
-          return
+          return l
         }
 
         let size = data_type_size(type)
 
         next_token()
 
-        if (t.type === 'open_bracket') {
-          let aa = bracket_def()
+        if (is_open_bracket(t)) {
+          l.dimensions = bracket_def()
           if (_new) {
-            code.line_s(...alloc(name, null, [size, '*', aa]))
+            code.line_s(...var_alloc(l.name, null, [size, '*', l.dimensions]))
           }
           else {
-            code.line_s('free', '(', name, ')')
-            code.line_s(name, '=', 'alloc', '(', size, '*', aa, ')')
+            code.line_s('free', '(', l.name, ')')
+            code.line_s(...alloc(l.name, null, [size, '*', l.dimensions]))
           }
         }
 
         else {
           let p = parameters(null, null, false, -1, true)
           if (_new) {
-            code.line_s(...alloc(name, null, size * p.length))
+            code.line_s(...var_alloc(l.name, null, size * p.length))
           }
-          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.startsWith('s') ? '_s' : ''), '(', name, ',', comma_array(p), ')')
+          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.startsWith('s') ? '_s' : ''), '(', l.name, ',', comma_array(p), ')')
         }
       }
 
-      assign_label_name = null
+      return l
     }
 
     label_assign = () => {
@@ -750,7 +794,7 @@ export class Assembler {
       }
 
       let br = []
-      if (t.type === 'open_bracket') {
+      if (is_open_bracket(t)) {
         br = ['+'].concat(bracket_def())
       }
 
@@ -804,7 +848,7 @@ export class Assembler {
       for (let p of parms) {
         let l = new_label(p.value)
         let n = l.name
-        code.line_s(...alloc(n, defaults.type, '__' + n))
+        code.line_s(...var_alloc(n, defaults.type, '__' + n))
       }
       block('end')
       end_frame_code()
@@ -937,7 +981,7 @@ export class Assembler {
       let l
 
       if (structs.length > 0) {
-        if (t.type === 'label_def') {
+        if (is_label_def(t)) {
           label_def()
         }
         else if (!is_eos(t)) {
@@ -953,16 +997,16 @@ export class Assembler {
         this.debug = true
         next_token()
       }
-      else if (t.type === 'label_assign' || t.type === 'label_assign_indirect') {
+      else if (is_label_assign(t)) {
         label_assign()
       }
-      else if (t.type === 'label_def') {
+      else if (is_label_def(t)) {
         label_def()
       }
-      else if (t.type === 'constant_def') {
+      else if (is_constant_def(t)) {
         constant_def()
       }
-      else if (t.value === 'if') {
+      else if (is_if(t)) {
         next_token()
         code.line('if', '(', expr(), ')', '{')
         this.indent++
@@ -970,14 +1014,14 @@ export class Assembler {
         this.indent--
         code.line('}')
       }
-      else if (t.value === 'elif') {
+      else if (is_elif(t)) {
         next_token()
         this.indent--
         code.line('}', 'else', 'if', '(', expr(), ')', '{')
         this.indent++
         block(['elif', 'else'])
       }
-      else if (t.value === 'else') {
+      else if (is_else(t)) {
         next_token()
         this.indent--
         code.line('}', 'else', '{')
@@ -985,11 +1029,11 @@ export class Assembler {
         block('end')
         prev_token()
       }
-      else if (t.value === 'brk') {
+      else if (is_brk(t)) {
         next_token()
         code.line_s('break')
       }
-      else if (t.value === 'whl') {
+      else if (is_whl(t)) {
         next_token()
         code.line('while', '(', expr(), ')', '{')
         this.indent++
@@ -997,10 +1041,10 @@ export class Assembler {
         this.indent--
         code.line_s('}')
       }
-      else if (t.value === 'for') {
+      else if (is_for(t)) {
         next_token()
         let l
-        if (t.type === 'label_def') {
+        if (is_label_def(t)) {
           l = label_def(true)
         }
         else {
@@ -1027,7 +1071,7 @@ export class Assembler {
         if (l && l.is_func) {
           code.line_s(func())
         }
-        else if (check_port_call()) {
+        else if (is_port_call(t)) {
           code.line_s(port_call())
         }
         else {

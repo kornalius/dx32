@@ -20,7 +20,6 @@ end
   else
     v = ($FF + 30) ;this is a comment
   end
-
 end
 
 :shut()
@@ -46,9 +45,9 @@ end
 
   :n db $01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00
   :wad = #snd:note(n)
-  #snd:play(wad)
+  #snd:play(@wad)
 
-  :stack = [100]
+  :stack dd [100]
   stk stack 100
   psh stack 10 20 30
   print pop stack
