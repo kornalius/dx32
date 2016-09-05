@@ -67,47 +67,14 @@ export class Tokenizer {
 
       constant_def: /const\b/,
 
-      custom_type_def: /type\b/,
+      label_def: /:([A-Z_][A-Z_0-9]*)/i,
 
-      func_def: /:([A-Z_][A-Z_0-9]*)/i,
+      struct_def: /struct\b/,
 
-      func_expr_def: /:\(.*\)/,
-
-      type_def: {
-        match: /(i8|byte|i16|word|short|i32|dword|int|i64|double|f32|float|s8|s16|s32|signed_i8|signed_byte|signed_i16|signed_word|signed_short|signed_i32|signed_int|signed_dword)\b/,
-        value (v, d) {
-          if (v === 'byte') {
-            return 'i8'
-          }
-          else if (v === 'word' || v === 'short') {
-            return 'i16'
-          }
-          else if (v === 'dword' || v === 'int') {
-            return 'i32'
-          }
-          else if (v === 'double') {
-            return 'i64'
-          }
-          else if (v === 'float') {
-            return 'f32'
-          }
-          else if (v === 'signed_i8' || v === 'signed_byte') {
-            return 's8'
-          }
-          else if (v === 'signed_i16' || v === 'signed_word' || v === 'signed_short') {
-            return 's16'
-          }
-          else if (v === 'signed_i32' || v === 'signed_dword' || v === 'signed_int') {
-            return 's32'
-          }
-          else {
-            return v
-          }
-        }
-      },
+      func_expr_def: /:(?=\()/,
 
       label_indirect: {
-        match: /(@+[A-Z_][A-Z_0-9]*)/i,
+        match: /(@+[A-Z_][A-Z_0-9\.]*)/i,
         value (v, d) {
           d.count = indirect_count(v)
           v = v.substr(d.count - 1)
@@ -115,7 +82,33 @@ export class Tokenizer {
         },
       },
 
-      port: /#([0-9]+)(?!:)/,
+      label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
+
+      label_assign_indirect: {
+        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
+        value (v, d) {
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
+          return v
+        },
+      },
+
+      label_assign_bracket: {
+        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
+        type () { return 'label_assign' },
+      },
+
+      label_assign_indirect_bracket: {
+        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
+        value (v, d) {
+          d.count = indirect_count(v)
+          v = v.substr(d.count - 1)
+          return v
+        },
+        type () { return 'label_assign_indirect' },
+      },
+
+      port: /#([0-9]+)(?!:)/i,
 
       port_name: {
         match: /#([A-Z]+\b)(?!:)/i,
@@ -169,7 +162,7 @@ export class Tokenizer {
 
       // indirect_symbol: /(@)(?![^#A-Z_])/i,
 
-      id: /([A-Z_][A-Z_0-9]*)\b/i,
+      id: /([A-Z_][A-Z_0-9\.]*)(?!\s*=)/i,
 
       digit: {
         match: /([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/,

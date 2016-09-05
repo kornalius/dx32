@@ -8,12 +8,10 @@ export var global_frame = null
 
 export class Frame {
 
-  constructor (parent, name, custom_type) {
+  constructor (parent, name) {
     this.parent = parent
     this.name = name
-    this.custom_type = custom_type || false
     this.labels = {}
-    this.is_global = !global_frame
     if (!global_frame) {
       global_frame = this
     }
@@ -30,8 +28,12 @@ export class Frame {
     return l
   }
 
-  add (name, type, size) {
+  addLabel (name, type, size) {
     return new Label(this, name, type, size)
+  }
+
+  get is_global () {
+    return this === global_frame
   }
 
   start_code (code) {

@@ -3,8 +3,6 @@ import { defaults, mixin, runtime_error } from '../globals.js'
 import { Memory } from '../memory.js'
 import { MemoryManager } from './memorymanager.js'
 import { Debugger } from './debugger.js'
-import { Dict } from './dict.js'
-import { Arr } from './array.js'
 import { Interrupt } from './interrupt.js'
 
 import { Tokenizer } from '../compiler/tokenizer.js'
@@ -163,4 +161,4 @@ export class VM {
   }
 }
 
-mixin(VM.prototype, Memory.prototype, MemoryManager.prototype, Dict.prototype, Arr.prototype, Interrupt.prototype, Debugger.prototype)
+mixin(VM.prototype, Memory.prototype, MemoryManager.prototype, Interrupt.prototype, Debugger.prototype)

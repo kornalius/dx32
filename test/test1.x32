@@ -1,19 +1,19 @@
 .bounds
 
 const my_const $F0 $20
-byte my_label = [$FF my_const, 40]
+:my_label db $FF my_const, 40
 
-type s22
-  byte a1 = 0
-  byte b1 = 0
-  type st
-    i8 a2 = 0
-    i8 b2 = 0
+:s22 struct
+  :a1 db 0
+  :b1 db 0
+  :st struct
+    :a2 db 0
+    :b2 db 0
   end
 end
 
 :init()
-  int v = "a string now"
+  :v = "a string now"
   sts v ("a string now")
   if 10 > $A0 & 20 > $02
     v = $FFFF - 30
@@ -32,22 +32,23 @@ end
 :main()
   init()
   #1:to 10 2
-  byte i = 0
+
+  :i = 0
   whl @i < 5
     #1:bs
     i = @i + 1
     print(@i)
   end
 
-  for byte x = 1, 5
+  for :x 1, 5
     print(@x)
   end
 
-  byte n = [$01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00]
-  int wad = #snd:note(n)
+  :n db $01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00
+  :wad = #snd:note(n)
   #snd:play(wad)
 
-  double stack[100]
+  :stack = [100]
   stk stack 100
   psh stack 10 20 30
   print pop stack
