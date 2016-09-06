@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import { _vm_ldb, _vm_ldw, _vm_ld, _vm_ldf, _vm_ldd, _vm_ldl, _vm_lds, _vm_stb, _vm_stw, _vm_st, _vm_stf, _vm_std, _vm_stl, _vm_sts, _vm_copy, _vm_fill } from './compiler/assembler.js'
 
 export var defaults = {
   boundscheck: false,
@@ -84,31 +85,6 @@ export var string_buffer = (str, len = 0) => {
   return b
 }
 
-export var _vm_ldb = (bc, signed = false) => '_vm.ldb' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_ldw = (bc, signed = false) => '_vm.ldw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_ld = (bc, signed = false) => '_vm.ld' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_ldf = (bc, signed = false) => '_vm.ldf' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_ldd = (bc, signed = false) => '_vm.ldd' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_ldl = (bc, signed = false) => '_vm.ldl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_lds = (bc, signed = false) => '_vm.lds' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-
-export var _vm_stb = (bc, signed = false) => '_vm.stb' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_stw = (bc, signed = false) => '_vm.stw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_st = (bc, signed = false) => '_vm.st' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_stf = (bc, signed = false) => '_vm.stf' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_std = (bc, signed = false) => '_vm.std' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_stl = (bc, signed = false) => '_vm.stl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_sts = (bc, signed = false) => '_vm.sts' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-
-export var _vm_db = (bc, signed = false) => '_vm.db' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_dw = (bc, signed = false) => '_vm.dw' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_dl = (bc, signed = false) => '_vm.dl' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_df = (bc, signed = false) => '_vm.df' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-export var _vm_dd = (bc, signed = false) => '_vm.dd' + (bc ? '_bc' : '') + (signed ? '_s' : '')
-
-export var _vm_fill = bc => '_vm.fill' + (bc ? '_bc' : '')
-export var _vm_copy = bc => '_vm.copy' + (bc ? '_bc' : '')
-
 export var hex = (value, size = 32) => '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0')
 
 export var opcodes = {
@@ -189,9 +165,10 @@ export var opcodes = {
   set: { gen: (a, b, c) => ['_vm.dict_set', '(', a, ',', b, ',', c, ')'] },
   mix: { gen: (a, ...args) => ['_vm.dict_mix', '(', a, ',', comma_array(args), ')'] },
 
-  stk: { gen: (a, b, c) => ['_vm.stack', '(', a, ',', b, ',', c || '\'i32\'', ')'] },
-  psh: { gen: (a, ...args) => ['_vm.push', '(', a, ',', comma_array(args), ')'] },
-  pop: { gen: a => ['_vm.pop', '(', a, ')'], expr: true },
+  stk: { gen: (a, b, c, d) => ['_vm.stk_new', '(', a, ',', b || false, ',', c, ',', d || '\'' + defaults.type + '\'', ')'] },
+  psh: { gen: (a, ...args) => ['_vm.stk_push', '(', a, ',', comma_array(args), ')'] },
+  pop: { gen: a => ['_vm.stk_pop', '(', a, ')'], expr: true },
+  ssz: { gen: a => ['_vm.stk_size', '(', a, ')'], expr: true },
 
   hex: { gen: a => ['_vm.hex', '(', a, ')'] },
   hex8: { gen: a => ['_vm.hex', '(', a, ',', 8, ')'] },
@@ -233,13 +210,18 @@ export var runtime_error = code => {
       e = 'Invalid stack address'
       break
     case 0x05:
-      e = 'Interrupt already exists'
+      e = 'Stack address already assigned'
       break
     case 0x06:
+      e = 'Interrupt already exists'
+      break
+    case 0x07:
       e = 'Interrupt not found'
       break
+    case 0x08:
+      e = 'Address out of bounds'
+      break
   }
-  debugger;
   console.error(e)
 }
 

@@ -26,7 +26,7 @@ export class Interrupt {
       this.interrupts[name] = { name, status: _INT_RUNNING, ms, fn, last: 0 }
     }
     else {
-      runtime_error(0x05)
+      runtime_error(0x06)
     }
   }
 
@@ -36,7 +36,7 @@ export class Interrupt {
       this.interrupts[name].last = performance.now()
     }
     else {
-      runtime_error(0x06)
+      runtime_error(0x07)
     }
   }
 
@@ -45,7 +45,7 @@ export class Interrupt {
       this.interrupts[name].status = _INT_PAUSED
     }
     else {
-      runtime_error(0x06)
+      runtime_error(0x07)
     }
   }
 
@@ -54,7 +54,7 @@ export class Interrupt {
       delete this.interrupts[name]
     }
     else {
-      runtime_error(0x06)
+      runtime_error(0x07)
     }
   }
 
@@ -77,4 +77,5 @@ export class Interrupt {
       }
     }
   }
+
 }

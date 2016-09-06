@@ -1,17 +1,22 @@
 import _ from 'lodash'
-import { defaults, opcodes, comma_array, error, _vm_ldb, _vm_ldw, _vm_ld, _vm_ldf, _vm_ldd, _vm_ldl, _vm_lds, _vm_stb, _vm_stw, _vm_st, _vm_stf, _vm_std, _vm_stl, _vm_sts, data_type_size } from '../globals.js'
-import { codify, CodeGenerator, _PRETTY } from './codegen.js'
+
+import { is_eos, is_opcode, is_digit, is_digit_signed, is_string, is_comma, is_open_paren, is_open_bracket, is_end, is_const_def, is_label_def, is_struct_def, is_func_expr_def, is_label_assign, is_assign, is_if, is_elif, is_else, is_brk, is_whl, is_for, is_port, is_port_call, peek_at, peeks_at, expected } from './tokenizer.js'
+
+import { defaults, opcodes, comma_array, error, data_type_size } from '../globals.js'
+
+import { codify, CodeGenerator, _PRETTY, js_name } from './codegen.js'
+
 import { global_frame, frames, Frame } from './frame.js'
 
 
 export var data_type_to_alloc = type => {
   switch (type) {
     case 'i8': return 'alloc_b'
-    case 's8': return 'alloc_b_s'
+    case 's8': return 'alloc_sb'
     case 'i16': return 'alloc_w'
-    case 's16': return 'alloc_w_s'
+    case 's16': return 'alloc_sw'
     case 'i32': return 'alloc_dw'
-    case 's32': return 'alloc_dw_s'
+    case 's32': return 'alloc_sdw'
     case 'f32': return 'alloc_f'
     case 'i64': return 'alloc_dd'
     case 'str': return 'alloc_str'
@@ -36,129 +41,48 @@ export var define_to_data_type = def_name => {
 export var data_type_to_define = type => {
   switch (type) {
     case 'i8': return 'db'
-    case 's8': return 'dbs'
+    case 's8': return 'sdb'
     case 'i16': return 'dw'
-    case 's16': return 'dws'
+    case 's16': return 'sdw'
     case 'i32': return 'dl'
-    case 's32': return 'dls'
+    case 's32': return 'sdl'
     case 'f32': return 'df'
     case 'i64': return 'dd'
     default: return null
   }
 }
 
-export var js_name = name => name.replace(/\./g, '_')
+export var _vm_ldb = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldb' + (bc ? '_bc' : '')
+export var _vm_ldw = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldw' + (bc ? '_bc' : '')
+export var _vm_ld = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ld' + (bc ? '_bc' : '')
+export var _vm_ldf = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldf' + (bc ? '_bc' : '')
+export var _vm_ldd = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldd' + (bc ? '_bc' : '')
+export var _vm_ldl = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldl' + (bc ? '_bc' : '')
+export var _vm_lds = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'lds' + (bc ? '_bc' : '')
 
-export var is_eos = t => t.type === 'comment' || t.type === 'eol'
+export var _vm_stb = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stb' + (bc ? '_bc' : '')
+export var _vm_stw = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stw' + (bc ? '_bc' : '')
+export var _vm_st = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'st' + (bc ? '_bc' : '')
+export var _vm_stf = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stf' + (bc ? '_bc' : '')
+export var _vm_std = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'std' + (bc ? '_bc' : '')
+export var _vm_stl = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stl' + (bc ? '_bc' : '')
+export var _vm_sts = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'sts' + (bc ? '_bc' : '')
 
-export var is_symbol = t => t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectSymbol'
+export var _vm_db = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'db' + (bc ? '_bc' : '')
+export var _vm_dw = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'dw' + (bc ? '_bc' : '')
+export var _vm_dl = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'dl' + (bc ? '_bc' : '')
+export var _vm_df = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'df' + (bc ? '_bc' : '')
+export var _vm_dd = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'dd' + (bc ? '_bc' : '')
 
-export var is_opcode = t => (is_symbol(t) || t.type === 'id') && opcodes[t.value] ? t.value : null
-
-export var is_digit = t => t.type === 'i8' || t.type === 's8' || t.type === 'i16' || t.type === 's16' || t.type === 'i32' || t.type === 's32' || t.type === 'f32' || t.type === 'i64'
-
-export var is_string = t => t.type === 'string'
-
-export var is_value = t => is_digit(t) || is_string(t)
-
-export var is_comma = t => t.type === 'comma'
-
-export var is_open_paren = t => t.type === 'open_paren'
-export var is_close_paren = t => t.type === 'close_paren'
-
-export var is_open_bracket = t => t.type === 'open_bracket'
-export var is_close_bracket = t => t.type === 'close_bracket'
-
-export var is_open_curly = t => t.type === 'open_curly'
-export var is_close_curly = t => t.type === 'close_curly'
-
-export var is_end = t => t.value === 'end'
-
-export var is_const_def = t => t.type === 'const_def'
-export var is_label_def = t => t.type === 'label_def'
-export var is_struct_def = t => t.type === 'struct_def'
-export var is_func_expr_def = t => t.type === 'func_expr_def'
-
-export var is_label_assign = t => t.type === 'label_assign' || t.type === 'label_assign_indirect'
-export var is_assign = t => t.type === 'assign'
-
-export var is_if = t => t.value === 'if'
-export var is_elif = t => t.value === 'elif'
-export var is_else = t => t.value === 'else'
-export var is_brk = t => t.value === 'brk'
-export var is_whl = t => t.value === 'whl'
-export var is_for = t => t.value === 'for'
-
-export var is_port = t => t.type === 'port' || t.type === 'port_indirect'
-export var is_port_call = t => t.type === 'port_call'
-
-export var peek_token = (p, type) => {
-  if (_.isString(type)) {
-    if (type === 'opcode') {
-      return is_opcode(p)
-    }
-    else if (type === 'symbol') {
-      return is_symbol(p)
-    }
-    else if (type === 'digit') {
-      return is_digit(p)
-    }
-    else if (type === 'value') {
-      return is_value(p)
-    }
-    return p.type === type || p.value === type
-  }
-
-  else if (_.isNumber(type)) {
-    return p.value === type
-  }
-
-  else if (_.isRegExp(type)) {
-    return p.type.match(type) || p.value.match(type)
-  }
-
-  else if (_.isArray(type)) {
-    for (let a of type) {
-      if (p.type === a || p.value === a) {
-        return true
-      }
-    }
-    return false
-  }
-
-  else if (_.isFunction(type)) {
-    return type(p)
-  }
-
-  return false
-}
-
-export var peek_at = (x, type, tokens) => peek_token(tokens[x], type)
-
-export var peeks_at = (x, arr, tokens) => {
-  let len = tokens.length
-  let ax = 0
-  let alen = arr.length
-  while (x < len && ax < alen) {
-    if (!peek_at(x++, arr[ax++], tokens)) {
-      return false
-    }
-  }
-  return true
-}
-
-export var expected = (t, type) => {
-  if (!peek_token(t, type)) {
-    error(t, type + ' expected')
-    return false
-  }
-  return true
-}
+export var _vm_fill = bc => '_vm.fill' + (bc ? '_bc' : '')
+export var _vm_copy = bc => '_vm.copy' + (bc ? '_bc' : '')
 
 
 export class Assembler {
 
   constructor () {
+    this.code = new CodeGenerator(_PRETTY, this)
+
     this.errors = 0
     this.debug = false
     this.indent = 0
@@ -171,62 +95,17 @@ export class Assembler {
 
     defaults.boundscheck = false
 
-    var code = new CodeGenerator(_PRETTY, this)
+    var code = this.code
 
     var extra_statement_lines = []
 
+    var contants = {}
     var frame = null
 
-    var last_expr_type
-
+    var last_expr_type = null
     var structs = []
     var first_structs_label = null
-    var extracting_struct = false
 
-    var contants = {}
-
-    var next_token
-    var prev_token
-    var skip_token
-    var peek_token
-    var is_type
-    var is_token
-    var token_peeks
-    var expected_next_token
-    var ldb
-    var ldw
-    var ld
-    var ldb_s
-    var ldw_s
-    var ld_s
-    var ldf
-    var ldd
-    var ldl
-    var lds
-    var stb
-    var stw
-    var st
-    var stb_s
-    var stw_s
-    var st_s
-    var stf
-    var std
-    var stl
-    var sts
-    var read
-    var write
-    var find_label
-    var new_label
-    var tmp_label
-    var find_constant
-    var new_constant
-    var new_frame
-    var end_frame
-    var new_frame_code
-    var end_frame_code
-    var is_constant
-    var is_label
-    let is_func
     var term
     var factor
     var conditional
@@ -235,54 +114,55 @@ export class Assembler {
     var expr
     var exprs
     var subexpr
-    var parameters
-    var port
-    var port_call
-    var bracket_def
-    var indexed
-    var indirect
-    var var_alloc
-    var alloc
-    var label_def
-    var label_assign
-    var label
-    var struct_def
-    var func_def
-    var func_expr_def
-    var func
-    var const_def
-    var constant
-    var opcode
     var statements
     var block
     var statement
 
+    var parameters
+    var indexed
+    var indirect
+    var label
+    var func
+    var port
+    var port_call
+    var constant
+    var opcode
+
+    var label_assign
+
+    var const_def
+    var label_def
+    var struct_def
+    var func_def
+    var func_expr_def
+    var bracket_def
+
     var code_init = () => {
       code.line_s('var', 'alloc', '=', '_vm.alloc.bind(_vm)')
       code.line_s('var', 'alloc_b', '=', '_vm.alloc_b.bind(_vm)')
-      code.line_s('var', 'alloc_b_s', '=', '_vm.alloc_b_s.bind(_vm)')
+      code.line_s('var', 'alloc_sb', '=', '_vm.alloc_sb.bind(_vm)')
       code.line_s('var', 'alloc_w', '=', '_vm.alloc_w.bind(_vm)')
-      code.line_s('var', 'alloc_w_s', '=', '_vm.alloc_w_s.bind(_vm)')
+      code.line_s('var', 'alloc_sw', '=', '_vm.alloc_sw.bind(_vm)')
       code.line_s('var', 'alloc_dw', '=', '_vm.alloc_dw.bind(_vm)')
-      code.line_s('var', 'alloc_dw_s', '=', '_vm.alloc_dw_s.bind(_vm)')
+      code.line_s('var', 'alloc_sdw', '=', '_vm.alloc_sdw.bind(_vm)')
       code.line_s('var', 'alloc_dd', '=', '_vm.alloc_dd.bind(_vm)')
       code.line_s('var', 'alloc_str', '=', '_vm.alloc_str.bind(_vm)')
       code.line_s('var', 'free', '=', '_vm.free.bind(_vm)')
 
       code.line_s('var', 'db', '=', '_vm.db.bind(_vm)')
       code.line_s('var', 'db_bc', '=', '_vm.db_bc.bind(_vm)')
-      code.line_s('var', 'db_s', '=', '_vm.db_s.bind(_vm)')
-      code.line_s('var', 'db_s_bc', '=', '_vm.db_s_bc.bind(_vm)')
+      code.line_s('var', 'sdb', '=', '_vm.sdb.bind(_vm)')
+      code.line_s('var', 'sdb_bc', '=', '_vm.sdb_bc.bind(_vm)')
 
       code.line_s('var', 'dw', '=', '_vm.dw.bind(_vm)')
       code.line_s('var', 'dw_bc', '=', '_vm.dw_bc.bind(_vm)')
-      code.line_s('var', 'dw_s', '=', '_vm.dw_s.bind(_vm)')
-      code.line_s('var', 'dw_s_bc', '=', '_vm.dw_s_bc.bind(_vm)')
+      code.line_s('var', 'sdw', '=', '_vm.sdw.bind(_vm)')
+      code.line_s('var', 'sdw_bc', '=', '_vm.sdw_bc.bind(_vm)')
 
       code.line_s('var', 'dl', '=', '_vm.dl.bind(_vm)')
       code.line_s('var', 'dl_bc', '=', '_vm.dl_bc.bind(_vm)')
-      code.line_s('var', 'dl_s', '=', '_vm.dl_s.bind(_vm)')
-      code.line_s('var', 'dl_s_bc', '=', '_vm.dl_s_bc.bind(_vm)')
+      code.line_s('var', 'sdl', '=', '_vm.sdl.bind(_vm)')
+      code.line_s('var', 'sdl_bc', '=', '_vm.sdl_bc.bind(_vm)')
 
       code.line_s('var', 'df', '=', '_vm.df.bind(_vm)')
       code.line_s('var', 'df_bc', '=', '_vm.df_bc.bind(_vm)')
@@ -293,11 +173,11 @@ export class Assembler {
       code.line('')
     }
 
-    next_token = () => { t = tokens[++i]; return t }
+    let next_token = () => { t = tokens[++i]; return t }
 
-    prev_token = () => { t = tokens[--i]; return t }
+    let prev_token = () => { t = tokens[--i]; return t }
 
-    skip_token = type => {
+    let skip_token = type => {
       let p = peek_at(i, type, tokens)
       if (p) {
         next_token()
@@ -305,66 +185,68 @@ export class Assembler {
       return p ? t : false
     }
 
-    peek_token = type => peek_at(i + 1, type, tokens)
+    let peek_token = type => peek_at(i + 1, type, tokens)
 
-    is_type = type => peek_at(i, type, tokens)
+    let is_type = type => peek_at(i, type, tokens)
 
-    is_token = o => _.isObject(o) && o.type && o.value
+    let is_token = o => _.isObject(o) && o.type && o.value
 
-    token_peeks = arr => peeks_at(i + 1, arr, tokens)
+    let token_peeks = arr => peeks_at(i + 1, arr, tokens)
 
-    expected_next_token = type => {
+    let expected_next_token = type => {
       if (expected(t, type)) {
         next_token()
       }
     }
 
-    ldb = offset => [_vm_ldb(defaults.boundscheck), '(', offset, ')']
+    let ldb = offset => [_vm_ldb(defaults.boundscheck), '(', offset, ')']
 
-    ldb_s = offset => [_vm_ldb(defaults.boundscheck, true), '(', offset, ')']
+    let sldb = offset => [_vm_ldb(defaults.boundscheck, true), '(', offset, ')']
 
-    ldw = offset => [_vm_ldw(defaults.boundscheck), '(', offset, ')']
+    let ldw = offset => [_vm_ldw(defaults.boundscheck), '(', offset, ')']
 
-    ldw_s = offset => [_vm_ldw(defaults.boundscheck, true), '(', offset, ')']
+    let sldw = offset => [_vm_ldw(defaults.boundscheck, true), '(', offset, ')']
 
-    ld = offset => [_vm_ld(defaults.boundscheck), '(', offset, ')']
+    let ld = offset => [_vm_ld(defaults.boundscheck), '(', offset, ')']
 
-    ldf = offset => [_vm_ldf(defaults.boundscheck), '(', offset, ')']
+    let sld = offset => [_vm_ld(defaults.boundscheck, true), '(', offset, ')']
 
-    ldd = offset => [_vm_ldd(defaults.boundscheck), '(', offset, ')']
+    let ldf = offset => [_vm_ldf(defaults.boundscheck), '(', offset, ')']
 
-    ldl = (offset, size) => [_vm_ldl(defaults.boundscheck), '(', offset, size, ')']
+    let ldd = offset => [_vm_ldd(defaults.boundscheck), '(', offset, ')']
 
-    lds = offset => [_vm_lds(defaults.boundscheck), '(', offset, ')']
+    let ldl = (offset, size) => [_vm_ldl(defaults.boundscheck), '(', offset, size, ')']
 
-    stb = (offset, value) => [_vm_stb(defaults.boundscheck), '(', offset, ',', value, ')']
+    let lds = offset => [_vm_lds(defaults.boundscheck), '(', offset, ')']
 
-    stb_s = (offset, value) => [_vm_stb(defaults.boundscheck, true), '(', offset, ',', value, ')']
+    let stb = (offset, value) => [_vm_stb(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    stw = (offset, value) => [_vm_stw(defaults.boundscheck), '(', offset, ',', value, ')']
+    let sstb = (offset, value) => [_vm_stb(defaults.boundscheck, true), '(', offset, ',', value, ')']
 
-    stw_s = (offset, value) => [_vm_stw(defaults.boundscheck, true), '(', offset, ',', value, ')']
+    let stw = (offset, value) => [_vm_stw(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    st = (offset, value) => [_vm_st(defaults.boundscheck), '(', offset, ',', value, ')']
+    let sstw = (offset, value) => [_vm_stw(defaults.boundscheck, true), '(', offset, ',', value, ')']
 
-    st_s = (offset, value) => [_vm_st(defaults.boundscheck, true), '(', offset, ',', value, ')']
+    let st = (offset, value) => [_vm_st(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    stf = (offset, value) => [_vm_stf(defaults.boundscheck), '(', offset, ',', value, ')']
+    let sst = (offset, value) => [_vm_st(defaults.boundscheck, true), '(', offset, ',', value, ')']
 
-    std = (offset, value) => [_vm_std(defaults.boundscheck), '(', offset, ',', value, ')']
+    let stf = (offset, value) => [_vm_stf(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    stl = (offset, value, size) => [_vm_stl(defaults.boundscheck), '(', offset, ',', value, size, ')']
+    let std = (offset, value) => [_vm_std(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    sts = (offset, value) => [_vm_sts(defaults.boundscheck), '(', offset, ',', value, ')']
+    let stl = (offset, value, size) => [_vm_stl(defaults.boundscheck), '(', offset, ',', value, size, ')']
 
-    read = (offset, type) => {
+    let sts = (offset, value) => [_vm_sts(defaults.boundscheck), '(', offset, ',', value, ')']
+
+    let read = (offset, type) => {
       switch (type || defaults.type) {
         case 'i8': return ldb(offset)
         case 'i16': return ldw(offset)
         case 'i32': return ld(offset)
-        case 's8': return ldb_s(offset)
-        case 's16': return ldw_s(offset)
-        case 's32': return ld_s(offset)
+        case 's8': return sldb(offset)
+        case 's16': return sldw(offset)
+        case 's32': return sld(offset)
         case 'f32': return ldf(offset)
         case 'i64': return ldd(offset)
         case 'str': return lds(offset)
@@ -372,14 +254,14 @@ export class Assembler {
       }
     }
 
-    write = (offset, type, value) => {
+    let write = (offset, type, value) => {
       switch (type || defaults.type) {
         case 'i8': return stb(offset, value)
         case 'i16': return stw(offset, value)
         case 'i32': return st(offset, value)
-        case 's8': return stb_s(offset, value)
-        case 's16': return stw_s(offset, value)
-        case 's32': return st_s(offset, value)
+        case 's8': return sstb(offset, value)
+        case 's16': return sstw(offset, value)
+        case 's32': return sst(offset, value)
         case 'f32': return stf(offset, value)
         case 'i64': return std(offset, value)
         case 'str': return sts(offset, value)
@@ -387,7 +269,11 @@ export class Assembler {
       }
     }
 
-    find_label = name => {
+    let var_alloc = (name, type, dimensions = []) => ['var', name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
+
+    let alloc = (name, type, dimensions = []) => [name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
+
+    let find_label = name => {
       let l = frame.findLabel(name)
       if (!l && !frame.is_global) {
         l = global_frame.findLabel(name)
@@ -395,7 +281,7 @@ export class Assembler {
       return l
     }
 
-    new_label = name => {
+    let new_label = name => {
       let l = find_label(name)
       if (!l) {
         l = frame.addLabel(name)
@@ -407,11 +293,11 @@ export class Assembler {
       return l
     }
 
-    tmp_label = name => new_label(name || 'tmp' + '_' + _.uniqueId())
+    let tmp_label = name => new_label(name || 'tmp' + '_' + _.uniqueId())
 
-    find_constant = name => contants[name]
+    let find_constant = name => contants[name]
 
-    new_constant = (name, args) => {
+    let new_constant = (name, args) => {
       if (!find_constant(name)) {
         contants[name] = args
         return contants[name]
@@ -423,7 +309,7 @@ export class Assembler {
       }
     }
 
-    new_frame = name => {
+    let new_frame = name => {
       if (frame) {
         frames.push(frame)
       }
@@ -431,18 +317,18 @@ export class Assembler {
       return frame
     }
 
-    end_frame = () => {
+    let end_frame = () => {
       if (frame) {
         frame = frames.pop()
       }
       return frame
     }
 
-    new_frame_code = () => frame.start_code(code)
+    let new_frame_code = () => frame.start_code(code)
 
-    end_frame_code = () => frame.end_code(code)
+    let end_frame_code = () => frame.end_code(code)
 
-    is_constant = () => {
+    let is_constant = () => {
       if (find_constant(t.value)) {
         constant(false)
         return true
@@ -450,12 +336,12 @@ export class Assembler {
       return false
     }
 
-    is_label = () => {
+    let is_label = () => {
       let l = find_label(t.value)
       return l && !l.is_func ? l : null
     }
 
-    is_func = () => {
+    let is_func = () => {
       let l = find_label(t.value)
       return l && l.is_func ? l : null
     }
@@ -685,10 +571,6 @@ export class Assembler {
       return r
     }
 
-    var_alloc = (name, type, dimensions = []) => ['var', name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
-
-    alloc = (name, type, dimensions = []) => [name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
-
     label_def = (simple = false) => {
       let name = js_name(t.value)
 
@@ -748,6 +630,7 @@ export class Assembler {
         }
 
         let size = data_type_size(type)
+        let signed = type.startsWith('s')
 
         next_token()
 
@@ -776,13 +659,16 @@ export class Assembler {
               }
             }
             else {
+              if (is_digit_signed(p)) {
+                signed = true
+              }
               parms.push(p)
             }
           }
           if (_new) {
             code.line_s(...var_alloc(l.name, null, size * parms.length))
           }
-          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.startsWith('s') ? '_s' : ''), '(', l.name, ',', comma_array(parms), ')')
+          code.line_s((signed ? 's' : '') + def_fn + (defaults.boundscheck ? '_bc' : ''), '(', l.name, ',', comma_array(parms), ')')
         }
       }
 

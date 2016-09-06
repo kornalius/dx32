@@ -15,7 +15,7 @@ end
 :init()
   :v db "a string now"
   sts v ("a string now")
-  if 10 > $A0 & 20 > $02
+  if 10 > $A0 & -20 > $02
     v = $FFFF - 30
   else
     v = ($FF + 30) ;this is a comment
@@ -48,8 +48,9 @@ end
   #snd:play(@wad)
 
   :stack dd [100]
-  stk stack 100
+  stk stack 100 0
   psh stack 10 20 30
+  print pop stack
   print pop stack
 
   print "-->", #1 + 32 / 2

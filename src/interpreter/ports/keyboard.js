@@ -1,6 +1,4 @@
 import { Port } from '../port.js'
-import { Stack } from '../stack.js'
-import { mixin } from '../../globals.js'
 
 
 export class KeyboardPort extends Port {
@@ -12,7 +10,7 @@ export class KeyboardPort extends Port {
 
     this.keys = {}
 
-    this.stk_init(1024, 4, true)
+    this.stack = _vm.stk_new(null, 1024, true, 'i16')
 
     window.addEventListener('keydown', this.onKeydown.bind(this))
     window.addEventListener('keyup', this.onKeyup.bind(this))
@@ -24,16 +22,16 @@ export class KeyboardPort extends Port {
 
   reset () {
     super.reset()
-    this.stk_reset()
+    this.stack.reset()
   }
 
   shut () {
     super.shut()
-    this.stk_shut()
+    this.stack.shut()
   }
 
   onKeydown (e) {
-    this.stk_push(1, e.which)
+    this.stack.push(1, e.which)
     if (!e.repeat) {
       this.keys[e.which] = 0
     }
@@ -43,7 +41,7 @@ export class KeyboardPort extends Port {
   }
 
   onKeyup (e) {
-    this.stk_push(2, e.which)
+    this.stack.push(2, e.which)
     delete this.keys[e.which]
     // e.preventDefault()
     e.stopPropagation()
@@ -52,5 +50,3 @@ export class KeyboardPort extends Port {
   pressed (which) { return this.keys[which] || false }
 
 }
-
-mixin(KeyboardPort.prototype, Stack.prototype)

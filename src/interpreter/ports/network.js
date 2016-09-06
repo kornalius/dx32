@@ -1,6 +1,4 @@
 import { Port } from '../port.js'
-import { Stack } from '../stack.js'
-import { mixin } from '../../globals.js'
 
 
 export class NetworkPort extends Port {
@@ -10,19 +8,17 @@ export class NetworkPort extends Port {
 
     this.name = 'net'
 
-    this.stk_init(8092, 1)
+    this.stack = _vm.stk_new(null, 8092, false, 'i8')
   }
 
   reset () {
     super.reset()
-    this.stk_reset()
+    this.stack.reset()
   }
 
   shut () {
     super.shut()
-    this.stk_shut()
+    this.stack.shut()
   }
 
 }
-
-mixin(NetworkPort.prototype, Stack.prototype)

@@ -1,10 +1,11 @@
 import _ from 'lodash'
-import { is_string } from './assembler.js'
+import { is_string } from './tokenizer.js'
 
 
 export const _COMPACT = 1
 export const _PRETTY = 2
 
+export var js_name = name => name.replace(/\./g, '_')
 
 export var codify = args => {
   let r = []

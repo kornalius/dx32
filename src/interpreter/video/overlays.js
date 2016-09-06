@@ -282,10 +282,11 @@ export class TextCursorOverlay extends Overlay {
 
 export class MouseCursorOverlay extends Overlay {
 
-  constructor (video, width, height, refresh) {
+  constructor (video, width, height, refresh, offset) {
     super(video, width, height)
 
     this.refresh = refresh || 5
+    this.offset = offset || new PIXI.Point(0, 0)
     this.x = 0
     this.y = 0
 
@@ -311,8 +312,8 @@ export class MouseCursorOverlay extends Overlay {
   }
 
   update () {
-    this.sprite.x = this.x * this.sprite.scale.x + this.video.offset.x
-    this.sprite.y = this.y * this.sprite.scale.y + this.video.offset.y
+    this.sprite.x = (this.x + this.offset.x) * this.sprite.scale.x + this.video.offset.x
+    this.sprite.y = (this.y + this.offset.y) * this.sprite.scale.y + this.video.offset.y
     super.update()
   }
 

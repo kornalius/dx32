@@ -1,6 +1,4 @@
 import { Port } from '../port.js'
-import { Stack } from '../stack.js'
-import { mixin } from '../../globals.js'
 
 
 export class MousePort extends Port {
@@ -20,7 +18,7 @@ export class MousePort extends Port {
     this.size = new PIXI.Point(renderer.width - margins.x / 2 - cursor.sprite.width, renderer.height - margins.y / 2 - cursor.sprite.height)
     this.last_mouse = new PIXI.Point()
 
-    this.stk_init(1024, 8, true)
+    this.stack = _vm.stk_new(null, 1024, true, 'i32')
 
     let stage = this.video.stage
     if (stage) {
@@ -38,20 +36,20 @@ export class MousePort extends Port {
 
   reset () {
     super.reset()
-    this.stk_reset()
+    this.stack.reset()
   }
 
   shut () {
     super.shut()
-    this.stk_shut()
+    this.stack.shut()
   }
 
   onLeftButtonDown () {
-    this.stk_push(1)
+    this.stack.push(1)
   }
 
   onRightButtonDown () {
-    this.stk_push(2)
+    this.stack.push(2)
   }
 
   onMouseMove (e) {
@@ -60,14 +58,12 @@ export class MousePort extends Port {
     let cursor = video.overlays.mouseCursor
     let x = Math.trunc(Math.min(this.size.x, Math.max(margins.x / 2, e.data.global.x)) / cursor.sprite.scale.x)
     let y = Math.trunc(Math.min(this.size.y, Math.max(margins.y / 2, e.data.global.y)) / cursor.sprite.scale.y)
-    this.stk_push(3, x, y)
+    this.stack.push(3, x, y)
     cursor.x = x
     cursor.y = y
   }
 
   onMouseUp () {
-    this.stk_push(4)
+    this.stack.push(4)
   }
 }
-
-mixin(MousePort.prototype, Stack.prototype)

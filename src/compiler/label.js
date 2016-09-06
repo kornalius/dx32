@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { defaults, data_type_size } from '../globals.js'
-import { js_name } from './assembler.js'
+import { js_name } from './codegen.js'
 
 
 export class Label {

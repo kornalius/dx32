@@ -78,7 +78,7 @@ export class MemoryManager {
     return addr
   }
 
-  alloc_b_s (v) {
+  alloc_sb (v) {
     let addr = this.alloc(1, 's8')
     _vm.mem_buffer.writeInt8(v, addr)
     return addr
@@ -90,7 +90,7 @@ export class MemoryManager {
     return addr
   }
 
-  alloc_w_s (v) {
+  alloc_sw (v) {
     let addr = this.alloc(2, 's16')
     _vm.mem_buffer.writeInt16LE(v, addr)
     return addr
@@ -102,7 +102,7 @@ export class MemoryManager {
     return addr
   }
 
-  alloc_dw_s (v) {
+  alloc_sdw (v) {
     let addr = this.alloc(4, 's32')
     _vm.mem_buffer.writeInt32LE(v, addr)
     return addr
@@ -131,31 +131,30 @@ export class MemoryManager {
     return addr
   }
 
-  free (addr) {
+  block (addr) {
     for (let b of this.mm_blocks) {
       if (b.mem_top === addr) {
-        b.used = false
-        break
-      }
-    }
-  }
-
-  type (addr) {
-    for (let b of this.mm_blocks) {
-      if (b.mem_top === addr && b.used) {
-        return b.type
+        return b
       }
     }
     return null
   }
 
-  size (addr) {
-    for (let b of this.mm_blocks) {
-      if (b.mem_top === addr && b.used) {
-        return b.size
-      }
+  free (addr) {
+    let b = this.block(addr)
+    if (b) {
+      b.used = false
     }
-    return -1
+  }
+
+  type (addr) {
+    let b = this.block(addr)
+    return b && b.used ? b.type : null
+  }
+
+  size (addr) {
+    let b = this.block(addr)
+    return b && b.used ? b.size : -1
   }
 
   mm_collect () {
