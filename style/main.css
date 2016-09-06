@@ -3,3 +3,7 @@
 body {
   background-color: var(--main-color);
 }
+
+canvas {
+  cursor: none !important;
+}

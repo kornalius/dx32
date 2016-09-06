@@ -43,7 +43,7 @@ export class Tokenizer {
       math: /[\+\-\*\/%\^]/,
       logic: {
         match: /[!&\|]/,
-        value (v, d) {
+        value (v, t) {
           if (v === '&') {
             v = '&&'
           }
@@ -54,7 +54,7 @@ export class Tokenizer {
         }
       },
 
-      assign: /^([=])[^=]/,
+      assign: /^([=])[^=:]/,
 
       comment: /;([^\n]*)/,
 
@@ -65,44 +65,44 @@ export class Tokenizer {
         include: true,
       },
 
-      constant_def: /const\b/,
+      const_def: /::([A-Z_][A-Z_0-9]*)/i,
 
       label_def: /:([A-Z_][A-Z_0-9]*)/i,
 
-      struct_def: /struct\b/,
+      struct_def: /=:([A-Z_][A-Z_0-9]*)/i,
 
       func_expr_def: /:(?=\()/,
 
       label_indirect: {
-        match: /(@+[A-Z_][A-Z_0-9\.]*)/i,
-        value (v, d) {
-          d.count = indirect_count(v)
-          v = v.substr(d.count - 1)
+        match: /(@+[A-Z_][A-Z_0-9]*)/i,
+        value (v, t) {
+          t.count = indirect_count(v)
+          v = v.substr(t.count)
           return v
         },
       },
 
-      label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
+      label_assign: /([A-Z_][A-Z_0-9]*)(?=\s*=)/i,
 
       label_assign_indirect: {
-        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
-        value (v, d) {
-          d.count = indirect_count(v)
-          v = v.substr(d.count - 1)
+        match: /(@+[A-Z_][A-Z_0-9]*)(?=\s*=)/i,
+        value (v, t) {
+          t.count = indirect_count(v)
+          v = v.substr(t.count)
           return v
         },
       },
 
       label_assign_bracket: {
-        match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
+        match: /([A-Z_][A-Z_0-9]*)(?=\s*\[[^\]]*\s*=)/i,
         type () { return 'label_assign' },
       },
 
       label_assign_indirect_bracket: {
-        match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
-        value (v, d) {
-          d.count = indirect_count(v)
-          v = v.substr(d.count - 1)
+        match: /(@+[A-Z_][A-Z_0-9]*)(?=\s*\[[^\]]*\s*=)/i,
+        value (v, t) {
+          t.count = indirect_count(v)
+          v = v.substr(t.count)
           return v
         },
         type () { return 'label_assign_indirect' },
@@ -131,9 +131,9 @@ export class Tokenizer {
 
       port_indirect: {
         match: /(@#[0-9]+)(?!:)/i,
-        value (v, d) {
-          d.count = indirect_count(v)
-          v = v.substr(d.count - 1)
+        value (v, t) {
+          t.count = indirect_count(v)
+          v = v.substr(t.count)
           if (v[0] === '#') {
             v = v.substr(1)
           }
@@ -143,9 +143,9 @@ export class Tokenizer {
 
       port_name_indirect: {
         match: /(@#[A-Z]+)(?!:)/i,
-        value (v, d) {
-          d.count = indirect_count(v)
-          v = v.substr(d.count - 1)
+        value (v, t) {
+          t.count = indirect_count(v)
+          v = v.substr(t.count)
           if (v[0] === '#') {
             v = v.substr(1)
           }

@@ -47,7 +47,7 @@ export var data_type_to_define = type => {
   }
 }
 
-export var js_name = name => _.camelCase(name.replace('.', '-'))
+export var js_name = name => name.replace(/\./g, '_')
 
 export var is_eos = t => t.type === 'comment' || t.type === 'eol'
 
@@ -74,7 +74,7 @@ export var is_close_curly = t => t.type === 'close_curly'
 
 export var is_end = t => t.value === 'end'
 
-export var is_constant_def = t => t.type === 'constant_def'
+export var is_const_def = t => t.type === 'const_def'
 export var is_label_def = t => t.type === 'label_def'
 export var is_struct_def = t => t.type === 'struct_def'
 export var is_func_expr_def = t => t.type === 'func_expr_def'
@@ -250,7 +250,7 @@ export class Assembler {
     var func_def
     var func_expr_def
     var func
-    var constant_def
+    var const_def
     var constant
     var opcode
     var statements
@@ -388,9 +388,9 @@ export class Assembler {
     }
 
     find_label = name => {
-      let l = frame.find(name)
+      let l = frame.findLabel(name)
       if (!l && !frame.is_global) {
-        l = global_frame.find(name)
+        l = global_frame.findLabel(name)
       }
       return l
     }
@@ -691,7 +691,6 @@ export class Assembler {
 
     label_def = (simple = false) => {
       let name = js_name(t.value)
-      let orig_name = name
 
       if (structs.length) {
         name = js_name(structs.join('.') + '.' + name)
@@ -719,12 +718,7 @@ export class Assembler {
       }
 
       else if (is_open_paren(t)) {
-        func_def(l.name, l)
-      }
-
-      else if (is_struct_def(t)) {
-        delete frame.labels[orig_name]
-        struct_def(orig_name)
+        func_def(l)
       }
 
       else if (is_assign(t)) {
@@ -763,17 +757,32 @@ export class Assembler {
             code.line_s(...var_alloc(l.name, null, [size, '*', l.dimensions]))
           }
           else {
-            code.line_s('free', '(', l.name, ')')
+            if (!l.noFree) {
+              code.line_s('free', '(', l.name, ')')
+            }
             code.line_s(...alloc(l.name, null, [size, '*', l.dimensions]))
           }
         }
 
         else {
-          let p = parameters(null, null, false, -1, true)
-          if (_new) {
-            code.line_s(...var_alloc(l.name, null, size * p.length))
+          let _parms = parameters(null, null, false, -1, true)
+          _parms = _.flatten(_parms)
+          let parms = []
+          for (let p of _parms) {
+            if (is_string(p)) {
+              let len = p.value.length
+              for (let x = 0; x < len; x++) {
+                parms.push({ type, value: p.value.charCodeAt(x), row: p.row, col: p.col + x, start: p.start + x, end: p.start + x, idx: p.idx })
+              }
+            }
+            else {
+              parms.push(p)
+            }
           }
-          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.startsWith('s') ? '_s' : ''), '(', l.name, ',', comma_array(p), ')')
+          if (_new) {
+            code.line_s(...var_alloc(l.name, null, size * parms.length))
+          }
+          code.line_s(def_fn + (defaults.boundscheck ? '_bc' : '') + (type.startsWith('s') ? '_s' : ''), '(', l.name, ',', comma_array(parms), ')')
         }
       }
 
@@ -826,29 +835,34 @@ export class Assembler {
 
     label = () => indirect(js_name(t.value))
 
-    struct_def = name => {
+    struct_def = () => {
       let old_first_struct_label = first_structs_label
       first_structs_label = null
+      structs.push(t.value)
+      let name = js_name(structs.join('.'))
+      let l = find_label(name)
+      if (!l) {
+        l = new_label(name)
+      }
+      l.noFree = true
       next_token()
-      structs.push(name)
       block('end')
-      code.line_s('var', js_name(structs.join('.')), '=', first_structs_label)
+      code.line_s('var', l.name, '=', first_structs_label)
       structs.pop()
       first_structs_label = old_first_struct_label
     }
 
-    func_def = (name, l) => {
+    func_def = l => {
       code.line('')
       new_frame()
       l.fn = true
       let parms = parameters('open_paren', 'close_paren', true, -1, true)
-      code.line('var', name, '=', 'function', '(', comma_array(_.map(parms, p => '__' + p.value)), ')', '{')
+      code.line('var', l.name, '=', 'function', '(', comma_array(_.map(parms, p => '__' + p.value)), ')', '{')
       this.indent++
       new_frame_code()
       for (let p of parms) {
         let l = new_label(p.value)
-        let n = l.name
-        code.line_s(...var_alloc(n, defaults.type, '__' + n))
+        code.line_s(...var_alloc(l.name, defaults.type, '__' + l.name))
       }
       block('end')
       end_frame_code()
@@ -860,9 +874,8 @@ export class Assembler {
     func_expr_def = () => {
       next_token()
       let l = tmp_label('fn')
-      let tn = l.name
-      func_def(tn, l)
-      return [tn]
+      func_def(l)
+      return [l.name]
     }
 
     func = () => {
@@ -871,9 +884,7 @@ export class Assembler {
       return [name, '(', comma_array(exprs()), ')']
     }
 
-    constant_def = () => {
-      next_token()
-
+    const_def = () => {
       let name = t.value
 
       next_token()
@@ -984,6 +995,9 @@ export class Assembler {
         if (is_label_def(t)) {
           label_def()
         }
+        else if (is_struct_def(t)) {
+          struct_def()
+        }
         else if (!is_eos(t)) {
           error(t, 'label or struct definition expected')
           next_token()
@@ -1003,8 +1017,11 @@ export class Assembler {
       else if (is_label_def(t)) {
         label_def()
       }
-      else if (is_constant_def(t)) {
-        constant_def()
+      else if (is_const_def(t)) {
+        const_def()
+      }
+      else if (is_struct_def(t)) {
+        struct_def()
       }
       else if (is_if(t)) {
         next_token()
@@ -1098,7 +1115,9 @@ export class Assembler {
     new_frame_code()
     statements()
     code.line('if', '(', 'main', ')', '{')
+    this.indent++
     code.line_s('main', '(', 'args', ')')
+    this.indent--
     code.line('}')
     end_frame_code()
     end_frame()

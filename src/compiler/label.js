@@ -11,6 +11,7 @@ export class Label {
     this.type = type || defaults.type
     this.size = size || data_type_size(this.type)
     this.local = !frame.global
+    this.noFree = false
     this.fn = null
     this.dict = null
     this.dimensions = dimensions || null

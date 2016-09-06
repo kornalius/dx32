@@ -333,6 +333,14 @@ export class Overlays {
     this.overlays.screen.sprite.scale = new PIXI.Point(scale, scale)
     this.stage.addChild(this.overlays.screen.sprite)
 
+    this.overlays.textCursor = new TextCursorOverlay(this, this.char_width, this.char_height)
+    this.overlays.textCursor.sprite.scale = new PIXI.Point(scale, scale)
+    this.stage.addChild(this.overlays.textCursor.sprite)
+
+    this.overlays.mouseCursor = new MouseCursorOverlay(this, this.sprite_width, this.sprite_height)
+    this.overlays.mouseCursor.sprite.scale = new PIXI.Point(scale, scale)
+    this.stage.addChild(this.overlays.mouseCursor.sprite)
+
     this.overlays.scanlines = new ScanlinesOverlay(this, width, height)
     this.stage.addChild(this.overlays.scanlines.sprite)
 
@@ -346,14 +354,6 @@ export class Overlays {
 
     this.overlays.crt = new CrtOverlay(this, width, height)
     this.stage.addChild(this.overlays.crt.sprite)
-
-    this.overlays.textCursor = new TextCursorOverlay(this, this.char_width, this.char_height)
-    this.overlays.textCursor.sprite.scale = new PIXI.Point(scale, scale)
-    this.stage.addChild(this.overlays.textCursor.sprite)
-
-    this.overlays.mouseCursor = new MouseCursorOverlay(this, this.sprite_width, this.sprite_height)
-    this.overlays.mouseCursor.sprite.scale = new PIXI.Point(scale, scale)
-    this.stage.addChild(this.overlays.mouseCursor.sprite)
 
     let tex = PIXI.Texture.fromImage(require('file?name=[path]/[name].[ext]!../../../imgs/crt.png'))
     this.overlays.monitor = new PIXI.Sprite(tex)

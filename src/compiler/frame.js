@@ -19,17 +19,24 @@ export class Frame {
 
   get js_name () { return js_name(this.name) }
 
-  find (name) {
+  findLabel (name) {
     name = js_name(name)
     let l = this.labels[name]
     if (!l && !this.is_global) {
-      l = global_frame.find(name)
+      l = global_frame.findLabel(name)
     }
     return l
   }
 
   addLabel (name, type, size) {
     return new Label(this, name, type, size)
+  }
+
+  removeLabel (name) {
+    let l = this.findLabel(name)
+    if (l) {
+      this.labels[l.name] = undefined
+    }
   }
 
   get is_global () {
@@ -41,9 +48,9 @@ export class Frame {
   }
 
   end_code (code) {
-    let l = _.filter(_.keys(this.labels), k => !this.labels[k].is_func)
-    if (l.length) {
-      code.line_s('free', '(', comma_array(l), ')')
+    let labels = _.filter(_.keys(this.labels), k => !this.labels[k].is_func && !this.labels[k].noFree)
+    if (labels.length) {
+      code.line_s('free', '(', comma_array(labels), ')')
     }
   }
 
