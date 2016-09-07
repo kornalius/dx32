@@ -13,7 +13,7 @@ export var codify = args => {
     args = [args]
   }
   for (let a of args) {
-    if (a.type) {
+    if (a && a.type) {
       if (is_string(a)) {
         r.push('"' + a.value + '"')
       }
@@ -25,6 +25,12 @@ export var codify = args => {
       r = r.concat(codify(a))
     }
     else {
+      if (_.isUndefined(a)) {
+        a = 'undefined'
+      }
+      else if (_.isNull(a)) {
+        a = 'null'
+      }
       r.push(a)
     }
   }

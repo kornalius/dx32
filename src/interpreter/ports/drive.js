@@ -1,8 +1,9 @@
+import _ from 'lodash'
 import { DOS } from '../io/dos.js'
 import { Port } from '../port.js'
 import { Sound } from '../sound.js'
 import { Floppy } from '../io/floppy.js'
-import { mixin, delay, rnd, io_error } from '../../globals.js'
+import { mixin, delay, io_error } from '../../globals.js'
 
 
 export class DrivePort extends Port {
@@ -41,15 +42,6 @@ export class DrivePort extends Port {
     this.spinning = null
     this.stop_spin_bound = this.stop_spin.bind(this)
 
-    let that = this
-    setTimeout(() => {
-      let f = new Floppy(that)
-      that.insert(f)
-      that.dos.format()
-      that.dos.create('myfile.txt', 'MY DATA IS FUCKING COOL')
-      // that.when_finished_spinning(() => { delay(500); that.eject() })
-    }, 2000)
-
     this.publics = {
       loaded: this.loaded,
       eject: this.eject,
@@ -59,6 +51,8 @@ export class DrivePort extends Port {
       read: this.read,
       write: this.write,
     }
+
+    this.test()
   }
 
   tick (t) {
@@ -96,7 +90,7 @@ export class DrivePort extends Port {
     let sound = _op ? _op.sound : null
 
     while (max > 0) {
-      let t = rnd(min_time, max_time)
+      let t = _.random(min_time, max_time)
       // console.log(name, '=>', size, t)
 
       if (sound) {
@@ -124,7 +118,7 @@ export class DrivePort extends Port {
       this.snd_play('spin', { loop: true })
     }
     clearTimeout(this.spinning)
-    this.spinning = setTimeout(this.stop_spin_bound, rnd(this.operations.spin.min_time, this.operations.spin.max_time))
+    this.spinning = setTimeout(this.stop_spin_bound, _.random(this.operations.spin.min_time, this.operations.spin.max_time))
   }
 
   stop_spin () {
@@ -198,6 +192,17 @@ export class DrivePort extends Port {
     this.operation('write', size)
     this.dos.flush()
     this.seek_by(size)
+  }
+
+  test () {
+    let that = this
+    setTimeout(() => {
+      let f = new Floppy(that)
+      that.insert(f)
+      that.dos.format()
+      that.dos.create('myfile.txt', 'MY DATA IS FUCKING COOL')
+      // that.when_finished_spinning(() => { delay(500); that.eject() })
+    }, 2000)
   }
 
 }

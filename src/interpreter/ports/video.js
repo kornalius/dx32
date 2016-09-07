@@ -77,37 +77,37 @@ export class VideoPort extends Port {
       this.info = _vm.alloc(80)
     }
 
-    _vm.seq_start(this.info)
+    let i = _vm.seq_start(this.info)
 
-    _vm.seq_dword(this.screen_addr)
-    _vm.seq_dword(this.width)
-    _vm.seq_dword(this.height)
-    _vm.seq_dword(this.scale)
+    _vm.seq_dword(i, this.screen_addr)
+    _vm.seq_dword(i, this.width)
+    _vm.seq_dword(i, this.height)
+    _vm.seq_dword(i, this.scale)
 
-    _vm.seq_dword(this.palette_addr)
-    _vm.seq_dword(this.palette_count)
-    _vm.seq_dword(this.palette_size)
+    _vm.seq_dword(i, this.palette_addr)
+    _vm.seq_dword(i, this.palette_count)
+    _vm.seq_dword(i, this.palette_size)
 
-    _vm.seq_dword(this.sprites_addr)
-    _vm.seq_dword(this.sprite_width)
-    _vm.seq_dword(this.sprite_height)
-    _vm.seq_dword(this.sprite_size)
-    _vm.seq_dword(this.sprites_size)
+    _vm.seq_dword(i, this.sprites_addr)
+    _vm.seq_dword(i, this.sprite_width)
+    _vm.seq_dword(i, this.sprite_height)
+    _vm.seq_dword(i, this.sprite_size)
+    _vm.seq_dword(i, this.sprites_size)
 
-    _vm.seq_dword(this.fonts_addr)
-    _vm.seq_dword(this.font_size)
-    _vm.seq_dword(this.fonts_size)
+    _vm.seq_dword(i, this.fonts_addr)
+    _vm.seq_dword(i, this.font_size)
+    _vm.seq_dword(i, this.fonts_size)
 
-    _vm.seq_dword(this.char_count)
-    _vm.seq_dword(this.char_width)
-    _vm.seq_dword(this.char_height)
+    _vm.seq_dword(i, this.char_count)
+    _vm.seq_dword(i, this.char_width)
+    _vm.seq_dword(i, this.char_height)
 
-    _vm.seq_dword(this.text_width)
-    _vm.seq_dword(this.text_height)
-    _vm.seq_dword(this.text_addr)
-    _vm.seq_dword(this.text_size)
+    _vm.seq_dword(i, this.text_width)
+    _vm.seq_dword(i, this.text_height)
+    _vm.seq_dword(i, this.text_addr)
+    _vm.seq_dword(i, this.text_size)
 
-    _vm.seq_end()
+    _vm.seq_end(i)
   }
 
   test () {

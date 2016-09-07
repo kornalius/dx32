@@ -8,7 +8,7 @@ export class NetworkPort extends Port {
 
     this.name = 'net'
 
-    this.stack = _vm.stk_new(null, 8092, false, 'i8')
+    this.stack = _vm.stk_new(null, 8092, 'i8')
   }
 
   reset () {

@@ -6,7 +6,7 @@ export var stacks = {}
 
 export class Stack {
 
-  constructor (addr, max_entries, rolling, entry_type, entry_size) {
+  constructor (addr, max_entries, entry_type, rolling, entry_size) {
     entry_type = entry_type || _vm.type(addr) || defaults.type
     entry_size = entry_size || data_type_size(entry_type)
 
@@ -28,14 +28,14 @@ export class Stack {
 
     stacks[this.top] = this
 
-    _vm.seq_start(this.info)
-    _vm.seq_dword(this.ptr)
-    _vm.seq_dword(this.size)
-    _vm.seq_dword(this.top)
-    _vm.seq_dword(this.bottom)
-    _vm.seq_dword(this.max_entries)
-    _vm.seq_dword(this.entry_size)
-    _vm.seq_str(this.entry_type + '\0')
+    let i = _vm.seq_start(this.info)
+    _vm.seq_dword(i, this.ptr)
+    _vm.seq_dword(i, this.size)
+    _vm.seq_dword(i, this.top)
+    _vm.seq_dword(i, this.bottom)
+    _vm.seq_dword(i, this.max_entries)
+    _vm.seq_dword(i, this.entry_size)
+    _vm.seq_str(i, this.entry_type + '\0')
     _vm.seq_end()
   }
 
@@ -106,7 +106,7 @@ export class StackMixin {
     stacks = {}
   }
 
-  stk_new (addr, max_entries, rolling, entry_type, entry_size) {
+  stk_new (addr, max_entries, entry_type, rolling, entry_size) {
     let s = stacks[addr]
     if (!s) {
       s = new Stack(...arguments)
@@ -140,10 +140,43 @@ export class StackMixin {
     }
   }
 
-  stk_size (addr) {
+  stk_used (addr) {
     let s = stacks[addr]
     if (s) {
       return s.used
+    }
+    else {
+      runtime_error(0x04)
+      return 0
+    }
+  }
+
+  stk_max (addr) {
+    let s = stacks[addr]
+    if (s) {
+      return s.max_entries
+    }
+    else {
+      runtime_error(0x04)
+      return 0
+    }
+  }
+
+  stk_size (addr) {
+    let s = stacks[addr]
+    if (s) {
+      return s.entry_size
+    }
+    else {
+      runtime_error(0x04)
+      return 0
+    }
+  }
+
+  stk_type (addr) {
+    let s = stacks[addr]
+    if (s) {
+      return s.entry_type
     }
     else {
       runtime_error(0x04)

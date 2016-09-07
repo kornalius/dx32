@@ -25,224 +25,321 @@ export class Tokenizer {
       return i
     }
 
-    let defs = {
-      eol: /[\r\n]/,
-
-      comma: /,/,
-
-      open_bracket: /\[/,
-      close_bracket: /\]/,
-
-      open_curly: /\{/,
-      close_curly: /\}/,
-
-      open_paren: /\(/,
-      close_paren: /\)/,
-
-      comp: />|<|>=|<=|!=|==/,
-
-      math: {
-        match: /[\+\-\*\/%\^]/,
-        order: 2,
+    let defs = [
+      {
+        comment: /;([^\r\n]*)/,
       },
 
-      logic: {
-        match: /[!&\|]/,
-        value (v, t) {
-          if (v === '&') {
-            v = '&&'
-          }
-          else if (v === '|') {
-            v = '||'
-          }
-          return v
+      {
+        const_def: /::([A-Z_][A-Z_0-9]*)/i,
+      },
+
+      {
+        label_def: /:([A-Z_][A-Z_0-9]*)/i,
+      },
+
+      {
+        struct_def: /=:([A-Z_][A-Z_0-9]*)/i,
+      },
+
+      {
+        func_expr_def: /:(?=\()/,
+      },
+
+      {
+        hex: {
+          match: /\$([0-9A-F]+)|0x([0-9A-F]+)/i,
+          type () { return 'digit' },
+          value (v) { return parseInt('0x' + v, 16).toString() },
+        },
+      },
+
+      {
+        digit: {
+          match: /([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/,
+          type (k, v) {
+            let r = parseInt(v)
+            if (_.isNaN(r)) {
+              r = parseFloat(v)
+              return 'f32'
+            }
+            else {
+              let t = r < 0 ? 's' : 'i'
+              r = Math.abs(r)
+              if (r >= 0x00 && r <= 0xFF) {
+                return t + '8'
+              }
+              else if (r > 0xFF && r <= 0xFFFF) {
+                return t + '16'
+              }
+              else if (r > 0xFFFF && r <= 0xFFFFFFFF) {
+                return t + '32'
+              }
+              else if (r > 0xFFFFFFFF && r <= 0xFFFFFFFFFFFFFFFF) {
+                return 'i64'
+              }
+              else {
+                error({ v, row, col }, 'value out of bounds')
+                return null
+              }
+            }
+          },
+        },
+      },
+
+      {
+        eol: /[\r\n]/,
+      },
+
+      {
+        comma: /,/,
+      },
+
+      {
+        open_bracket: /\[/,
+      },
+
+      {
+        close_bracket: /\]/,
+      },
+
+      {
+        open_curly: /\{/,
+      },
+
+      {
+        close_curly: /\}/,
+      },
+
+      {
+        open_paren: /\(/,
+      },
+
+      {
+        close_paren: /\)/,
+      },
+
+      {
+        comp: />|<|>=|<=|!=|==/,
+      },
+
+      {
+        math: /[\+\-\*\/%\^]/,
+      },
+
+      {
+        logic: {
+          match: /[!&\|]/,
+          value (v, t) {
+            if (v === '&') {
+              v = '&&'
+            }
+            else if (v === '|') {
+              v = '||'
+            }
+            return v
+          },
         }
       },
 
-      assign: /^([=])[^=:]/,
-
-      comment: /;([^\n]*)/,
-
-      boundscheck: /\.bounds\b/i,
-      debug: /\.debug\b/i,
-      include: {
-        match: /\.include\s/,
-        include: true,
+      {
+        assign: /^([=])[^=:]/,
       },
 
-      const_def: /::([A-Z_][A-Z_0-9]*)/i,
+      {
+        boundscheck: /\.bounds\b/i,
+      },
 
-      label_def: /:([A-Z_][A-Z_0-9]*)/i,
+      {
+        debug: /\.debug\b/i,
+      },
 
-      struct_def: /=:([A-Z_][A-Z_0-9]*)/i,
-
-      func_expr_def: /:(?=\()/,
-
-      label_indirect: {
-        match: /(@+[A-Z_][A-Z_0-9]*)/i,
-        value (v, t) {
-          t.count = indirect_count(v)
-          v = v.substr(t.count)
-          return v
+      {
+        include: {
+          match: /\.include\s/,
+          include: true,
         },
       },
 
-      label_assign: /([A-Z_][A-Z_0-9]*)(?=\s*=)/i,
-
-      label_assign_indirect: {
-        match: /(@+[A-Z_][A-Z_0-9]*)(?=\s*=)/i,
-        value (v, t) {
-          t.count = indirect_count(v)
-          v = v.substr(t.count)
-          return v
+      {
+        label_indirect: {
+          match: /(@+[A-Z_][A-Z_0-9\.]*)/i,
+          value (v, t) {
+            t.count = indirect_count(v)
+            v = v.substr(t.count)
+            return v
+          },
         },
       },
 
-      label_assign_bracket: {
-        match: /([A-Z_][A-Z_0-9]*)(?=\s*\[[^\]]*\s*=)/i,
-        type () { return 'label_assign' },
+      {
+        label_assign: /([A-Z_][A-Z_0-9\.]*)(?=\s*=)/i
       },
 
-      label_assign_indirect_bracket: {
-        match: /(@+[A-Z_][A-Z_0-9]*)(?=\s*\[[^\]]*\s*=)/i,
-        value (v, t) {
-          t.count = indirect_count(v)
-          v = v.substr(t.count)
-          return v
-        },
-        type () { return 'label_assign_indirect' },
-      },
-
-      port: /#([0-9]+)(?!:)/i,
-
-      port_name: {
-        match: /#([A-Z]+\b)(?!:)/i,
-        value (v) {
-          return _vm.port_by_name(v)
-        },
-        type () { return 'port' },
-      },
-
-      port_call: /#([0-9]+:[A-Z_][A-Z_0-9]*\b)/i,
-
-      port_name_call: {
-        match: /#([A-Z]+\b:[A-Z_][A-Z_0-9]*\b)/i,
-        value (v) {
-          let parts = v.split(':')
-          return _vm.port_by_name(parts[0]) + ':' + parts[1]
-        },
-        type () { return 'port_call' },
-      },
-
-      port_indirect: {
-        match: /(@#[0-9]+)(?!:)/i,
-        value (v, t) {
-          t.count = indirect_count(v)
-          v = v.substr(t.count)
-          if (v[0] === '#') {
-            v = v.substr(1)
-          }
-          return v
+      {
+        label_assign_indirect: {
+          match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*=)/i,
+          value (v, t) {
+            t.count = indirect_count(v)
+            v = v.substr(t.count)
+            return v
+          },
         },
       },
 
-      port_name_indirect: {
-        match: /(@#[A-Z]+)(?!:)/i,
-        value (v, t) {
-          t.count = indirect_count(v)
-          v = v.substr(t.count)
-          if (v[0] === '#') {
-            v = v.substr(1)
-          }
-          v = v.toLowerCase()
-          for (let k in _vm.ports) {
-            if (_vm.ports[k].name.toLowerCase() === v) {
-              return k
+      {
+        label_assign_bracket: {
+          match: /([A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
+          type () { return 'label_assign' },
+        },
+      },
+
+      {
+        label_assign_indirect_bracket: {
+          match: /(@+[A-Z_][A-Z_0-9\.]*)(?=\s*\[[^\]]*\s*=)/i,
+          value (v, t) {
+            t.count = indirect_count(v)
+            v = v.substr(t.count)
+            return v
+          },
+          type () { return 'label_assign_indirect' },
+        },
+      },
+
+      {
+        port: /#([0-9]+)(?!:)/i,
+      },
+
+      {
+        port_name: {
+          match: /#([A-Z]+\b)(?!:)/i,
+          value (v) {
+            return _vm.port_by_name(v)
+          },
+          type () { return 'port' },
+        },
+      },
+
+      {
+        port_call: /#([0-9]+:[A-Z_][A-Z_0-9]*\b)/i
+      },
+
+      {
+        port_name_call: {
+          match: /#([A-Z]+\b:[A-Z_][A-Z_0-9]*\b)/i,
+          value (v) {
+            let parts = v.split(':')
+            return _vm.port_by_name(parts[0]) + ':' + parts[1]
+          },
+          type () { return 'port_call' },
+        },
+      },
+
+      {
+        port_indirect: {
+          match: /(@#[0-9]+)(?!:)/i,
+          value (v, t) {
+            t.count = indirect_count(v)
+            v = v.substr(t.count)
+            if (v[0] === '#') {
+              v = v.substr(1)
             }
-          }
-          return '0'
+            return v
+          },
         },
-        type () { return 'port_indirect' },
+      },
+
+      {
+        port_name_indirect: {
+          match: /(@#[A-Z]+)(?!:)/i,
+          value (v, t) {
+            t.count = indirect_count(v)
+            v = v.substr(t.count)
+            if (v[0] === '#') {
+              v = v.substr(1)
+            }
+            v = v.toLowerCase()
+            for (let k in _vm.ports) {
+              if (_vm.ports[k].name.toLowerCase() === v) {
+                return k
+              }
+            }
+            return '0'
+          },
+          type () { return 'port_indirect' },
+        },
       },
 
       // indirect_symbol: /(@)(?![^#A-Z_])/i,
 
-      id: /([A-Z_][A-Z_0-9\.]*)(?!\s*=)/i,
-
-      digit: {
-        match: /([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/,
-        order: 1,
-        type (k, v) {
-          let r = parseInt(v)
-          if (_.isNaN(r)) {
-            r = parseFloat(v)
-            return 'f32'
-          }
-          else {
-            let t = r < 0 ? 's' : 'i'
-            r = Math.abs(r)
-            if (r >= 0x00 && r <= 0xFF) {
-              return t + '8'
-            }
-            else if (r > 0xFF && r <= 0xFFFF) {
-              return t + '16'
-            }
-            else if (r > 0xFFFF && r <= 0xFFFFFFFF) {
-              return t + '32'
-            }
-            else if (r > 0xFFFFFFFF && r <= 0xFFFFFFFFFFFFFFFF) {
-              return 'i64'
-            }
-            else {
-              error({ v, row, col }, 'value out of bounds')
-              return null
-            }
-          }
+      {
+        i8: {
         },
       },
 
-      i8: {
+      {
+        s8: {
+        },
       },
 
-      s8: {
+      {
+        i16: {
+        },
       },
 
-      i16: {
+      {
+        s16: {
+        },
       },
 
-      s16: {
+      {
+        i32: {
+        },
       },
 
-      i32: {
+      {
+        s32: {
+        },
       },
 
-      s32: {
+      {
+        f32: {
+        },
       },
 
-      f32: {
+      {
+        i64: {
+        },
       },
 
-      i64: {
+      {
+        string: /"([^"]*)"/i,
       },
 
-      hex: {
-        match: /\$([0-9A-F]+)/i,
-        type () { return 'digit' },
-        value (v) { return parseInt('0x' + v, 16).toString() },
+      {
+        char: {
+          match: /'(.)'/i,
+          type () { return 'digit' },
+          value (v) { return v.charCodeAt(0) },
+        },
       },
 
-      string: /"([^"]*)"/i,
-
-      char: {
-        match: /'(.)'/i,
-        type () { return 'digit' },
-        value (v) { return v.charCodeAt(0) },
+      {
+        id: /([A-Z_][A-Z_0-9\.]*)/i,
       },
+    ]
 
+    var find_def = k => {
+      for (let dd of defs) {
+        if (dd[k]) {
+          return dd[k]
+        }
+      }
+      return null
     }
 
     var add_token = (k, v) => {
-      let d = defs[k]
+      let d = find_def(k)
 
       let r = { type: k, value: v, row, col: si + 1 - ls, start: si, end: i, idx: tokens.length - 1 }
 
@@ -262,7 +359,7 @@ export class Tokenizer {
         }
 
         if (ok !== k) {
-          d = defs[k]
+          d = find_def(k)
         }
         else {
           break
@@ -283,20 +380,15 @@ export class Tokenizer {
     let rx
     let _include = false
 
-    let ordered_defs = []
-    for (let k in defs) {
-      ordered_defs.push({ key: k, value: defs[k] })
-    }
-    ordered_defs = _.sortBy(ordered_defs, d => d.value.order)
-
     while (i < len) {
       let c = text[i]
 
       si = i
 
       if (c !== ' ' && c !== '\t') {
-        for (let dd of ordered_defs) {
-          let d = dd.value
+        for (let dd of defs) {
+          let k = _.first(_.keys(dd))
+          let d = dd[k]
 
           if (_.isRegExp(d)) {
             rx = d
@@ -310,7 +402,7 @@ export class Tokenizer {
             let t = r.length > 1 ? r.slice(1).join('') : r.join('')
             i += r[0].length - 1
 
-            if (_include && dd.key === 'string') {
+            if (_include && k === 'string') {
               _include = false
               let p = new Tokenizer()
               let s = ''
@@ -325,7 +417,7 @@ export class Tokenizer {
               _include = true
             }
             else {
-              add_token(dd.key, t)
+              add_token(k, t)
             }
 
             break
@@ -341,9 +433,21 @@ export class Tokenizer {
 
 }
 
-export var is_eos = t => t.type === 'comment' || t.type === 'eol'
+export var is_comment = t => t.type === 'comment'
 
-export var is_symbol = t => t.type === 'comp' || t.type === 'math' || t.type === 'logic' || t.type === 'assign' || t.type === 'indirectSymbol'
+export var is_eos = t => t.type === 'eol' || is_comment(t)
+
+export var is_assign = t => t.type === 'assign'
+
+export var is_comp = t => t.type === 'comp'
+
+export var is_math = t => t.type === 'math'
+
+export var is_logic = t => t.type === 'logic'
+
+export var is_indirect_symbol = t => t.type === 'indirect_symbol'
+
+export var is_symbol = t => is_comp(t) || is_math(t) || is_logic(t) || is_assign(t) || is_indirect_symbol(t)
 
 export var is_opcode = t => (is_symbol(t) || t.type === 'id') && opcodes[t.value] ? t.value : null
 
@@ -374,7 +478,6 @@ export var is_struct_def = t => t.type === 'struct_def'
 export var is_func_expr_def = t => t.type === 'func_expr_def'
 
 export var is_label_assign = t => t.type === 'label_assign' || t.type === 'label_assign_indirect'
-export var is_assign = t => t.type === 'assign'
 
 export var is_if = t => t.value === 'if'
 export var is_elif = t => t.value === 'elif'
@@ -387,6 +490,10 @@ export var is_port = t => t.type === 'port' || t.type === 'port_indirect'
 export var is_port_call = t => t.type === 'port_call'
 
 export var peek_token = (p, type) => {
+  if (is_comment(p)) {
+    return false
+  }
+
   if (_.isString(type)) {
     if (type === 'opcode') {
       return is_opcode(p)

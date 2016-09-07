@@ -16,17 +16,26 @@ export class MousePort extends Port {
     let cursor = video.overlays.mouseCursor
 
     this.size = new PIXI.Point(renderer.width - margins.x / 2 - cursor.sprite.width, renderer.height - margins.y / 2 - cursor.sprite.height)
-    this.last_mouse = new PIXI.Point()
 
-    this.stack = _vm.stk_new(null, 1024, true, 'i32')
+    this.x = 0
+    this.y = 0
+    this.left_button = false
+    this.middle_button = false
+    this.right_button = false
+
+    this.info_size = 11
+    this.info = _vm.alloc()
 
     let stage = this.video.stage
     if (stage) {
       stage.interactive = true
-      stage.on('mousedown', this.onLeftButtonDown.bind(this))
-      stage.on('rightdown', this.onRightButtonDown.bind(this))
-      stage.on('touchstart', this.onLeftButtonDown.bind(this))
+
+      stage.on('mousedown', this.onMouseDown.bind(this))
+      stage.on('rightdown', this.onMouseDown.bind(this))
+      stage.on('touchstart', this.onMouseDown.bind(this))
+
       stage.on('mousemove', this.onMouseMove.bind(this))
+
       stage.on('mouseup', this.onMouseUp.bind(this))
       stage.on('touchend', this.onMouseUp.bind(this))
       stage.on('mouseupoutside', this.onMouseUp.bind(this))
@@ -36,34 +45,71 @@ export class MousePort extends Port {
 
   reset () {
     super.reset()
-    this.stack.reset()
+    _vm.fill(this.info, 0, this.info_size)
   }
 
   shut () {
     super.shut()
-    this.stack.shut()
   }
 
-  onLeftButtonDown () {
-    this.stack.push(1)
+  update_info () {
+    let i = _vm.seq_start(this.info)
+    _vm.seq_double(i, this.x)
+    _vm.seq_double(i, this.y)
+    _vm.seq_byte(i, this.left_button)
+    _vm.seq_byte(i, this.middle_button)
+    _vm.seq_byte(i, this.right_button)
+    _vm.seq_end(i)
   }
 
-  onRightButtonDown () {
-    this.stack.push(2)
+  onMouseDown (e) {
+    switch (e.data.originalEvent.button) {
+      case 0:
+        this.left_button = true
+        break
+
+      case 1:
+        this.middle_button = true
+        break
+
+      case 2:
+        this.right_button = true
+        break
+    }
+    this.update_info()
   }
 
   onMouseMove (e) {
-    let video = this.video
-    let margins = video.margins
-    let cursor = video.overlays.mouseCursor
+    let margins = this.video.margins
+    let cursor = this.video.overlays.mouseCursor
     let x = Math.trunc(Math.min(this.size.x, Math.max(margins.x / 2, e.data.global.x)) / cursor.sprite.scale.x)
     let y = Math.trunc(Math.min(this.size.y, Math.max(margins.y / 2, e.data.global.y)) / cursor.sprite.scale.y)
-    this.stack.push(3, x, y)
+
+    this.x = x
+    this.y = y
+
     cursor.x = x
     cursor.y = y
+
+    this.update_info()
   }
 
-  onMouseUp () {
-    this.stack.push(4)
+  onMouseUp (e) {
+    switch (e.data.originalEvent.button) {
+      case 0:
+        this.left_button = false
+        break
+
+      case 1:
+        this.middle_button = false
+        break
+
+      case 2:
+        this.right_button = false
+        break
+    }
+
+    this.update_info()
   }
+
 }

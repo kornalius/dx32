@@ -3,9 +3,9 @@
 export class Sprite {
 
   spr_init (count, width, height) {
-    this.sprite_count = count || 16
-    this.sprite_width = width || 16
-    this.sprite_height = height || 16
+    this.sprite_count = Math.min(16, count || 16)
+    this.sprite_width = Math.min(16, width || 16)
+    this.sprite_height = Math.min(16, height || 16)
 
     this.sprite_size = this.sprite_width * this.sprite_height
     this.sprites_size = this.sprite_count * this.sprite_size
@@ -35,7 +35,7 @@ export class Sprite {
     this.force_sprites = true
   }
 
-  spr_clr () {
+  spr_clear () {
     _vm.fill(this.sprites_addr, 0, this.sprites_size)
     this.sprites = {}
     this.spr_refresh()

@@ -9,6 +9,7 @@ export class Memory {
     this.mem_top = 0
     this.mem_bottom = this.mem_size - 1
     this.mem_buffer = new Buffer(this.mem_size)
+    this.mem_seq = {}
   }
 
   mem_tick (t) {
@@ -31,9 +32,9 @@ export class Memory {
     this.db(addr, ...args)
   }
 
-  sdb_bc (addr, ...args) {
+  db_s_bc (addr, ...args) {
     this.chk_bounds(addr, args.length)
-    this.sdb(addr, ...args)
+    this.db_s(addr, ...args)
   }
 
   dw_bc (addr, ...args) {
@@ -41,19 +42,19 @@ export class Memory {
     this.dw(addr, ...args)
   }
 
-  sdw_bc (addr, ...args) {
+  dw_s_bc (addr, ...args) {
     this.chk_bounds(addr, args.length * 2)
-    this.sdw(addr, ...args)
+    this.dw_s(addr, ...args)
   }
 
-  dl_bc (addr, ...args) {
+  ddw_bc (addr, ...args) {
     this.chk_bounds(addr, args.length * 4)
-    this.dl(addr, ...args)
+    this.ddw(addr, ...args)
   }
 
-  sdl_bc (addr, ...args) {
+  ddw_s_bc (addr, ...args) {
     this.chk_bounds(addr, args.length * 4)
-    this.sdl(addr, ...args)
+    this.ddw_s(addr, ...args)
   }
 
   df_bc (addr, ...args) {
@@ -73,7 +74,7 @@ export class Memory {
     }
   }
 
-  sdb (addr, ...args) {
+  db_s (addr, ...args) {
     for (let a of args) {
       this.mem_buffer.writeInt8(a, addr)
       addr++
@@ -88,7 +89,7 @@ export class Memory {
     }
   }
 
-  sdw (addr, ...args) {
+  dw_s (addr, ...args) {
     let size = 2
     for (let a of args) {
       this.mem_buffer.writeInt16LE(a, addr)
@@ -96,7 +97,7 @@ export class Memory {
     }
   }
 
-  dl (addr, ...args) {
+  ddw (addr, ...args) {
     let size = 4
     for (let a of args) {
       this.mem_buffer.writeUInt32LE(a, addr)
@@ -104,7 +105,7 @@ export class Memory {
     }
   }
 
-  sdl (addr, ...args) {
+  ddw_s (addr, ...args) {
     let size = 4
     for (let a of args) {
       this.mem_buffer.writeInt32LE(a, addr)
@@ -133,9 +134,9 @@ export class Memory {
     return this.ldb(addr)
   }
 
-  sldb_bc (addr) {
+  ldb_s_bc (addr) {
     this.chk_bounds(addr, 1)
-    return this.sldb(addr)
+    return this.ldb_s(addr)
   }
 
   ldw_bc (addr) {
@@ -143,9 +144,9 @@ export class Memory {
     return this.ldw(addr)
   }
 
-  sldw_bc (addr) {
+  ldw_s_bc (addr) {
     this.chk_bounds(addr, 2)
-    return this.sldw(addr)
+    return this.ldw_s(addr)
   }
 
   ld_bc (addr) {
@@ -153,9 +154,9 @@ export class Memory {
     return this.ld(addr)
   }
 
-  sld_bc (addr) {
+  ld_s_bc (addr) {
     this.chk_bounds(addr, 4)
-    return this.sld(addr)
+    return this.ld_s(addr)
   }
 
   ldf_bc (addr) {
@@ -180,15 +181,15 @@ export class Memory {
 
   ldb (addr) { return this.mem_buffer.readUInt8(addr) }
 
-  sldb (addr) { return this.mem_buffer.readInt8(addr) }
+  ldb_s (addr) { return this.mem_buffer.readInt8(addr) }
 
   ldw (addr) { return this.mem_buffer.readUInt16LE(addr) }
 
-  sldw (addr) { return this.mem_buffer.readInt16LE(addr) }
+  ldw_s (addr) { return this.mem_buffer.readInt16LE(addr) }
 
   ld (addr) { return this.mem_buffer.readUInt32LE(addr) }
 
-  sld (addr) { return this.mem_buffer.readInt32LE(addr) }
+  ld_s (addr) { return this.mem_buffer.readInt32LE(addr) }
 
   ldf (addr) { return this.mem_buffer.readFloatLE(addr) }
 
@@ -201,6 +202,10 @@ export class Memory {
   }
 
   lds (addr, size = -1) {
+    if (_.isString(addr)) {
+      return addr
+    }
+
     let s = ''
     let l = 0
     while (addr < this.mem_bottom && (size === -1 || l < size)) {
@@ -223,9 +228,9 @@ export class Memory {
     this.stb(addr, value)
   }
 
-  sstb_bc (addr, value) {
+  stb_s_bc (addr, value) {
     this.chk_bounds(addr, 1)
-    this.sstb(addr, value)
+    this.stb_s(addr, value)
   }
 
   stw_bc (addr, value) {
@@ -233,9 +238,9 @@ export class Memory {
     this.stw(addr, value)
   }
 
-  sstw_bc (addr, value) {
+  stw_s_bc (addr, value) {
     this.chk_bounds(addr, 2)
-    this.sstw(addr, value)
+    this.stw_s(addr, value)
   }
 
   st_bc (addr, value) {
@@ -243,9 +248,9 @@ export class Memory {
     this.st(addr, value)
   }
 
-  sst_bc (addr, value) {
+  st_s_bc (addr, value) {
     this.chk_bounds(addr, 4)
-    this.sst(addr, value)
+    this.st_s(addr, value)
   }
 
   stf_bc (addr, value) {
@@ -270,15 +275,15 @@ export class Memory {
 
   stb (addr, value) { this.mem_buffer.writeUInt8(value, addr) }
 
-  sstb (addr, value) { this.mem_buffer.writeInt8(value, addr) }
+  stb_s (addr, value) { this.mem_buffer.writeInt8(value, addr) }
 
   stw (addr, value) { this.mem_buffer.writeUInt16LE(value, addr) }
 
-  sstw (addr, value) { this.mem_buffer.writeInt16LE(value, addr) }
+  stw_s (addr, value) { this.mem_buffer.writeInt16LE(value, addr) }
 
   st (addr, value) { this.mem_buffer.writeUInt32LE(value, addr) }
 
-  sst (addr, value) { this.mem_buffer.writeInt32LE(value, addr) }
+  st_s (addr, value) { this.mem_buffer.writeInt32LE(value, addr) }
 
   stf (addr, value) { this.mem_buffer.writeFloatLE(value, addr) }
 
@@ -315,9 +320,9 @@ export class Memory {
       case 'i8': return this.ldb(addr)
       case 'i16': return this.ldw(addr)
       case 'i32': return this.ld(addr)
-      case 's8': return this.sldb(addr)
-      case 's16': return this.sldw(addr)
-      case 's32': return this.sld(addr)
+      case 's8': return this.ldb_s(addr)
+      case 's16': return this.ldw_s(addr)
+      case 's32': return this.ld_s(addr)
       case 'f32': return this.ldf(addr)
       case 'i64': return this.ldd(addr)
       case 'str': return this.lds(addr)
@@ -330,9 +335,9 @@ export class Memory {
       case 'i8': return this.stb(addr, value)
       case 'i16': return this.stw(addr, value)
       case 'i32': return this.st(addr, value)
-      case 's8': return this.sstb(addr, value)
-      case 's16': return this.sstw(addr, value)
-      case 's32': return this.sst(addr, value)
+      case 's8': return this.stb_s(addr, value)
+      case 's16': return this.stw_s(addr, value)
+      case 's32': return this.st_s(addr, value)
       case 'f32': return this.stf(addr, value)
       case 'i64': return this.std(addr, value)
       case 'str': return this.sts(addr, value)
@@ -340,43 +345,47 @@ export class Memory {
     }
   }
 
-  seq_start (start) { this._seq = start }
-
-  seq_byte (value) {
-    this.stb(this._seq, value)
-    this._seq++
+  seq_start (start) {
+    let id = _.uniqueId()
+    this.mem_seq[id] = start
+    return id
   }
 
-  seq_word (value) {
-    this.stw(this._seq, value)
-    this._seq += 2
+  seq_byte (id, value) {
+    this.stb(this.mem_seq[id], value)
+    this.mem_seq[id]++
   }
 
-  seq_dword (value) {
-    this.st(this._seq, value)
-    this._seq += 4
+  seq_word (id, value) {
+    this.stw(this.mem_seq[id], value)
+    this.mem_seq[id] += 2
   }
 
-  seq_float (value) {
-    this.stf(this._seq, value)
-    this._seq += 4
+  seq_dword (id, value) {
+    this.st(this.mem_seq[id], value)
+    this.mem_seq[id] += 4
   }
 
-  seq_double (value) {
-    this.std(this._seq, value)
-    this._seq += 8
+  seq_float (id, value) {
+    this.stf(this.mem_seq[id], value)
+    this.mem_seq[id] += 4
   }
 
-  seq_str (value) {
-    this.sts(this._seq, value)
-    this._seq += value.length
+  seq_double (id, value) {
+    this.std(this.mem_seq[id], value)
+    this.mem_seq[id] += 8
   }
 
-  seq_end () { this._seq = 0 }
+  seq_str (id, value) {
+    this.sts(this.mem_seq[id], value)
+    this.mem_seq[id] += value.length
+  }
+
+  seq_end (id) { delete this.mem_seq[id] }
 
   dump (addr = 0, size = 1024) {
     console.log('Dumping', size, ' bytes from memory at ', hex(addr))
-    console.log(hexy.hexy(this.mem_buffer, { offset: addr, length: size, display_offset: addr, width: 16, caps: 'upper', indent: 2 }))
+    console.log(hexy.hexy(this.mem_buffer, { offset: addr, length: size, width: 16, caps: 'upper', indent: 2 }))
   }
 
 }

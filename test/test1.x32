@@ -1,6 +1,6 @@
 .bounds
 
-::my_const $F0 $20
+::my_const $F0 0x20
 :my_label db $FF my_const, 40
 
 =:s22
@@ -32,6 +32,8 @@ end
   init()
   #1:to 10 2
 
+  ;wait(2000)
+
   :i = 0
   whl @i < 5
     #1:bs
@@ -43,19 +45,20 @@ end
     print(@x)
   end
 
-  :n db $01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00
+  :n db.s $01 $01 $02 'F' '3' $00 $03 $10 $08 $14 $30 $00 $00
   :wad = #snd:note(n)
   #snd:play(@wad)
 
   :stack dd [100]
-  stk stack 100 0
+  stk stack 100
   psh stack 10 20 30
   print pop stack
   print pop stack
 
   print "-->", #1 + 32 / 2
   print "-->", #vid + 32 / 2
-  int_start("my_int", :(ms) print "interrupt" ms end, 1000)
+  int_start("my_int", :(ms) print upps("interrupt") ms end, 1000)
   ;hlt()
 
+  print rnd 10 50
 end

@@ -17,9 +17,13 @@ export class MemoryManager {
   }
 
   mm_reset () {
+    this.mm_collect()
   }
 
   mm_shut () {
+    this.mm_collect()
+    this.mm_blocks = []
+    this.mm_last = 0
   }
 
   avail_mem () { return this.mem_size }
@@ -69,6 +73,8 @@ export class MemoryManager {
 
     this.mm_blocks.push({ mem_top: n + 1, mem_bottom: n + 1 + size, size, type, used: true })
 
+    _vm.mem_buffer.fill(0, n + 1, n + 1 + size)
+
     return n + 1
   }
 
@@ -78,7 +84,7 @@ export class MemoryManager {
     return addr
   }
 
-  alloc_sb (v) {
+  alloc_b_s (v) {
     let addr = this.alloc(1, 's8')
     _vm.mem_buffer.writeInt8(v, addr)
     return addr
@@ -90,7 +96,7 @@ export class MemoryManager {
     return addr
   }
 
-  alloc_sw (v) {
+  alloc_w_s (v) {
     let addr = this.alloc(2, 's16')
     _vm.mem_buffer.writeInt16LE(v, addr)
     return addr
@@ -102,7 +108,7 @@ export class MemoryManager {
     return addr
   }
 
-  alloc_sdw (v) {
+  alloc_dw_s (v) {
     let addr = this.alloc(4, 's32')
     _vm.mem_buffer.writeInt32LE(v, addr)
     return addr
@@ -168,9 +174,11 @@ export class MemoryManager {
   }
 
   dump () {
-    console.log('memory blocks dump', 'avail:', prettyBytes(this.avail_mem()), 'used:', prettyBytes(this.used_mem()), 'free:', prettyBytes(this.free_mem()))
+    console.log('memory blocks dump...', 'avail:', prettyBytes(this.avail_mem()), 'used:', prettyBytes(this.used_mem()), 'free:', prettyBytes(this.free_mem()))
     for (let b of this.mm_blocks) {
-      console.log(hexy.hexy(_vm.mem_buffer, { offset: b.mem_top, length: Math.min(255, b.size), display_offset: b.mem_top, width: 16, caps: 'upper', indent: 2 }))
+      console.log('')
+      console.log('offset:', _vm.hex(b.mem_top, 32), 'size:', this.size(b.mem_top), 'type:', this.type(b.mem_top))
+      console.log(hexy.hexy(_vm.mem_buffer, { offset: b.mem_top, length: Math.min(255, b.size), width: 16, caps: 'upper', indent: 2 }))
     }
   }
 }

@@ -1,5 +1,4 @@
-import { rnd } from '../globals.js'
-
+import _ from 'lodash'
 
 /*
   shapes (1 = sine, 2 = square, 3 = triangle, 4 = sawtooth)
@@ -53,7 +52,7 @@ export class Sound {
   snd_name (name, random = false) {
     if (random) {
       let c = _.reduce(this.sounds, (r, v, k) => { return r + (_.startsWith(k, name) ? 1 : 0) }, 0)
-      return name + rnd(1, c)
+      return name + _.random(1, c)
     }
     else {
       return name
@@ -61,7 +60,7 @@ export class Sound {
   }
 
   snd_play (name, options = {}, random = false, repeat_min = 1, repeat_max = 1) {
-    repeat_max = rnd(repeat_min, repeat_max)
+    repeat_max = _.random(repeat_min, repeat_max)
     while (repeat_max > 0) {
       let s = this.sounds[this.snd_name(name, random)]
       if (s) {

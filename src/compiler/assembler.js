@@ -8,15 +8,16 @@ import { codify, CodeGenerator, _PRETTY, js_name } from './codegen.js'
 
 import { global_frame, frames, Frame } from './frame.js'
 
+export var signed_boundscheck = (name, bc = false, signed = false) => name + (signed ? '_s' : '') + (bc ? '_bc' : '')
 
 export var data_type_to_alloc = type => {
   switch (type) {
     case 'i8': return 'alloc_b'
-    case 's8': return 'alloc_sb'
+    case 's8': return signed_boundscheck('alloc_b', false, true)
     case 'i16': return 'alloc_w'
-    case 's16': return 'alloc_sw'
+    case 's16': return signed_boundscheck('alloc_w', false, true)
     case 'i32': return 'alloc_dw'
-    case 's32': return 'alloc_sdw'
+    case 's32': return signed_boundscheck('alloc_dw', false, true)
     case 'f32': return 'alloc_f'
     case 'i64': return 'alloc_dd'
     case 'str': return 'alloc_str'
@@ -27,11 +28,11 @@ export var data_type_to_alloc = type => {
 export var define_to_data_type = def_name => {
   switch (def_name) {
     case 'db': return 'i8'
-    case 'dbs': return 's8'
+    case 'db.s': return 's8'
     case 'dw': return 'i16'
-    case 'dws': return 's16'
-    case 'dl': return 'i32'
-    case 'dls': return 's32'
+    case 'dw.s': return 's16'
+    case 'ddw': return 'i32'
+    case 'ddw.s': return 's32'
     case 'df': return 'f32'
     case 'dd': return 'i64'
     default: return null
@@ -41,41 +42,41 @@ export var define_to_data_type = def_name => {
 export var data_type_to_define = type => {
   switch (type) {
     case 'i8': return 'db'
-    case 's8': return 'sdb'
+    case 's8': return 'db_s'
     case 'i16': return 'dw'
-    case 's16': return 'sdw'
-    case 'i32': return 'dl'
-    case 's32': return 'sdl'
+    case 's16': return 'dw_s'
+    case 'i32': return 'ddw'
+    case 's32': return 'ddw_s'
     case 'f32': return 'df'
     case 'i64': return 'dd'
     default: return null
   }
 }
 
-export var _vm_ldb = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldb' + (bc ? '_bc' : '')
-export var _vm_ldw = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldw' + (bc ? '_bc' : '')
-export var _vm_ld = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ld' + (bc ? '_bc' : '')
-export var _vm_ldf = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldf' + (bc ? '_bc' : '')
-export var _vm_ldd = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldd' + (bc ? '_bc' : '')
-export var _vm_ldl = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'ldl' + (bc ? '_bc' : '')
-export var _vm_lds = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'lds' + (bc ? '_bc' : '')
+export var _vm_ldb = (bc = false, signed = false) => signed_boundscheck('_vm.ldb', bc, signed)
+export var _vm_ldw = (bc = false, signed = false) => signed_boundscheck('_vm.ldw', bc, signed)
+export var _vm_ld = (bc = false, signed = false) => signed_boundscheck('_vm.ld', bc, signed)
+export var _vm_ldf = (bc = false, signed = false) => signed_boundscheck('_vm.ldf', bc, signed)
+export var _vm_ldd = (bc = false, signed = false) => signed_boundscheck('_vm.ldd', bc, signed)
+export var _vm_ldl = (bc = false, signed = false) => signed_boundscheck('_vm.ldl', bc, signed)
+export var _vm_lds = (bc = false, signed = false) => signed_boundscheck('_vm.lds', bc, signed)
 
-export var _vm_stb = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stb' + (bc ? '_bc' : '')
-export var _vm_stw = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stw' + (bc ? '_bc' : '')
-export var _vm_st = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'st' + (bc ? '_bc' : '')
-export var _vm_stf = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stf' + (bc ? '_bc' : '')
-export var _vm_std = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'std' + (bc ? '_bc' : '')
-export var _vm_stl = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'stl' + (bc ? '_bc' : '')
-export var _vm_sts = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'sts' + (bc ? '_bc' : '')
+export var _vm_stb = (bc = false, signed = false) => signed_boundscheck('_vm.stb', bc, signed)
+export var _vm_stw = (bc = false, signed = false) => signed_boundscheck('_vm.stw', bc, signed)
+export var _vm_st = (bc = false, signed = false) => signed_boundscheck('_vm.st', bc, signed)
+export var _vm_stf = (bc = false, signed = false) => signed_boundscheck('_vm.stf', bc, signed)
+export var _vm_std = (bc = false, signed = false) => signed_boundscheck('_vm.std', bc, signed)
+export var _vm_stl = (bc = false, signed = false) => signed_boundscheck('_vm.stl', bc, signed)
+export var _vm_sts = (bc = false, signed = false) => signed_boundscheck('_vm.sts', bc, signed)
 
-export var _vm_db = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'db' + (bc ? '_bc' : '')
-export var _vm_dw = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'dw' + (bc ? '_bc' : '')
-export var _vm_dl = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'dl' + (bc ? '_bc' : '')
-export var _vm_df = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'df' + (bc ? '_bc' : '')
-export var _vm_dd = (bc, signed = false) => '_vm.' + (signed ? 's' : '') + 'dd' + (bc ? '_bc' : '')
+export var _vm_db = (bc = false, signed = false) => signed_boundscheck('_vm.db', bc, signed)
+export var _vm_dw = (bc = false, signed = false) => signed_boundscheck('_vm.dw', bc, signed)
+export var _vm_dl = (bc = false, signed = false) => signed_boundscheck('_vm.dl', bc, signed)
+export var _vm_df = (bc = false, signed = false) => signed_boundscheck('_vm.df', bc, signed)
+export var _vm_dd = (bc = false, signed = false) => signed_boundscheck('_vm.dd', bc, signed)
 
-export var _vm_fill = bc => '_vm.fill' + (bc ? '_bc' : '')
-export var _vm_copy = bc => '_vm.copy' + (bc ? '_bc' : '')
+export var _vm_fill = bc => signed_boundscheck('_vm.fill', bc)
+export var _vm_copy = bc => signed_boundscheck('_vm.copy', bc)
 
 
 export class Assembler {
@@ -137,38 +138,37 @@ export class Assembler {
     var func_expr_def
     var bracket_def
 
+    var _bind_global = (name, bc = false, signed = false) => code.line_s('var', signed_boundscheck(name, bc, signed), '=', signed_boundscheck('_vm.' + name, bc, signed) + '.bind(_vm)')
+
     var code_init = () => {
-      code.line_s('var', 'alloc', '=', '_vm.alloc.bind(_vm)')
-      code.line_s('var', 'alloc_b', '=', '_vm.alloc_b.bind(_vm)')
-      code.line_s('var', 'alloc_sb', '=', '_vm.alloc_sb.bind(_vm)')
-      code.line_s('var', 'alloc_w', '=', '_vm.alloc_w.bind(_vm)')
-      code.line_s('var', 'alloc_sw', '=', '_vm.alloc_sw.bind(_vm)')
-      code.line_s('var', 'alloc_dw', '=', '_vm.alloc_dw.bind(_vm)')
-      code.line_s('var', 'alloc_sdw', '=', '_vm.alloc_sdw.bind(_vm)')
-      code.line_s('var', 'alloc_dd', '=', '_vm.alloc_dd.bind(_vm)')
-      code.line_s('var', 'alloc_str', '=', '_vm.alloc_str.bind(_vm)')
-      code.line_s('var', 'free', '=', '_vm.free.bind(_vm)')
+      _bind_global('alloc')
+      _bind_global('alloc_b')
+      _bind_global('alloc_b', false, true)
+      _bind_global('alloc_w')
+      _bind_global('alloc_w', false, true)
+      _bind_global('alloc_dw')
+      _bind_global('alloc_dw', false, true)
+      _bind_global('alloc_f')
+      _bind_global('alloc_dd')
+      _bind_global('alloc_str')
+      _bind_global('free')
 
-      code.line_s('var', 'db', '=', '_vm.db.bind(_vm)')
-      code.line_s('var', 'db_bc', '=', '_vm.db_bc.bind(_vm)')
-      code.line_s('var', 'sdb', '=', '_vm.sdb.bind(_vm)')
-      code.line_s('var', 'sdb_bc', '=', '_vm.sdb_bc.bind(_vm)')
-
-      code.line_s('var', 'dw', '=', '_vm.dw.bind(_vm)')
-      code.line_s('var', 'dw_bc', '=', '_vm.dw_bc.bind(_vm)')
-      code.line_s('var', 'sdw', '=', '_vm.sdw.bind(_vm)')
-      code.line_s('var', 'sdw_bc', '=', '_vm.sdw_bc.bind(_vm)')
-
-      code.line_s('var', 'dl', '=', '_vm.dl.bind(_vm)')
-      code.line_s('var', 'dl_bc', '=', '_vm.dl_bc.bind(_vm)')
-      code.line_s('var', 'sdl', '=', '_vm.sdl.bind(_vm)')
-      code.line_s('var', 'sdl_bc', '=', '_vm.sdl_bc.bind(_vm)')
-
-      code.line_s('var', 'df', '=', '_vm.df.bind(_vm)')
-      code.line_s('var', 'df_bc', '=', '_vm.df_bc.bind(_vm)')
-
-      code.line_s('var', 'dd', '=', '_vm.dd.bind(_vm)')
-      code.line_s('var', 'dd_bc', '=', '_vm.dd_bc.bind(_vm)')
+      _bind_global('db')
+      _bind_global('db', true)
+      _bind_global('db', false, true)
+      _bind_global('db', true, true)
+      _bind_global('dw')
+      _bind_global('dw', true)
+      _bind_global('dw', false, true)
+      _bind_global('dw', true, true)
+      _bind_global('ddw')
+      _bind_global('ddw', true)
+      _bind_global('ddw', false, true)
+      _bind_global('ddw', true, true)
+      _bind_global('df')
+      _bind_global('df', true)
+      _bind_global('dd')
+      _bind_global('dd', true)
 
       code.line('')
     }
@@ -201,15 +201,15 @@ export class Assembler {
 
     let ldb = offset => [_vm_ldb(defaults.boundscheck), '(', offset, ')']
 
-    let sldb = offset => [_vm_ldb(defaults.boundscheck, true), '(', offset, ')']
+    let ldb_s = offset => [_vm_ldb(defaults.boundscheck, true), '(', offset, ')']
 
     let ldw = offset => [_vm_ldw(defaults.boundscheck), '(', offset, ')']
 
-    let sldw = offset => [_vm_ldw(defaults.boundscheck, true), '(', offset, ')']
+    let ldw_s = offset => [_vm_ldw(defaults.boundscheck, true), '(', offset, ')']
 
     let ld = offset => [_vm_ld(defaults.boundscheck), '(', offset, ')']
 
-    let sld = offset => [_vm_ld(defaults.boundscheck, true), '(', offset, ')']
+    let ld_s = offset => [_vm_ld(defaults.boundscheck, true), '(', offset, ')']
 
     let ldf = offset => [_vm_ldf(defaults.boundscheck), '(', offset, ')']
 
@@ -221,15 +221,15 @@ export class Assembler {
 
     let stb = (offset, value) => [_vm_stb(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    let sstb = (offset, value) => [_vm_stb(defaults.boundscheck, true), '(', offset, ',', value, ')']
+    let stb_s = (offset, value) => [_vm_stb(defaults.boundscheck, true), '(', offset, ',', value, ')']
 
     let stw = (offset, value) => [_vm_stw(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    let sstw = (offset, value) => [_vm_stw(defaults.boundscheck, true), '(', offset, ',', value, ')']
+    let stw_s = (offset, value) => [_vm_stw(defaults.boundscheck, true), '(', offset, ',', value, ')']
 
     let st = (offset, value) => [_vm_st(defaults.boundscheck), '(', offset, ',', value, ')']
 
-    let sst = (offset, value) => [_vm_st(defaults.boundscheck, true), '(', offset, ',', value, ')']
+    let st_s = (offset, value) => [_vm_st(defaults.boundscheck, true), '(', offset, ',', value, ')']
 
     let stf = (offset, value) => [_vm_stf(defaults.boundscheck), '(', offset, ',', value, ')']
 
@@ -244,9 +244,9 @@ export class Assembler {
         case 'i8': return ldb(offset)
         case 'i16': return ldw(offset)
         case 'i32': return ld(offset)
-        case 's8': return sldb(offset)
-        case 's16': return sldw(offset)
-        case 's32': return sld(offset)
+        case 's8': return ldb_s(offset)
+        case 's16': return ldw_s(offset)
+        case 's32': return ld_s(offset)
         case 'f32': return ldf(offset)
         case 'i64': return ldd(offset)
         case 'str': return lds(offset)
@@ -259,9 +259,9 @@ export class Assembler {
         case 'i8': return stb(offset, value)
         case 'i16': return stw(offset, value)
         case 'i32': return st(offset, value)
-        case 's8': return sstb(offset, value)
-        case 's16': return sstw(offset, value)
-        case 's32': return sst(offset, value)
+        case 's8': return stb_s(offset, value)
+        case 's16': return stw_s(offset, value)
+        case 's32': return st_s(offset, value)
         case 'f32': return stf(offset, value)
         case 'i64': return std(offset, value)
         case 'str': return sts(offset, value)
@@ -668,7 +668,7 @@ export class Assembler {
           if (_new) {
             code.line_s(...var_alloc(l.name, null, size * parms.length))
           }
-          code.line_s((signed ? 's' : '') + def_fn + (defaults.boundscheck ? '_bc' : ''), '(', l.name, ',', comma_array(parms), ')')
+          code.line_s(js_name(def_fn) + (defaults.boundscheck ? '_bc' : ''), '(', l.name, ',', comma_array(parms), ')')
         }
       }
 

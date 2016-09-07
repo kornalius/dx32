@@ -1,4 +1,4 @@
-import { defaults, mixin, runtime_error } from '../globals.js'
+import { defaults, mixin, runtime_error, delay } from '../globals.js'
 
 import { Memory } from '../memory.js'
 import { MemoryManager } from './memorymanager.js'
@@ -140,6 +140,14 @@ export class VM {
       this.mm_tick(t, delta)
       this.dbg_tick(t, delta)
     }
+  }
+
+  wait (ms) {
+    delay(ms)
+  }
+
+  hex (value, size = 32) {
+    return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0')
   }
 
   gpa (port, offset) { return this.ports[port].top + offset }
