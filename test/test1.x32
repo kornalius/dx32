@@ -57,7 +57,7 @@ end
 
   print "-->", #1 + 32 / 2
   print "-->", #vid + 32 / 2
-  int_start("my_int", :(ms) print upps("interrupt") ms end, 1000)
+  int.start("my_int", :(ms) print upps("interrupt") ms end, 1000)
   ;hlt()
 
   print rnd 10 50

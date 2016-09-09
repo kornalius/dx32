@@ -1,5 +1,4 @@
 import _ from 'lodash'
-import { _vm_ldb, _vm_ldw, _vm_ld, _vm_ldf, _vm_ldd, _vm_ldl, _vm_lds, _vm_stb, _vm_stw, _vm_st, _vm_stf, _vm_std, _vm_stl, _vm_sts, _vm_copy, _vm_fill } from './compiler/assembler.js'
 
 export var defaults = {
   boundscheck: false,
@@ -65,6 +64,51 @@ export var data_types = {
 }
 
 export var data_type_size = name => data_types[name]
+
+export var sbc = (name, bc = false, signed = false) => name + (signed ? '_s' : '') + (bc ? '_bc' : '')
+
+export var data_type_to_alloc = type => {
+  switch (type) {
+    case 'i8': return '_vm.alloc_b'
+    case 's8': return sbc('_vm.alloc_b', false, true)
+    case 'i16': return '_vm.alloc_w'
+    case 's16': return sbc('_vm.alloc_w', false, true)
+    case 'i32': return '_vm.alloc_dw'
+    case 's32': return sbc('_vm.alloc_dw', false, true)
+    case 'f32': return '_vm.alloc_f'
+    case 'i64': return '_vm.alloc_dd'
+    case 'str': return '_vm.alloc_str'
+    default: return 'alloc'
+  }
+}
+
+export var define_to_data_type = def_name => {
+  switch (def_name) {
+    case 'db': return 'i8'
+    case 'db.s': return 's8'
+    case 'dw': return 'i16'
+    case 'dw.s': return 's16'
+    case 'ddw': return 'i32'
+    case 'ddw.s': return 's32'
+    case 'df': return 'f32'
+    case 'dd': return 'i64'
+    default: return null
+  }
+}
+
+export var data_type_to_define = type => {
+  switch (type) {
+    case 'i8': return '_vm.db'
+    case 's8': return '_vm.db_s'
+    case 'i16': return '_vm.dw'
+    case 's16': return '_vm.dw_s'
+    case 'i32': return '_vm.ddw'
+    case 's32': return '_vm.ddw_s'
+    case 'f32': return '_vm.df'
+    case 'i64': return '_vm.dd'
+    default: return null
+  }
+}
 
 export var errors = 0
 
@@ -153,22 +197,22 @@ export var opcodes = {
 
   // String
 
-  lds: { gen: a => [_vm_lds(defaults.boundscheck), '(', a, ')'], expr: true },
-  sts: { gen: (a, b) => [_vm_sts(defaults.boundscheck), '(', a, ',', b, ')'] },
+  lds: { gen: a => [sbc('_vm.lds', defaults.boundscheck), '(', a, ')'], expr: true },
+  sts: { gen: (a, b) => [sbc('_vm.sts', defaults.boundscheck), '(', a, ',', b, ')'] },
 
-  lens: { gen: a => [_vm_lds(defaults.boundscheck), '(', a, ')', '.length'], expr: true },
-  subs: { gen: (a, b, c) => [_vm_lds(defaults.boundscheck), '(', a, ')', '.substr', '(', b, ',', c, ')'], expr: true },
-  lows: { gen: a => ['_.lowerCase', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ')'], expr: true },
-  upps: { gen: a => ['_.upperCase', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ')'], expr: true },
-  caps: { gen: a => ['_.capitalize', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ')'], expr: true },
-  cmls: { gen: a => ['_.camelCase', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ')'], expr: true },
-  snks: { gen: a => ['_.snakeCase', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ')'], expr: true },
-  pads: { gen: (a, b, c) => ['_.pad', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ',', b, ',', c, ')'], expr: true },
-  lpads: { gen: a => ['_.padStart', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ')'], expr: true },
-  rpads: { gen: a => ['_.padEnd', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ')'], expr: true },
-  reps: { gen: (a, b) => ['_.repeat', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ',', b, ')'], expr: true },
-  repls: { gen: (a, b, c) => ['_.replace', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ',', b, ',', c, ')'], expr: true },
-  truncs: { gen: (a, b) => ['_.truncate', '(', _vm_lds(defaults.boundscheck), '(', a, ')', ',', b, ')'], expr: true },
+  lens: { gen: a => [sbc('_vm.lds', defaults.boundscheck), '(', a, ')', '.length'], expr: true },
+  subs: { gen: (a, b, c) => [sbc('_vm.lds', defaults.boundscheck), '(', a, ')', '.substr', '(', b, ',', c, ')'], expr: true },
+  lows: { gen: a => ['_.lowerCase', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ')'], expr: true },
+  upps: { gen: a => ['_.upperCase', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ')'], expr: true },
+  caps: { gen: a => ['_.capitalize', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ')'], expr: true },
+  cmls: { gen: a => ['_.camelCase', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ')'], expr: true },
+  snks: { gen: a => ['_.snakeCase', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ')'], expr: true },
+  pads: { gen: (a, b, c) => ['_.pad', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ',', b, ',', c, ')'], expr: true },
+  lpads: { gen: a => ['_.padStart', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ')'], expr: true },
+  rpads: { gen: a => ['_.padEnd', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ')'], expr: true },
+  reps: { gen: (a, b) => ['_.repeat', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ',', b, ')'], expr: true },
+  repls: { gen: (a, b, c) => ['_.replace', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ',', b, ',', c, ')'], expr: true },
+  truncs: { gen: (a, b) => ['_.truncate', '(', sbc('_vm.lds', defaults.boundscheck), '(', a, ')', ',', b, ')'], expr: true },
 
   ord: { gen: a => [a + '.toString().charCodeAt[0]'], expr: true },
   chr: { gen: a => ['String.fromCharCode', '(', a, ')'], expr: true },
@@ -182,34 +226,34 @@ export var opcodes = {
 
   // Memory
 
-  '@': { gen: a => [_vm_ld(defaults.boundscheck), '(', a, ')'], expr: true },
+  '@': { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', a, ')'], expr: true },
 
-  ldb: { gen: a => [_vm_ldb(defaults.boundscheck), '(', a, ')'], expr: true },
-  ldw: { gen: a => [_vm_ldw(defaults.boundscheck), '(', a, ')'], expr: true },
-  ld: { gen: a => [_vm_ld(defaults.boundscheck), '(', a, ')'], expr: true },
-  ldf: { gen: a => [_vm_ldf(defaults.boundscheck), '(', a, ')'], expr: true },
-  ldd: { gen: a => [_vm_ldd(defaults.boundscheck), '(', a, ')'], expr: true },
-  ldl: { gen: (a, b) => [_vm_ldl(defaults.boundscheck), '(', a, ',', b, ')'], expr: true },
+  ldb: { gen: a => [sbc('_vm.ldb', defaults.boundscheck), '(', a, ')'], expr: true },
+  ldw: { gen: a => [sbc('_vm.ldw', defaults.boundscheck), '(', a, ')'], expr: true },
+  ld: { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', a, ')'], expr: true },
+  ldf: { gen: a => [sbc('_vm.ldf', defaults.boundscheck), '(', a, ')'], expr: true },
+  ldd: { gen: a => [sbc('_vm.ldd', defaults.boundscheck), '(', a, ')'], expr: true },
+  ldl: { gen: (a, b) => [sbc('_vm.ldl', defaults.boundscheck), '(', a, ',', b, ')'], expr: true },
 
-  'ldb.s': { gen: a => [_vm_ldb(defaults.boundscheck, true), '(', a, ')'], expr: true },
-  'ldw.s': { gen: a => [_vm_ldw(defaults.boundscheck, true), '(', a, ')'], expr: true },
-  'ld.s': { gen: a => [_vm_ld(defaults.boundscheck, true), '(', a, ')'], expr: true },
-  'ldd.s': { gen: a => [_vm_ldd(defaults.boundscheck, true), '(', a, ')'], expr: true },
+  'ldb.s': { gen: a => [sbc('_vm.ldb', defaults.boundscheck, true), '(', a, ')'], expr: true },
+  'ldw.s': { gen: a => [sbc('_vm.ldw', defaults.boundscheck, true), '(', a, ')'], expr: true },
+  'ld.s': { gen: a => [sbc('_vm.ld', defaults.boundscheck, true), '(', a, ')'], expr: true },
+  'ldd.s': { gen: a => [sbc('_vm.ldd', defaults.boundscheck, true), '(', a, ')'], expr: true },
 
-  stb: { gen: (a, b) => [_vm_stb(defaults.boundscheck), '(', a, ',', b, ')'] },
-  stw: { gen: (a, b) => [_vm_stw(defaults.boundscheck), '(', a, ',', b, ')'] },
-  st: { gen: (a, b) => [_vm_st(defaults.boundscheck), '(', a, ',', b, ')'] },
-  std: { gen: (a, b) => [_vm_std(defaults.boundscheck), '(', a, ',', b, ')'] },
-  stf: { gen: (a, b) => [_vm_stf(defaults.boundscheck), '(', a, ',', b, ')'] },
-  stl: { gen: (a, b) => [_vm_stl(defaults.boundscheck), '(', a, ',', b, ')'] },
+  stb: { gen: (a, b) => [sbc('_vm.stb', defaults.boundscheck), '(', a, ',', b, ')'] },
+  stw: { gen: (a, b) => [sbc('_vm.stw', defaults.boundscheck), '(', a, ',', b, ')'] },
+  st: { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', a, ',', b, ')'] },
+  std: { gen: (a, b) => [sbc('_vm.std', defaults.boundscheck), '(', a, ',', b, ')'] },
+  stf: { gen: (a, b) => [sbc('_vm.stf', defaults.boundscheck), '(', a, ',', b, ')'] },
+  stl: { gen: (a, b) => [sbc('_vm.stl', defaults.boundscheck), '(', a, ',', b, ')'] },
 
-  'stb.s': { gen: (a, b) => [_vm_stb(defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  'stw.s': { gen: (a, b) => [_vm_stw(defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  'st.s': { gen: (a, b) => [_vm_st(defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  'std.s': { gen: (a, b) => [_vm_std(defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  'stb.s': { gen: (a, b) => [sbc('_vm.stb', defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  'stw.s': { gen: (a, b) => [sbc('_vm.stw', defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  'st.s': { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck, true), '(', a, ',', b, ')'] },
+  'std.s': { gen: (a, b) => [sbc('_vm.std', defaults.boundscheck, true), '(', a, ',', b, ')'] },
 
-  copy: { gen: (s, t, sz) => [_vm_copy(defaults.boundscheck), '(', s, ',', t, ',', sz, ')'] },
-  fill: { gen: (a, v, sz) => [_vm_fill(defaults.boundscheck), '(', a, ',', v, ',', sz, ')'] },
+  copy: { gen: (s, t, sz) => [sbc('_vm.copy', defaults.boundscheck), '(', s, ',', t, ',', sz, ')'] },
+  fill: { gen: (a, v, sz) => [sbc('_vm.fill', defaults.boundscheck), '(', a, ',', v, ',', sz, ')'] },
 
   free: { gen: (...args) => ['_vm.free', '(', comma_array(args), ')'] },
   type: { gen: a => ['_vm.type', '(', a, ')'], expr: true },
@@ -242,10 +286,10 @@ export var opcodes = {
 
   // Interrupts
 
-  int_start: { gen: (a, b, c) => ['_vm.int_create', '(', a, ',', b, ',', c, ')'] },
-  int_pause: { gen: a => ['_vm.int_pause', '(', a, ')'] },
-  int_resume: { gen: a => ['_vm.int_resume', '(', a, ')'] },
-  int_stop: { gen: a => ['_vm.int_stop', '(', a, ')'] },
+  'int.start': { gen: (a, b, c) => ['_vm.int_create', '(', a, ',', b, ',', c, ')'] },
+  'int.pause': { gen: a => ['_vm.int_pause', '(', a, ')'] },
+  'int.resume': { gen: a => ['_vm.int_resume', '(', a, ')'] },
+  'int.stop': { gen: a => ['_vm.int_stop', '(', a, ')'] },
 }
 
 var x = 0
@@ -341,7 +385,7 @@ export var mixin = (proto, ...mixins) => {
 export var delay = ms => {
   // setTimeout(() => {}, ms)
   let t = performance.now()
-  let c = performance.now()
+  let c = t
   while (c - t <= ms) {
     PIXI.ticker.shared.update(c)
     c = performance.now()

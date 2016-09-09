@@ -207,7 +207,7 @@ export class Tokenizer {
       },
 
       {
-        port: /#([0-9]+)(?!:)/i,
+        port: /#([0-9]+)(?!:)/,
       },
 
       {

@@ -1,0 +1,13 @@
+<snippet>
+	<content><![CDATA[
+if(${1:EXPR})
+	$SELECTION
+else
+	$5
+end
+
+]]></content>
+    <tabTrigger>ifel</tabTrigger>
+    <scope>source.assembly.dx32</scope>
+    <description>DX32 if-else block</description>
+</snippet>

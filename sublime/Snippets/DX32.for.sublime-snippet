@@ -1,0 +1,11 @@
+<snippet>
+	<content><![CDATA[
+for :${1:i} = ${2:0} ${3:10}
+	$SELECTION
+end
+
+]]></content>
+    <tabTrigger>for</tabTrigger>
+    <scope>source.assembly.dx32</scope>
+    <description>DX32 for loop</description>
+</snippet>

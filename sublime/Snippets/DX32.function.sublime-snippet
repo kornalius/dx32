@@ -1,0 +1,11 @@
+<snippet>
+	<content><![CDATA[
+:${1:name}(${2:args})
+  ${3:...}
+end
+
+]]></content>
+    <tabTrigger>:(</tabTrigger>
+    <scope>source.assembly.dx32</scope>
+    <description>DX32 function</description>
+</snippet>

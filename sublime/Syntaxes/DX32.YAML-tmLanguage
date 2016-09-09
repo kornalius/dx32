@@ -1,0 +1,121 @@
+# [PackageDev] target_format: plist, ext: tmLanguage
+name: DX32
+scopeName: source.assembly.dx32
+fileTypes: [.x32]
+uuid: de312101-5fb7-47e6-abf0-27a7b2a6624c
+
+patterns:
+
+  # foldingStartMarker: ^\s*(if|elif|else|for|whl)\b
+  # foldingStopMarker: ^\s*end\b}
+
+  - name: keyword.control
+    match: (if|elif|else|for|end|whl|brk|rts)\b
+
+  - name: keyword.operator
+    match: (=)[^=:]
+
+  - name: keyword.operator
+    match: (==|\!=|<|<=|>|>=)
+
+  - name: keyword.operator
+    match: (\+|\-|\/|\*|\!|\&|\|)
+
+  - name: punctuation.definition
+    match: (\[|\]|\{|\}|\(|\)|,)
+
+  - name: keyword.operator
+    match: (db|dw|ddw)(\.s)?\b
+
+  - name: keyword.operator
+    match: (dd|df)\b
+
+  - name: keyword.other
+    match: (ldb|ldw|ld|stb|stw|st)(\.s)?\b
+
+  - name: keyword.other
+    match: (ldd|ldf|ldl|std|stf|stl)\b
+
+  - name: keyword.other
+    match: (inc|dec|shl|shr|rol|ror|lob|low|lodw|lo|lod|hib|hiw|hidw|hi|hid|max|min|abs|cos|acos|sin|asin|tan|atan|exp|floor|ceil|round|rnd|clamp|lds|sts|lens|subs|lows|upps|caps|cmls|snks|pads|lpads|rpads|reps|repls|truncs|ord|chr|hex|hex8|hex16|print|copy|fill|free|type|size|stk|psh|pop|stk\.used|stk\.max|stk\.size|stk\.type|call|callp|ret|hlt|brk|wait|int\.start|int\.pause|int\.resume|int\.stop)\b
+
+  - name: comment.line
+    match: ;[^\r\n]*
+
+  - name: entity.name.function
+    match: (:[A-Za-z_][A-Za-z0-9_\.]*)(?=\s*\([^\)]*\))
+    captures:
+      '1': {name: entity.name.function}
+
+  - name: storage.type.variable
+    match: (:[A-Za-z_][A-Za-z0-9_\.]*)(?!\s*\()
+
+  - name: storage.type.variable.indirect
+    match: (@+:[A-Za-z_][A-Za-z0-9_\.]*)(?!\s*\()
+
+  - name: constant.other
+    match: (::[A-Za-z_][A-Za-z0-9_\.]*)
+
+  - name: entity.name.struct
+    match: (=:[A-Za-z_][A-Za-z0-9_\.]*)
+
+  - name: support.variable
+    match: (#[0-9]+:[A-Za-z0-9_\.]+)
+
+  - name: support.variable.indirect
+    match: (@+#[0-9]+:[A-Za-z0-9_\.]+)
+
+  - name: support.variable
+    match: (#[A-Za-z_]+:[A-Za-z0-9_\.]+)
+
+  - name: support.variable.indirect
+    match: (@+#[A-Za-z_]+:[A-Za-z0-9_\.]+)
+
+  - name: support.variable
+    match: (#[0-9]+)(?!\:)
+    captures:
+      '1': {name: support.variable}
+
+  - name: support.variable
+    match: (#[A-Za-z_]+)(?!\:)
+    captures:
+      '1': {name: support.variable}
+
+  - name: support.variable.indirect
+    match: (@+#[A-Za-z_]+)(?!\:)
+    captures:
+      '1': {name: support.variable.indirect}
+
+  - name: keyword.other
+    match: \.(include|bounds|debug)\b
+
+  - name: support.constant
+    match: \b(true|false)\b
+
+  - name: keyword.control
+    match: \b(end|for|if|elif|else|whl)\b
+
+  - name: variable.other
+    match: ([A-Za-z_]+[A-Za-z0-9_]*)
+
+  - name: variable.other.indirect
+    match: (@+[A-Za-z_]+[A-Za-z0-9_]*)
+
+  - name: string.quoted.double
+    begin: '"'
+    end: '"'
+
+  - name: constant.character.escape
+    match: \\.
+
+  - name: constant.character
+    match: \'.\'
+
+  - name: constant.numeric.hex
+    match: \$[0-9a-fA-F]+
+
+  - name: constant.numeric.hex
+    match: 0x[0-9a-fA-F]+
+
+  - name: constant.numeric.decimal
+    match: \b\d+\b

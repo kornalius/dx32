@@ -1,0 +1,11 @@
+<snippet>
+	<content><![CDATA[
+if(${1:EXPR})
+	$SELECTION
+end
+
+]]></content>
+    <tabTrigger>if</tabTrigger>
+    <scope>source.assembly.dx32</scope>
+    <description>DX32 if block</description>
+</snippet>
