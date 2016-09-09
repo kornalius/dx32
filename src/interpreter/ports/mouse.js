@@ -1,10 +1,19 @@
+import { mixin } from '../../globals.js'
 import { Port } from '../port.js'
-
+import { StackBuffer } from '../stackbuffer.js'
 
 export class MousePort extends Port {
 
   constructor (port_number) {
     super(port_number)
+
+    this.stk_buf_init([
+      { name: 'x', type: 'i32' },
+      { name: 'y', type: 'i32' },
+      { name: 'left_button', type: 'i8' },
+      { name: 'middle_button', type: 'i8' },
+      { name: 'right_button', type: 'i8' },
+    ])
 
     this.name = 'mse'
 
@@ -54,8 +63,8 @@ export class MousePort extends Port {
 
   update_info () {
     let i = _vm.seq_start(this.info)
-    _vm.seq_double(i, this.x)
-    _vm.seq_double(i, this.y)
+    _vm.seq_dword(i, this.x)
+    _vm.seq_dword(i, this.y)
     _vm.seq_byte(i, this.left_button)
     _vm.seq_byte(i, this.middle_button)
     _vm.seq_byte(i, this.right_button)
@@ -113,3 +122,5 @@ export class MousePort extends Port {
   }
 
 }
+
+mixin(MousePort.prototype, StackBuffer.prototype)

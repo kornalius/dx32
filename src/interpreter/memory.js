@@ -1,5 +1,5 @@
 import hexy from 'hexy'
-import { defaults, mixin, hex } from './globals.js'
+import { defaults, mixin, hex } from '../globals.js'
 import { StackMixin } from './stack.js'
 
 export class Memory {
@@ -193,7 +193,7 @@ export class Memory {
 
   ldf (addr) { return this.mem_buffer.readFloatLE(addr) }
 
-  ldd (addr) { return this.mem_buffer.writeDoubleLE(addr) }
+  ldd (addr) { return this.mem_buffer.readDoubleLE(addr) }
 
   ldl (addr, size) {
     let b = new Buffer(size)

@@ -1,4 +1,4 @@
-import { defaults, data_type_size, runtime_error } from './globals.js'
+import { defaults, data_type_size, runtime_error } from '../globals.js'
 
 
 export var stacks = {}

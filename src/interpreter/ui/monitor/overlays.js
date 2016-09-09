@@ -356,7 +356,7 @@ export class Overlays {
     this.overlays.crt = new CrtOverlay(this, width, height)
     this.stage.addChild(this.overlays.crt.sprite)
 
-    let tex = PIXI.Texture.fromImage(require('file?name=[path]/[name].[ext]!../../../imgs/crt.png'))
+    let tex = PIXI.Texture.fromImage(require('file?name=[path]/[name].[ext]!../../../../imgs/crt.png'))
     this.overlays.monitor = new PIXI.Sprite(tex)
     this.overlays.monitor.width = this.renderer.width + margins.x
     this.overlays.monitor.height = this.renderer.height + margins.y

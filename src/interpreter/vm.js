@@ -1,6 +1,6 @@
 import { defaults, mixin, runtime_error, delay } from '../globals.js'
 
-import { Memory } from '../memory.js'
+import { Memory } from './memory.js'
 import { MemoryManager } from './memorymanager.js'
 import { Debugger } from './debugger.js'
 import { Interrupt } from './interrupt.js'

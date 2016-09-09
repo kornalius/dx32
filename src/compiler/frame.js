@@ -50,7 +50,7 @@ export class Frame {
   end_code (code) {
     let labels = _.filter(_.keys(this.labels), k => !this.labels[k].is_func && !this.labels[k].noFree)
     if (labels.length) {
-      code.line_s('free', '(', comma_array(labels), ')')
+      code.line_s('_vm.free', '(', comma_array(labels), ')')
     }
   }
 

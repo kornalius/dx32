@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { Sound } from '../sound.js'
-import { Memory } from '../../memory.js'
+import { Memory } from '../memory.js'
 import { Block } from './block.js'
 import { Entry } from './entry.js'
 import { defaults, mixin, string_to_buffer, buffer_to_string, string_buffer } from '../../globals.js'

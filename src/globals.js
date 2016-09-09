@@ -78,7 +78,7 @@ export var data_type_to_alloc = type => {
     case 'f32': return '_vm.alloc_f'
     case 'i64': return '_vm.alloc_dd'
     case 'str': return '_vm.alloc_str'
-    default: return 'alloc'
+    default: return '_vm.alloc'
   }
 }
 
@@ -99,11 +99,11 @@ export var define_to_data_type = def_name => {
 export var data_type_to_define = type => {
   switch (type) {
     case 'i8': return '_vm.db'
-    case 's8': return '_vm.db_s'
+    case 's8': return sbc('_vm.db', false, true)
     case 'i16': return '_vm.dw'
-    case 's16': return '_vm.dw_s'
+    case 's16': return sbc('_vm.dw', false, true)
     case 'i32': return '_vm.ddw'
-    case 's32': return '_vm.ddw_s'
+    case 's32': return sbc('_vm.ddw', false, true)
     case 'f32': return '_vm.df'
     case 'i64': return '_vm.dd'
     default: return null

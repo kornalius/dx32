@@ -534,7 +534,7 @@ export class Assembler {
           }
           else {
             if (!l.noFree) {
-              code.line_s('free', '(', l.name, ')')
+              code.line_s('_vm.free', '(', l.name, ')')
             }
             code.line_s(...alloc(l.name, null, [size, '*', l.dimensions]))
           }
@@ -561,7 +561,9 @@ export class Assembler {
           if (_new) {
             code.line_s(...var_alloc(l.name, null, size * parms.length))
           }
-          code.line_s(sbc(js_name(def_fn), defaults.boundscheck), '(', l.name, ',', comma_array(parms), ')')
+          let n = js_name(def_fn)
+          signed = signed && !n.endsWith('_s')
+          code.line_s(sbc('_vm.' + n, defaults.boundscheck, signed), '(', l.name, ',', comma_array(parms), ')')
         }
       }
 

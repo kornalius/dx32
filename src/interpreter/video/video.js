@@ -1,8 +1,8 @@
 import { mixin } from '../../globals.js'
-import { Overlays } from './overlays.js'
 import { Palette } from './palette.js'
 import { Text } from './text.js'
 import { Sprite } from './sprite.js'
+import { Monitor } from '../ui/monitor/monitor.js'
 
 
 PIXI.Point.prototype.distance = target => {
@@ -26,17 +26,6 @@ export class Video {
 
     this.screen_addr = _vm.alloc(this.screen_size)
 
-    this.stage = new PIXI.Container()
-
-    this.renderer = new PIXI.autoDetectRenderer(this.width * this.scale + this.margins.x, this.height * this.scale + this.margins.y, null, { })
-    this.renderer.view.style.position = 'absolute'
-    this.renderer.view.style.top = Math.trunc(this.margins.x / 2) + 'px'
-    this.renderer.view.style.left = Math.trunc(this.margins.y / 2) + 'px'
-
-    window.addEventListener('resize', this.vid_resize.bind(this))
-
-    document.body.appendChild(this.renderer.view)
-
     this.pal_init()
     this.pal_reset()
 
@@ -46,16 +35,15 @@ export class Video {
     this.txt_init()
     this.txt_reset()
 
-    this.overlays_init()
-    this.overlays_reset()
+    this.monitor_init()
 
-    this.vid_resize()
+    this.monitor_resize()
 
     this.vid_clear()
   }
 
   vid_tick (t) {
-    this.overlays_tick(t)
+    this.monitor_tick(t)
 
     if (this.force_update) {
       this.force_update = false
@@ -74,7 +62,7 @@ export class Video {
   }
 
   vid_reset () {
-    this.overlays_reset()
+    this.monitor_reset()
     this.pal_reset()
     this.txt_reset()
     this.spr_reset()
@@ -85,7 +73,7 @@ export class Video {
     this.pal_shut()
     this.txt_shut()
     this.spr_shut()
-    this.overlays_shut()
+    this.monitor_shut()
 
     this.stage.destroy()
     this.stage = null
@@ -118,15 +106,6 @@ export class Video {
     }
 
     screenOverlay.context.putImageData(data, 0, 0)
-  }
-
-  vid_resize () {
-    // let ratio = Math.min(window.innerWidth / this.width, window.innerHeight / this.height)
-    // this.stage.scale.x = this.stage.scale.y = ratio
-    // this.renderer.vid_resize(Math.ceil(this.width * ratio), Math.ceil(this.height * ratio))
-    this.renderer.view.style.left = window.innerWidth * 0.5 - this.renderer.width * 0.5 + 'px'
-    this.renderer.view.style.top = window.innerHeight * 0.5 - this.renderer.height * 0.5 + 'px'
-    this.vid_refresh()
   }
 
   pixel (i, c) {
@@ -184,4 +163,4 @@ export class Video {
 
 }
 
-mixin(Video.prototype, Overlays.prototype, Palette.prototype, Text.prototype, Sprite.prototype)
+mixin(Video.prototype, Monitor.prototype, Palette.prototype, Text.prototype, Sprite.prototype)
