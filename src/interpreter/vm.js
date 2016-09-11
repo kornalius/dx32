@@ -150,7 +150,7 @@ export class VM {
     return '$' + _.padStart(value.toString(16), Math.trunc(size / 4), '0')
   }
 
-  gpa (port, offset) { return this.ports[port].top + offset }
+  gpa (port, offset) { return this.ports[port].mem_top + offset }
   gfa (offset) { return this.fp + offset }
   gsa (offset) { return this.sp + offset }
 

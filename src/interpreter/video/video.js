@@ -3,6 +3,7 @@ import { Palette } from './palette.js'
 import { Text } from './text.js'
 import { Sprite } from './sprite.js'
 import { Monitor } from '../ui/monitor/monitor.js'
+import { Struct } from '../struct.js'
 
 
 PIXI.Point.prototype.distance = target => {
@@ -13,30 +14,81 @@ PIXI.Point.prototype.distance = target => {
 export class Video {
 
   vid_init (width, height, scale, offset, margins) {
-    this.force_update = false
-    this.force_flip = false
-
-    this.width = width || 378
-    this.height = height || 264
-    this.scale = scale || 3
-    this.offset = offset || new PIXI.Point(0, 0)
-    this.margins = margins || new PIXI.Point(32, 32)
-
-    this.screen_size = this.width * this.height
-
-    this.screen_addr = _vm.alloc(this.screen_size)
+    this.vid_width = width || 378
+    this.vid_height = height || 264
+    this.vid_size = this.vid_width * this.vid_height
+    this.vid_scale = scale || 3
+    this.vid_offset_x = offset ? offset.x : 0
+    this.vid_offset_y = offset ? offset.y : 0
+    this.vid_margins_x = margins ? margins.x : 32
+    this.vid_margins_y = margins ? margins.y : 32
 
     this.pal_init()
-    this.pal_reset()
-
     this.spr_init()
-    this.spr_reset()
-
     this.txt_init()
+
+    this.struct_init(null, null, [
+      { name: 'vid_force_update', type: 'i8' },
+      { name: 'vid_force_flip', type: 'i8' },
+
+      { name: 'vid_top', type: 'i32' },
+      { name: 'vid_bottom', type: 'i32' },
+      { name: 'vid_size', type: 'i32', value: this.vid_size },
+      { name: 'vid_width', type: 'i16', value: this.vid_width },
+      { name: 'vid_height', type: 'i16', value: this.vid_height },
+      { name: 'vid_scale', type: 'i8', value: this.vid_scale || 3 },
+      { name: 'vid_offset_x', type: 'i8', value: this.vid_offset_x },
+      { name: 'vid_offset_y', type: 'i8', value: this.vid_offset_y },
+      { name: 'vid_margins_x', type: 'i8', value: this.vid_margins_x },
+      { name: 'vid_margins_y', type: 'i8', value: this.vid_margins_y },
+
+      { name: 'pal_top', type: 'i32' },
+      { name: 'pal_bottom', type: 'i32' },
+      { name: 'pal_size', type: 'i16', value: this.pal_size },
+      { name: 'pal_count', type: 'i16', value: this.pal_count },
+
+      { name: 'spr_force_update', type: 'i8' },
+      { name: 'spr_top', type: 'i32' },
+      { name: 'spr_bottom', type: 'i32' },
+      { name: 'spr_size', type: 'i16', value: this.spr_size },
+      { name: 'spr_width', type: 'i8', value: this.spr_width },
+      { name: 'spr_height', type: 'i8', value: this.spr_height },
+
+      { name: 'chr_count', type: 'i16', value: this.chr_count },
+      { name: 'chr_width', type: 'i8', value: this.chr_width },
+      { name: 'chr_height', type: 'i8', value: this.chr_height },
+      { name: 'chr_offset_x', type: 'i8', value: this.chr_offset_x },
+      { name: 'chr_offset_y', type: 'i8', value: this.chr_offset_y },
+      { name: 'chr_size', type: 'i16', value: this.chr_size },
+
+      { name: 'fnt_top', type: 'i32' },
+      { name: 'fnt_bottom', type: 'i32' },
+      { name: 'fnt_size', type: 'i16', value: this.fnt_size },
+
+      { name: 'txt_force_update', type: 'i8' },
+      { name: 'txt_top', type: 'i32' },
+      { name: 'txt_bottom', type: 'i32' },
+      { name: 'txt_width', type: 'i8', value: this.txt_width },
+      { name: 'txt_height', type: 'i8', value: this.txt_height },
+      { name: 'txt_size', type: 'i16', value: this.txt_size },
+
+      { name: 'palette', type: this.pal_size },
+      { name: 'sprites', type: this.spr_size },
+      { name: 'fonts', type: this.fnt_size },
+      { name: 'text', type: this.txt_size },
+      { name: 'pixels', type: this.vid_size },
+    ])
+
+    this.vid_top = this._pixels.mem_top
+    this.vid_bottom = this.vid_top + this.vid_size - 1
+
+    this.pal_reset()
+    this.spr_reset()
     this.txt_reset()
 
-    this.monitor_init()
+    this.txt_load_fnt()
 
+    this.monitor_init()
     this.monitor_resize()
 
     this.vid_clear()
@@ -45,16 +97,16 @@ export class Video {
   vid_tick (t) {
     this.monitor_tick(t)
 
-    if (this.force_update) {
-      this.force_update = false
+    if (this.vid_force_update) {
+      this.vid_force_update = false
 
       this.pal_tick(t)
       this.txt_tick(t)
       this.spr_tick(t)
 
-      if (this.force_flip) {
+      if (this.vid_force_flip) {
         this.vid_flip()
-        this.force_flip = false
+        this.vid_force_flip = false
       }
 
       this.renderer.render(this.stage)
@@ -75,6 +127,8 @@ export class Video {
     this.spr_shut()
     this.monitor_shut()
 
+    this.struct_shut()
+
     this.stage.destroy()
     this.stage = null
 
@@ -83,12 +137,12 @@ export class Video {
   }
 
   vid_refresh (flip = true) {
-    this.force_update = true
-    this.force_flip = flip
+    this.vid_force_update = true
+    this.vid_force_flip = flip
   }
 
   vid_clear () {
-    _vm.fill(this.screen_addr, 0, this.screen_size)
+    _vm.fill(0, this.vid_top, this.vid_bottom)
     this.vid_refresh()
   }
 
@@ -97,10 +151,10 @@ export class Video {
     let data = screenOverlay.context.getImageData(0, 0, screenOverlay.width, screenOverlay.height)
     let pixels = data.data
 
-    let end = this.screen_addr + this.screen_size
+    let end = this.vid_bottom
     let mem = _vm.mem_buffer
     let c
-    for (let si = this.screen_addr, pi = 0; si < end; si++, pi += 4) {
+    for (let si = this.vid_top, pi = 0; si < end; si++, pi += 4) {
       c = this.palette_rgba(mem[si])
       pixels.set([c >> 24 & 0xFF, c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF], pi)
     }
@@ -109,7 +163,7 @@ export class Video {
   }
 
   pixel (i, c) {
-    let pi = this.screen_addr + i
+    let pi = this.vid_top + i
     let mem = _vm.mem_buffer
     if (c !== undefined && mem[pi] !== c) {
       mem[pi] = c
@@ -117,10 +171,10 @@ export class Video {
     return mem[pi]
   }
 
-  pixel_to_index (x, y) { return y * this.width + x }
+  pixel_to_index (x, y) { return y * this.vid_width + x }
 
   index_to_pixel (i) {
-    let y = Math.min(Math.trunc(i / this.width), this.height - 1)
+    let y = Math.min(Math.trunc(i / this.vid_width), this.vid_height - 1)
     let x = i - y
     return { x, y }
   }
@@ -157,10 +211,10 @@ export class Video {
   }
 
   scroll (x, y) {
-    _vm.mem_buffer.copy(_vm.mem_buffer, this.screen_addr, this.screen_addr + y * this.width, (this.height - y) * this.width)
+    _vm.mem_buffer.copy(_vm.mem_buffer, this.vid_top, this.vid_top + y * this.vid_width, (this.vid_height - y) * this.vid_width)
     this.vid_refresh()
   }
 
 }
 
-mixin(Video.prototype, Monitor.prototype, Palette.prototype, Text.prototype, Sprite.prototype)
+mixin(Video.prototype, Struct.prototype, Monitor.prototype, Palette.prototype, Text.prototype, Sprite.prototype)

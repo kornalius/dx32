@@ -56,7 +56,7 @@ export class MemoryManager {
           return b.mem_top
         }
         let ob = b.mem_bottom
-        b.mem_bottom = b.mem_top + size
+        b.mem_bottom = b.mem_top + size - 1
         b.size = size
         b.used = true
 

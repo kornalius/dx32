@@ -7,10 +7,10 @@ export class Monitor {
   monitor_init () {
     this.stage = new PIXI.Container()
 
-    this.renderer = new PIXI.autoDetectRenderer(this.width * this.scale + this.margins.x, this.height * this.scale + this.margins.y, null, { })
+    this.renderer = new PIXI.autoDetectRenderer(this.vid_width * this.vid_scale + this.vid_margins_x, this.vid_height * this.vid_scale + this.vid_margins_y, null, { })
     this.renderer.view.style.position = 'absolute'
-    this.renderer.view.style.top = Math.trunc(this.margins.x / 2) + 'px'
-    this.renderer.view.style.left = Math.trunc(this.margins.y / 2) + 'px'
+    this.renderer.view.style.top = Math.trunc(this.vid_margins_x / 2) + 'px'
+    this.renderer.view.style.left = Math.trunc(this.vid_margins_y / 2) + 'px'
 
     window.addEventListener('resize', this.monitor_resize.bind(this))
 

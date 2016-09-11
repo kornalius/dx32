@@ -3,15 +3,16 @@
 export class Palette {
 
   pal_init (count) {
-    this.palette_count = count || 32
-    this.palette_size = this.palette_count * 4
+    this.pal_count = count || 32
+    this.pal_size = this.pal_count * 4
   }
 
   pal_tick (t) {
   }
 
   pal_reset () {
-    this.palette_addr = _vm.alloc(this.palette_size)
+    this.pal_top = this._palette.mem_top
+    this.pal_bottom = this._palette.mem_bottom
 
     this.palette_rgba(0, 0x000000ff)
     this.palette_rgba(1, 0xffffffff)
@@ -51,7 +52,7 @@ export class Palette {
   }
 
   palette_rgba (c, r, g, b, a) {
-    let pi = this.palette_addr + c * 4
+    let pi = this.pal_top + c * 4
     if (r) {
       this.rgba_to_mem(_vm.mem_buffer, pi, r, g, b, a)
     }
@@ -60,7 +61,7 @@ export class Palette {
 
   rgba_to_palette (r, g, b, a) {
     let rgba = this.rgba_to_num(r, g, b, a)
-    for (let c = 0; c < this.palette_count; c++) {
+    for (let c = 0; c < this.pal_count; c++) {
       if (this.palette_rgba(c) === rgba) {
         return c
       }

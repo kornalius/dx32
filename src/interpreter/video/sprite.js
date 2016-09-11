@@ -3,46 +3,47 @@
 export class Sprite {
 
   spr_init (count, width, height) {
-    this.sprite_count = Math.min(16, count || 16)
-    this.sprite_width = Math.min(16, width || 16)
-    this.sprite_height = Math.min(16, height || 16)
+    this.spr_list = []
 
-    this.sprite_size = this.sprite_width * this.sprite_height
-    this.sprites_size = this.sprite_count * this.sprite_size
-
-    this.spr_reset()
+    this.spr_count = Math.min(16, count || 16)
+    this.spr_width = Math.min(16, width || 16)
+    this.spr_height = Math.min(16, height || 16)
+    this.spr_size = this.spr_width * this.spr_height
   }
 
   spr_tick (t) {
-    if (this.force_sprites) {
+    if (this.spr_force_update) {
       this.spr_draw()
-      this.force_sprites = false
+      this.spr_force_update = false
     }
   }
 
   spr_reset () {
-    this.force_sprites = false
-    this.sprites = []
-    this.sprites_addr = _vm.alloc(this.sprites_size)
+    this.spr_top = this._sprites.mem_top
+    this.spr_bottom = this._sprites.mem_bottom
+
+    _vm.fill(0, this.spr_top, this.spr_bottom)
+
+    this.spr_force_update = false
+    this.spr_clear()
   }
 
   spr_shut () {
-    this.sprites = []
   }
 
   spr_refresh (flip = true) {
     this.vid_refresh(flip)
-    this.force_sprites = true
+    this.spr_force_update = true
   }
 
   spr_clear () {
-    _vm.fill(this.sprites_addr, 0, this.sprites_size)
-    this.sprites = {}
+    _vm.fill(0, this.spr_top, this.spr_bottom)
+    this.spr_list = []
     this.spr_refresh()
   }
 
   spr_find (name) {
-    for (let s of this.sprites) {
+    for (let s of this.spr_list) {
       if (s.name === name) {
         return s
       }
@@ -50,14 +51,14 @@ export class Sprite {
     return null
   }
 
-  spr_add (name, sprite, x, y, z) {
-    this.sprites.push({ name, sprite, x, y, z, index: Number.MAX_VALUE })
+  spr_add (name, frame, x, y, z) {
+    this.spr_list.push({ name, frame, x, y, z, index: Number.MAX_VALUE })
   }
 
   spr_del (name) {
     let s = this.spr_find(name)
     if (s) {
-      this.sprites.splice(s.index, 1)
+      this.spr_list.splice(s.index, 1)
     }
   }
 
@@ -83,13 +84,13 @@ export class Sprite {
   }
 
   spr_draw () {
-    let sw = this.sprite_width
-    let sh = this.sprite_height
-    let sl = this.sprites
-    let ss = this.sprite_size
+    let sw = this.spr_width
+    let sh = this.spr_height
+    let sl = this.spr_list
+    let ss = this.spr_size
 
-    for (let s of _.sortBy(this.sprites, 'z')) {
-      let ptr = sl + s.sprite * ss
+    for (let s of _.sortBy(this.spr_list, 'z')) {
+      let ptr = sl + s.frame * ss
       for (let by = 0; by < sh; by++) {
         let pi = (s.y + by) * this.width + s.x
         for (let bx = 0; bx < sw; bx++) {

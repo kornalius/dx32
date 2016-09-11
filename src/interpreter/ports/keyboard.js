@@ -1,4 +1,7 @@
+import { mixin } from '../../globals.js'
 import { Port } from '../port.js'
+import { Stack } from '../stack.js'
+import { Struct } from '../struct.js'
 
 
 export class KeyboardPort extends Port {
@@ -8,42 +11,39 @@ export class KeyboardPort extends Port {
 
     this.name = 'kbd'
 
-    this.keys = {}
-    this.shift = false
-    this.alt = false
-    this.ctrl = false
-    this.joystick = 0
+    this.struct_init(null, null, [
+      { name: 'mods', type: 'i8' },
+      { name: 'joystick', type: 'i8' },
 
-    this.keys_size = 255
-    this.info_size = 255 + 5
-    this.info = _vm.alloc(this.info_size)
+      { name: 'keys', type: 256 },
+    ])
+
+    this.mem_top = this.struct_top
+    this.mem_bottom = this.struct_bottom
+
+    this.stk_init()
 
     window.addEventListener('keydown', this.onKeydown.bind(this))
     window.addEventListener('keyup', this.onKeyup.bind(this))
 
     this.publics = {
-      pressed: this.pressed,
+      key: this.key,
+      shift: this.shift,
+      ctrl: this.ctrl,
+      alt: this.alt,
     }
   }
 
   reset () {
+    this.struct_reset()
+    this.stk_reset()
     super.reset()
-    _vm.fill(this.info, 0, this.info_size)
   }
 
   shut () {
+    this.struct_shut()
+    this.stk_shut()
     super.shut()
-  }
-
-  update_info (code) {
-    let sz = this.keys_size
-
-    _vm.stb(this.info + code, this.keys[code])
-
-    _vm.stb(this.info + sz + 1, this.shift)
-    _vm.stb(this.info + sz + 2, this.ctrl)
-    _vm.stb(this.info + sz + 3, this.alt)
-    _vm.stb(this.info + sz + 4, this.joystick)
   }
 
   onKeydown (e) {
@@ -53,15 +53,15 @@ export class KeyboardPort extends Port {
 
     switch (code) {
       case 16: // Shift
-        this.shift = true
+        this.mods |= 0x01
         break
 
       case 17: // Ctrl
-        this.ctrl = true
+        this.mods |= 0x02
         break
 
       case 18: // Alt
-        this.alt = true
+        this.mods |= 0x04
         break
 
       case 38: // up
@@ -109,8 +109,6 @@ export class KeyboardPort extends Port {
         break
     }
 
-    this.update_info()
-
     // e.preventDefault()
     e.stopPropagation()
   }
@@ -118,19 +116,19 @@ export class KeyboardPort extends Port {
   onKeyup (e) {
     let code = e.keyCode
     let numpad = e.location === 3
-    delete this.keys[code]
+    this.keys[code] = 0
 
     switch (e.keyCode) {
       case 16: // Shift
-        this.shift = false
+        this.mods &= ~0x01
         break
 
       case 17: // Ctrl
-        this.ctrl = false
+        this.mods &= ~0x02
         break
 
       case 18: // Alt
-        this.alt = false
+        this.mods &= ~0x04
         break
 
       case 38: // up
@@ -178,12 +176,18 @@ export class KeyboardPort extends Port {
         break
     }
 
-    this.update_info()
-
     // e.preventDefault()
     e.stopPropagation()
   }
 
-  pressed (which) { return this.keys[which] || false }
+  shift () { return this.mods & 0x01 }
+
+  ctrl () { return this.mods & 0x02 }
+
+  alt () { return this.mods & 0x04 }
+
+  key (which) { return this.keys[which] }
 
 }
+
+mixin(KeyboardPort.prototype, Stack.prototype, Struct.prototype)

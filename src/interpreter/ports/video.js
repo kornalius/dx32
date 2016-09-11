@@ -12,6 +12,10 @@ export class VideoPort extends Port {
 
     this.vid_init()
 
+    this.mem_top = this.vid_top
+    this.mem_bottom = this.vid_bottom
+    this.mem_size = this.vid_size
+
     this.publics = {
       draw: this.txt_draw,
       refresh: this.txt_refresh,
@@ -57,61 +61,22 @@ export class VideoPort extends Port {
   }
 
   tick (t) {
-    super.tick(t)
     this.vid_tick(t)
+    super.tick(t)
   }
 
   reset () {
-    super.reset()
     this.vid_reset()
-    this.write_info()
+    super.reset()
   }
 
   shut () {
-    super.shut()
     this.vid_shut()
-  }
-
-  write_info () {
-    if (!this.info) {
-      this.info = _vm.alloc(80)
-    }
-
-    let i = _vm.seq_start(this.info)
-
-    _vm.seq_dword(i, this.screen_addr)
-    _vm.seq_dword(i, this.width)
-    _vm.seq_dword(i, this.height)
-    _vm.seq_dword(i, this.scale)
-
-    _vm.seq_dword(i, this.palette_addr)
-    _vm.seq_dword(i, this.palette_count)
-    _vm.seq_dword(i, this.palette_size)
-
-    _vm.seq_dword(i, this.sprites_addr)
-    _vm.seq_dword(i, this.sprite_width)
-    _vm.seq_dword(i, this.sprite_height)
-    _vm.seq_dword(i, this.sprite_size)
-    _vm.seq_dword(i, this.sprites_size)
-
-    _vm.seq_dword(i, this.fonts_addr)
-    _vm.seq_dword(i, this.font_size)
-    _vm.seq_dword(i, this.fonts_size)
-
-    _vm.seq_dword(i, this.char_count)
-    _vm.seq_dword(i, this.char_width)
-    _vm.seq_dword(i, this.char_height)
-
-    _vm.seq_dword(i, this.text_width)
-    _vm.seq_dword(i, this.text_height)
-    _vm.seq_dword(i, this.text_addr)
-    _vm.seq_dword(i, this.text_size)
-
-    _vm.seq_end(i)
+    super.shut()
   }
 
   test () {
-    _vm.fill(this.screen_addr, 10, 2000)
+    _vm.fill(10, this.vid_top, this.vid_top + 2000)
 
     this.pixel(200, 0)
     this.pixel(400, 6)

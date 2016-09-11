@@ -1,223 +1,160 @@
+import { mixin, data_type_size, data_read, data_write } from '../globals.js'
+
+
+export class StructEntry {
+
+  constructor (buf, offset, format) {
+    this.struct_init(buf, offset, format)
+  }
+
+}
 
 
 export class Struct {
 
-  constructor (format) {
-    this.format = format
+  struct_init (buf, offset, format) {
+    this.struct_format = format
+    let sz = this.struct_format_size(format)
+    this.struct_buffer = _.isNull(buf) ? _vm.mem_buffer : buf || new Buffer(sz)
+    this.struct_top = _.isNull(buf) && _.isNull(offset) ? _vm.alloc(sz) : offset || 0
+    this.struct_bottom = this.struct_assign_properties(this.struct_top) - 1
+    return this
+  }
+
+  struct_reset () {
+    _vm.fill(0, this.struct_top, this.struct_bottom)
+  }
+
+  struct_shut () {
+    _vm.free(this.struct_top)
+  }
+
+  struct_format_by_name (name) { return _.find(this.struct_format, { name }) }
+
+  struct_assign_properties (offset) {
+    for (let name of this.struct_names) {
+      let f = this.struct_format_by_name(name)
+
+      let type = f.type
+      let value = f.value || 0
+      let size
+      let n = '_' + name
+
+      if (_.isObject(type)) {
+        this[n] = new StructEntry(this.struct_buffer, offset, type)
+        size = this[n].struct_bottom - this[n].struct_top
+      }
+      else {
+        size = this.struct_size(type)
+        this[n] = { name, type, mem_size: size, mem_top: offset, mem_bottom: offset + size - 1 }
+      }
+
+      let entry = this[n]
+
+      Object.defineProperty(this, name, {
+        enumerable: true,
+        get: () => data_read(this.struct_buffer, entry.mem_top, entry.type).value,
+        set: value => {
+          if (!(entry instanceof StructEntry)) {
+            data_write(value, this.struct_buffer, entry.mem_top, entry.type)
+          }
+        },
+      })
+
+      if (value) {
+        this[name] = value
+      }
+
+      offset += size
+    }
+
+    return offset
+  }
+
+  struct_format_size (fmt) {
+    let sz = 0
+    let names = _.map(fmt, st => st.name)
+
+    for (let name of names) {
+      let f = this.struct_format_by_name(name)
+      let type = f.type
+      if (_.isObject(type)) {
+        sz += this.struct_format_size(type)
+      }
+      else {
+        sz += data_type_size(type)
+      }
+    }
+
+    return sz
+  }
+
+  get struct_names () { return _.map(this.struct_format, st => st.name) }
+
+  struct_size (type) {
+    if (!type) {
+      return this.struct_bottom - this.struct_top
+    }
+    else if (type instanceof StructEntry) {
+      return type.struct_size()
+    }
+    else {
+      return data_type_size(type)
+    }
+  }
+
+  struct_clear () {
+    this.struct_buffer.fill(0, this.struct_top, this.struct_bottom)
+    return this
   }
 
   from_buffer (buf, offset = 0) {
-    let _convert = (s, fmt) => {
-      let n = 0
-      for (let st of fmt) {
-        let name
-        let type
-        let value
-
-        if (_.isObject(st)) {
-          name = st.name
-          type = st.type
-        }
-        else if (_.isString(st)) {
-          name = 'field' + n
-          type = st
-          n++
-        }
-
-        if (_.isObject(type)) {
-          value = _convert(s[name], type)
-        }
-        else if (_.isNumber(type)) {
-          value = new Buffer(type)
-          buf.copy(value, 0, offset, offset + type)
-          offset += type
-        }
-        else {
-          switch (type) {
-            case 'i8':
-              value = buf.readUInt8(offset)
-              offset++
-              break
-            case 's8':
-              value = buf.readInt8(offset)
-              offset++
-              break
-            case 'i16':
-              value = buf.readUInt16LE(offset)
-              offset += 2
-              break
-            case 's16':
-              value = buf.readInt16LE(offset)
-              offset += 2
-              break
-            case 'i32':
-              value = buf.readUInt32LE(offset)
-              offset += 4
-              break
-            case 's32':
-              value = buf.readInt32LE(offset)
-              offset += 4
-              break
-            case 'f32':
-              value = buf.readFloatLE(offset)
-              offset += 4
-              break
-            case 'i64':
-              value = buf.readDoubleLE(offset)
-              offset += 8
-              break
-            case 'str':
-              value = ''
-              let c = buf[offset++]
-              while (offset < buf.byteLength && c !== 0) {
-                value += String.fromCharCode(c)
-                c = buf[offset++]
-              }
-              break
-          }
-        }
-
-        s[name] = value
-      }
-
-      return s
-    }
-
-    return _convert({}, this.format)
+    buf.copy(this.struct_buffer, 0, offset, offset + this.struct_size() - 1)
+    return this
   }
 
-  buffer_size () {
-    let _size = fmt => {
-      let sz = 0
-
-      for (let st of fmt) {
-        let type
-
-        if (_.isObject(st)) {
-          type = st.type
-        }
-        else if (_.isString(st)) {
-          type = st
-        }
-
-        if (_.isObject(type)) {
-          sz += _size(type)
-        }
-        else if (_.isNumber(type)) {
-          sz += type
-        }
-        else {
-          switch (type) {
-            case 'i8':
-              sz++
-              break
-            case 's8':
-              sz++
-              break
-            case 'i16':
-              sz += 2
-              break
-            case 's16':
-              sz += 2
-              break
-            case 'i32':
-              sz += 4
-              break
-            case 's32':
-              sz += 4
-              break
-            case 'f32':
-              sz += 4
-              break
-            case 'i64':
-              sz += 8
-              break
-            case 'str':
-              sz += 255
-              break
-          }
-        }
-      }
-
-      return sz
-    }
-
-    return _size(this.format)
-  }
-
-  to_buffer (s, buf = null, offset = 0) {
+  to_buffer (buf, offset = 0) {
     if (!buf) {
-      buf = new Buffer(this.buffer_size())
+      buf = new Buffer(this.struct_size())
     }
-
-    let _convert = (s, fmt) => {
-      for (let st of fmt) {
-        let name
-        let type
-
-        if (_.isObject(st)) {
-          name = st.name
-          type = st.type
-        }
-
-        let value = s[name]
-
-        if (_.isObject(type)) {
-          _convert(value, type)
-        }
-        else if (_.isNumber(type)) {
-          value.copy(buf, offset, 0, type)
-          offset += type
-        }
-        else {
-          switch (type) {
-            case 'i8':
-              buf.writeUInt8(offset, value)
-              offset++
-              break
-            case 's8':
-              buf.writeInt8(offset, value)
-              offset++
-              break
-            case 'i16':
-              buf.writeUInt16LE(offset, value)
-              offset += 2
-              break
-            case 's16':
-              buf.writeInt16LE(offset, value)
-              offset += 2
-              break
-            case 'i32':
-              buf.writeUInt32LE(offset, value)
-              offset += 4
-              break
-            case 's32':
-              buf.writeInt32LE(offset, value)
-              offset += 4
-              break
-            case 'f32':
-              buf.writeFloatLE(offset, value)
-              offset += 4
-              break
-            case 'i64':
-              buf.writeDoubleLE(offset, value)
-              offset += 8
-              break
-            case 'str':
-              let i = 0
-              while (i < value.length) {
-                buf.writeUInt8(offset++, value.charCodeAt(i++))
-              }
-              buf.writeUInt8(offset++, 0)
-              break
-          }
-        }
-      }
-    }
-
-    _convert(s, this.format)
-
+    this.struct_buffer.copy(buf, offset)
     return buf
   }
 
+  from_object (obj) {
+    for (let name of this.struct_names) {
+      if (this[name] instanceof StructEntry) {
+        this[name].from_object(obj[name])
+      }
+      else {
+        this[name] = obj[name]
+      }
+    }
+    return this
+  }
+
+  to_object () {
+    let s = {}
+    for (let name of this.struct_names) {
+      let value = this[name]
+      if (value instanceof StructEntry) {
+        s[name] = value.to_object()
+      }
+      else {
+        s[name] = value
+      }
+    }
+    return s
+  }
+
+  struct_read (offset, type) {
+    return data_read(this.struct_buffer, offset, type).value
+  }
+
+  struct_write (value, offset, type) {
+    return data_write(value, this.struct_buffer, offset, type)
+  }
+
 }
+
+mixin(StructEntry.prototype, Struct.prototype)

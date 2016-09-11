@@ -52,7 +52,7 @@ export class DrivePort extends Port {
       write: this.write,
     }
 
-    this.test()
+    // this.test()
   }
 
   tick (t) {

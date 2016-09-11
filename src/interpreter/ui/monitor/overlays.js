@@ -35,7 +35,7 @@ export class Overlay {
   }
 
   update () {
-    this.video.force_update = true
+    this.video.vid_force_update = true
   }
 
 }
@@ -48,8 +48,8 @@ export class ScreenOverlay extends Overlay {
 
     this.create()
 
-    this.sprite.x = this.video.offset.x + this.video.margins.x / 2
-    this.sprite.y = this.video.offset.y + this.video.margins.y / 2
+    this.sprite.x = this.video.vid_offset_x + this.video.vid_margins_x / 2
+    this.sprite.y = this.video.vid_offset_y + this.video.vid_margins_y / 2
   }
 
 }
@@ -272,8 +272,8 @@ export class TextCursorOverlay extends Overlay {
   }
 
   update () {
-    this.sprite.x = (this.x - 1) * this.sprite.width + this.video.offset.x + this.video.txt_offset.x + this.video.margins.x / 2
-    this.sprite.y = (this.y - 1) * this.sprite.height + this.video.offset.y + this.video.txt_offset.y + this.video.margins.y / 2
+    this.sprite.x = (this.x - 1) * this.sprite.width + this.video.vid_offset_x + this.video.txt_offset_x + this.video.vid_margins_x / 2
+    this.sprite.y = (this.y - 1) * this.sprite.height + this.video.vid_offset_y + this.video.txt_offset_y + this.video.vid_margins_y / 2
     super.update()
   }
 
@@ -286,7 +286,8 @@ export class MouseCursorOverlay extends Overlay {
     super(video, width, height)
 
     this.refresh = refresh || 5
-    this.offset = offset || new PIXI.Point(0, 0)
+    this.offset_x = offset ? offset.x : 0
+    this.offset_y = offset ? offset.y : 0
     this.x = 0
     this.y = 0
 
@@ -312,8 +313,8 @@ export class MouseCursorOverlay extends Overlay {
   }
 
   update () {
-    this.sprite.x = (this.x + this.offset.x) * this.sprite.scale.x + this.video.offset.x
-    this.sprite.y = (this.y + this.offset.y) * this.sprite.scale.y + this.video.offset.y
+    this.sprite.x = (this.x + this.offset_x) * this.sprite.scale.x + this.video.vid_offset_x
+    this.sprite.y = (this.y + this.offset_y) * this.sprite.scale.y + this.video.vid_offset_y
     super.update()
   }
 
@@ -325,20 +326,21 @@ export class Overlays {
   overlays_init () {
     let width = this.renderer.width
     let height = this.renderer.height
-    let scale = this.scale
-    let margins = this.margins
+    let scale = this.vid_scale
+    let margins_x = this.vid_margins_x
+    let margins_y = this.vid_margins_y
 
     this.overlays = {}
 
-    this.overlays.screen = new ScreenOverlay(this, this.width, this.height)
+    this.overlays.screen = new ScreenOverlay(this, this.vid_width, this.vid_height)
     this.overlays.screen.sprite.scale = new PIXI.Point(scale, scale)
     this.stage.addChild(this.overlays.screen.sprite)
 
-    this.overlays.textCursor = new TextCursorOverlay(this, this.char_width, this.char_height)
+    this.overlays.textCursor = new TextCursorOverlay(this, this.chr_width, this.chr_height)
     this.overlays.textCursor.sprite.scale = new PIXI.Point(scale, scale)
     this.stage.addChild(this.overlays.textCursor.sprite)
 
-    this.overlays.mouseCursor = new MouseCursorOverlay(this, this.sprite_width, this.sprite_height)
+    this.overlays.mouseCursor = new MouseCursorOverlay(this, this.spr_width, this.spr_height)
     this.overlays.mouseCursor.sprite.scale = new PIXI.Point(scale, scale)
     this.stage.addChild(this.overlays.mouseCursor.sprite)
 
@@ -358,10 +360,10 @@ export class Overlays {
 
     let tex = PIXI.Texture.fromImage(require('file?name=[path]/[name].[ext]!../../../../imgs/crt.png'))
     this.overlays.monitor = new PIXI.Sprite(tex)
-    this.overlays.monitor.width = this.renderer.width + margins.x
-    this.overlays.monitor.height = this.renderer.height + margins.y
-    this.overlays.monitor.x = margins.x / -2
-    this.overlays.monitor.y = margins.y / -2
+    this.overlays.monitor.width = width + margins_x
+    this.overlays.monitor.height = height + margins_y
+    this.overlays.monitor.x = margins_x / -2
+    this.overlays.monitor.y = margins_y / -2
     this.stage.addChild(this.overlays.monitor)
   }
 

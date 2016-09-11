@@ -17,8 +17,8 @@ export class Block {
     if (size < 0) {
       size = 0
     }
-    this.size = size
-    this.mem_bottom = this.mem_top + this.size
+    this.mem_size = size
+    this.mem_bottom = this.mem_top + this.mem_size - 1
   }
 
   is_used () { return this.entry_idx !== -1 }
@@ -27,14 +27,14 @@ export class Block {
 
   read (addr) {
     this.drive.seek(this.mem_top)
-    this.drive.read(addr, this.size)
-    return this.size
+    this.drive.read(addr, this.mem_size)
+    return this.mem_size
   }
 
   write (addr) {
     this.drive.seek(this.mem_top)
-    this.drive.write(addr, this.size)
-    return this.size
+    this.drive.write(addr, this.mem_size)
+    return this.mem_size
   }
 
 }

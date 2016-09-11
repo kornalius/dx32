@@ -13,7 +13,10 @@ export class Entry {
     this.floppy = floppy
     this.drive = this.floppy.drive
     this.idx = idx
+
+    this.mem_size = 60
     this.mem_top = this.floppy.entries_table_top + this.idx * this.floppy.entry_size
+    this.mem_bottom = this.mem_top + this.mem_size
 
     this.uid = uid || _.uniqueId()
     this.parent_uid = parent_uid || 0
@@ -120,7 +123,7 @@ export class Entry {
   size () {
     let sz = 0
     for (let b of this.blocks()) {
-      sz += b.size
+      sz += b.mem_size
     }
     return sz
   }

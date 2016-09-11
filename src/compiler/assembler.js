@@ -423,7 +423,7 @@ export class Assembler {
       return r
     }
 
-    port = () => indirect('_vm.ports[' + t.value + '].top')
+    port = () => indirect('_vm.ports[' + t.value + '].mem_top')
 
     port_call = () => {
       let parts = t.value.split(':')

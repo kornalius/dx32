@@ -1,39 +1,36 @@
 import { mixin } from '../../globals.js'
 import { Port } from '../port.js'
-import { StackBuffer } from '../stackbuffer.js'
+import { Stack } from '../stack.js'
+import { Struct } from '../struct.js'
+
 
 export class MousePort extends Port {
 
   constructor (port_number) {
     super(port_number)
 
-    this.stk_buf_init([
+    this.name = 'mse'
+
+    this.struct_init(null, null, [
       { name: 'x', type: 'i32' },
       { name: 'y', type: 'i32' },
-      { name: 'left_button', type: 'i8' },
-      { name: 'middle_button', type: 'i8' },
-      { name: 'right_button', type: 'i8' },
+      { name: 'btns', type: 'i8' },
     ])
 
-    this.name = 'mse'
+    this.mem_top = this.struct_top
+    this.mem_bottom = this.struct_bottom
+
+    this.stk_init()
 
     this.video = _vm.ports[_vm.port_by_name('vid')]
 
     let video = this.video
     let renderer = video.renderer
-    let margins = video.margins
+    let margins_x = video.vid_margins_x
+    let margins_y = video.vid_margins_y
     let cursor = video.overlays.mouseCursor
 
-    this.size = new PIXI.Point(renderer.width - margins.x / 2 - cursor.sprite.width, renderer.height - margins.y / 2 - cursor.sprite.height)
-
-    this.x = 0
-    this.y = 0
-    this.left_button = false
-    this.middle_button = false
-    this.right_button = false
-
-    this.info_size = 11
-    this.info = _vm.alloc()
+    this.size = new PIXI.Point(renderer.width - margins_x / 2 - cursor.sprite.width, renderer.height - margins_y / 2 - cursor.sprite.height)
 
     let stage = this.video.stage
     if (stage) {
@@ -50,49 +47,66 @@ export class MousePort extends Port {
       stage.on('mouseupoutside', this.onMouseUp.bind(this))
       stage.on('touchendoutside', this.onMouseUp.bind(this))
     }
+
+    this.publics = {
+      x: this.pos_x,
+      y: this.pos_y,
+      left: this.left,
+      middle: this.middle,
+      right: this.right,
+    }
   }
 
   reset () {
+    this.struct_reset()
+    this.stk_reset()
     super.reset()
-    _vm.fill(this.info, 0, this.info_size)
   }
 
   shut () {
+    this.struct_shut()
+    this.stk_shut()
     super.shut()
-  }
-
-  update_info () {
-    let i = _vm.seq_start(this.info)
-    _vm.seq_dword(i, this.x)
-    _vm.seq_dword(i, this.y)
-    _vm.seq_byte(i, this.left_button)
-    _vm.seq_byte(i, this.middle_button)
-    _vm.seq_byte(i, this.right_button)
-    _vm.seq_end(i)
   }
 
   onMouseDown (e) {
     switch (e.data.originalEvent.button) {
-      case 0:
-        this.left_button = true
+      case 0: // left
+        this.btns |= 0x01
         break
 
-      case 1:
-        this.middle_button = true
+      case 1: // middle
+        this.btns |= 0x02
         break
 
-      case 2:
-        this.right_button = true
+      case 2: // right
+        this.btns |= 0x04
         break
     }
-    this.update_info()
+  }
+
+  onMouseUp (e) {
+    switch (e.data.originalEvent.button) {
+      case 0: // left
+        this.btns &= ~0x01
+        break
+
+      case 1: // middle
+        this.btns &= ~0x02
+        break
+
+      case 2: // right
+        this.btns &= ~0x04
+        break
+    }
   }
 
   onMouseMove (e) {
-    let margins = this.video.margins
+    let margins_x = this.video.vid_margins_x
+    let margins_y = this.video.vid_margins_y
     let cursor = this.video.overlays.mouseCursor
-    let x = Math.trunc(Math.min(this.size.x, Math.max(margins.x / 2, e.data.global.x)) / cursor.sprite.scale.x)
-    let y = Math.trunc(Math.min(this.size.y, Math.max(margins.y / 2, e.data.global.y)) / cursor.sprite.scale.y)
+    let x = Math.trunc(Math.min(this.size.x, Math.max(margins_x / 2, e.data.global.x)) / cursor.sprite.scale.x)
+    let y = Math.trunc(Math.min(this.size.y, Math.max(margins_y / 2, e.data.global.y)) / cursor.sprite.scale.y)
 
     this.x = x
     this.y = y
@@ -100,27 +114,18 @@ export class MousePort extends Port {
     cursor.x = x
     cursor.y = y
 
-    this.update_info()
+    this.video.vid_refresh()
   }
 
-  onMouseUp (e) {
-    switch (e.data.originalEvent.button) {
-      case 0:
-        this.left_button = false
-        break
+  pos_x () { return this.x }
 
-      case 1:
-        this.middle_button = false
-        break
+  pos_y () { return this.y }
 
-      case 2:
-        this.right_button = false
-        break
-    }
+  left () { return this.btns & 0x01 }
 
-    this.update_info()
-  }
+  middle () { return this.btns & 0x02 }
 
+  right () { return this.btns & 0x04 }
 }
 
-mixin(MousePort.prototype, StackBuffer.prototype)
+mixin(MousePort.prototype, Stack.prototype, Struct.prototype)

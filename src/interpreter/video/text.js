@@ -120,39 +120,37 @@ class BDF {
 
 export class Text {
 
-  txt_init (char_count, char_width, char_height) {
-    this.txt_offset = new PIXI.Point(0, 0)
+  txt_init (char_count, char_width, char_height, char_offset) {
+    this.chr_count = char_count || 256
+    this.chr_width = char_width || 6
+    this.chr_height = char_height || 10
+    this.chr_offset_x = char_offset ? char_offset.x : 0
+    this.chr_offset_y = char_offset ? char_offset.y : 4
+    this.chr_size = this.chr_width * this.chr_height
 
-    this.char_count = char_count || 256
-    this.char_width = char_width || 6
-    this.char_height = char_height || 10
+    this.txt_width = Math.round(this.vid_width / this.chr_width)
+    this.txt_height = Math.round(this.vid_height / this.chr_height)
+    this.txt_size = this.txt_width * this.txt_height * 3
 
-    this.char_offset_x = 0
-    this.char_offset_y = 4
-
-    this.text_width = Math.round(this.width / this.char_width)
-    this.text_height = Math.round(this.height / this.char_height)
-    this.text_size = this.text_width * this.text_height * 3
-
-    this.font_size = this.char_width * this.char_height
-    this.fonts_size = this.char_count * this.font_size
-
-    this.txt_reset()
+    this.fnt_size = this.chr_count * this.chr_size
   }
 
   txt_tick (t) {
-    if (this.force_text) {
+    if (this.txt_force_update) {
       this.txt_draw()
-      this.force_text = false
+      this.txt_force_update = false
     }
   }
 
   txt_reset () {
-    this.force_text = false
+    this.fnt_top = this._fonts.mem_top
+    this.fnt_bottom = this._fonts.mem_bottom
 
-    this.text_addr = _vm.alloc(this.text_size)
-    this.fonts_addr = _vm.alloc(this.fonts_size)
-    this.txt_load_fnt()
+    this.txt_top = this._text.mem_top
+    this.txt_bottom = this._text.mem_bottom
+
+    this.txt_force_update = false
+    this.txt_clear()
   }
 
   txt_shut () {
@@ -166,12 +164,12 @@ export class Text {
     // let points = b.meta.size.points
     let fontAscent = b.meta.properties.fontAscent
     // let fontDescent = b.meta.properties.fontDescent
-    let baseline = fontAscent + this.char_offset_y
+    let baseline = fontAscent + this.chr_offset_y
 
-    let cw = this.char_width
-    let fnt = this.fonts_addr
-    let fnt_sz = this.font_size
-    let osx = this.char_offset_x
+    let cw = this.chr_width
+    let fnt = this.fnt_top
+    let fnt_sz = this.chr_size
+    let osx = this.chr_offset_x
     var mem = _vm.mem_buffer
 
     for (let k in b.glyphs) {
@@ -192,16 +190,16 @@ export class Text {
   }
 
   txt_draw () {
-    let cw = this.char_width
-    let ch = this.char_height
-    let tw = this.text_width
-    let th = this.text_height
-    let w = this.width
-    let fnt = this.fonts_addr
-    let fnt_sz = this.font_size
+    let cw = this.chr_width
+    let ch = this.chr_height
+    let tw = this.txt_width
+    let th = this.txt_height
+    let w = this.vid_width
+    let fnt = this.fnt_top
+    let fnt_sz = this.chr_size
     var mem = _vm.mem_buffer
 
-    let idx = this.text_addr
+    let idx = this.txt_top
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
         let c = mem[idx]
@@ -227,16 +225,16 @@ export class Text {
 
   txt_refresh (flip = true) {
     this.vid_refresh(flip)
-    this.force_text = true
+    this.txt_force_update = true
   }
 
   txt_index (x, y) {
-    return this.text_addr + ((y - 1) * this.text_width + (x - 1)) * 3
+    return this.txt_top + ((y - 1) * this.txt_width + (x - 1)) * 3
   }
 
   txt_line (y) {
-    let l = this.text_width * 3
-    return { start: this.text_addr + y * l, end: this.text_addr + (y + 1) * l - 3, length: l }
+    let l = this.txt_width * 3
+    return { start: this.txt_top + y * l, end: this.txt_top + (y + 1) * l - 3, length: l }
   }
 
   txt_char_at (x, y) {
@@ -263,7 +261,7 @@ export class Text {
     _vm.mem_buffer[tidx + 2] = bg
 
     this.overlays.textCursor.x++
-    if (this.overlays.textCursor.x > this.text_width) {
+    if (this.overlays.textCursor.x > this.txt_width) {
       this.txt_cr()
     }
 
@@ -280,14 +278,14 @@ export class Text {
   txt_pos () { return { x: this.overlays.textCursor.x, y: this.overlays.textCursor.y } }
 
   txt_move_to (x, y) {
-    if (x > this.text_width) {
-      x = this.text_width
+    if (x > this.txt_width) {
+      x = this.txt_width
     }
     else if (x < 1) {
       x = 1
     }
-    if (y > this.text_height) {
-      y = this.text_height
+    if (y > this.txt_height) {
+      y = this.txt_height
     }
     else if (y < 1) {
       y = 1
@@ -301,11 +299,11 @@ export class Text {
 
   txt_bol () { return this.txt_move_to(1, this.overlays.textCursor.y) }
 
-  txt_eol () { return this.txt_move_to(this.text_width, this.overlays.textCursor.y) }
+  txt_eol () { return this.txt_move_to(this.txt_width, this.overlays.textCursor.y) }
 
   txt_bos () { return this.txt_move_to(1, 1) }
 
-  txt_eos () { return this.txt_move_to(this.text_width, this.text_height) }
+  txt_eos () { return this.txt_move_to(this.txt_width, this.txt_height) }
 
   txt_bs () { this.txt_left(); this.txt_put_char(' '); return this.txt_left() }
 
@@ -322,17 +320,17 @@ export class Text {
   txt_right () { return this.txt_move_to(this.overlays.textCursor.x + 1, this.overlays.textCursor.y) }
 
   txt_clear () {
-    _vm.mem_buffer.fill(0, this.text_addr, this.text_addr + this.text_size)
+    _vm.mem_buffer.fill(0, this.txt_top, this.txt_bottom)
   }
 
   txt_clear_eol () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_index(this.text_width, y))
+    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_index(this.txt_width, y))
   }
 
   txt_clear_eos () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.text_addr + this.text_size)
+    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_bottom)
   }
 
   txt_clear_bol () {
@@ -342,7 +340,7 @@ export class Text {
 
   txt_clear_bos () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.text_addr)
+    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_top)
   }
 
   txt_copy_lin (sy, ty) {
@@ -353,7 +351,7 @@ export class Text {
 
   txt_copy_col (sx, tx) {
     var mem = _vm.mem_buffer
-    for (let y = 0; y < this.text_height; y++) {
+    for (let y = 0; y < this.txt_height; y++) {
       let i = this.txt_line(y)
       let si = i.start + sx * 3
       let ti = i.start + tx * 3
@@ -368,7 +366,7 @@ export class Text {
 
   txt_erase_col (x) {
     var mem = _vm.mem_buffer
-    for (let y = 0; y < this.text_height; y++) {
+    for (let y = 0; y < this.txt_height; y++) {
       let i = this.txt_line(y).start + x * 3
       mem.fill(0, i, i + 3)
     }
@@ -378,15 +376,15 @@ export class Text {
     let i
     if (dy > 0) {
       i = this.txt_line(dy + 1)
-      _vm.mem_buffer.copy(_vm.mem_buffer, this.text_addr, i.start, this.text_size - i)
+      _vm.mem_buffer.copy(_vm.mem_buffer, this.txt_top, i.start, this.txt_size - i)
       i = this.txt_line(dy)
-      _vm.mem_buffer.fill(0, this.text_addr - i.start, this.text_addr + this.text_size)
+      _vm.mem_buffer.fill(0, this.txt_top - i.start, this.txt_bottom)
     }
     else if (dy < 0) {
       i = this.txt_line(dy + 1)
-      _vm.mem_buffer.copy(_vm.mem_buffer, this.text_addr, i, this.text_size - i)
+      _vm.mem_buffer.copy(_vm.mem_buffer, this.txt_top, i, this.txt_size - i)
       i = this.txt_line(dy + 1)
-      _vm.mem_buffer.fill(0, this.text_addr - dy * this.text_width * 3, this.text_addr + this.text_size)
+      _vm.mem_buffer.fill(0, this.txt_top - dy * this.txt_width * 3, this.txt_bottom)
     }
   }
 

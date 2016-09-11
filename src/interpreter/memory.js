@@ -1,6 +1,6 @@
 import hexy from 'hexy'
-import { defaults, mixin, hex } from '../globals.js'
-import { StackMixin } from './stack.js'
+import { mixin, hex, data_read, data_write } from '../globals.js'
+import { StackBuffer } from './stackbuffer.js'
 
 export class Memory {
 
@@ -23,7 +23,7 @@ export class Memory {
     this.mem_buffer = null
   }
 
-  clear () { this.fill(0, 0, this.mem_size) }
+  clear () { this.fill(0, this.mem_top, this.mem_bottom) }
 
   chk_bounds (addr, sz = 4) { if (addr < this.mem_top || addr + sz > this.mem_bottom) { this.hlt(0x08) } }
 
@@ -300,12 +300,12 @@ export class Memory {
     mem[addr] = 0
   }
 
-  fill_bc (addr, value, size) {
-    this.chk_bounds(addr, size)
-    this.fill(addr, value, size)
+  fill_bc (value, top, bottom) {
+    this.chk_bounds(top, bottom - top)
+    this.fill(value, top, bottom)
   }
 
-  fill (addr, value, size) { this.mem_buffer.fill(value, addr, addr + size) }
+  fill (value, top, bottom) { this.mem_buffer.fill(value, top, bottom) }
 
   copy_bc (src, tgt, size) {
     this.chk_bounds(src, size)
@@ -315,73 +315,9 @@ export class Memory {
 
   copy (src, tgt, size) { this.mem_buffer.copy(this.mem_buffer, tgt, src, src + size) }
 
-  read (addr, type) {
-    switch (type || defaults.type) {
-      case 'i8': return this.ldb(addr)
-      case 'i16': return this.ldw(addr)
-      case 'i32': return this.ld(addr)
-      case 's8': return this.ldb_s(addr)
-      case 's16': return this.ldw_s(addr)
-      case 's32': return this.ld_s(addr)
-      case 'f32': return this.ldf(addr)
-      case 'i64': return this.ldd(addr)
-      case 'str': return this.lds(addr)
-      default: return null
-    }
-  }
+  read (addr, type) { return data_read(this.mem_buffer, addr, type) }
 
-  write (addr, value = 0, type) {
-    switch (type || defaults.type) {
-      case 'i8': return this.stb(addr, value)
-      case 'i16': return this.stw(addr, value)
-      case 'i32': return this.st(addr, value)
-      case 's8': return this.stb_s(addr, value)
-      case 's16': return this.stw_s(addr, value)
-      case 's32': return this.st_s(addr, value)
-      case 'f32': return this.stf(addr, value)
-      case 'i64': return this.std(addr, value)
-      case 'str': return this.sts(addr, value)
-      default: return null
-    }
-  }
-
-  seq_start (start) {
-    let id = _.uniqueId()
-    this.mem_seq[id] = start
-    return id
-  }
-
-  seq_byte (id, value) {
-    this.stb(this.mem_seq[id], value)
-    this.mem_seq[id]++
-  }
-
-  seq_word (id, value) {
-    this.stw(this.mem_seq[id], value)
-    this.mem_seq[id] += 2
-  }
-
-  seq_dword (id, value) {
-    this.st(this.mem_seq[id], value)
-    this.mem_seq[id] += 4
-  }
-
-  seq_float (id, value) {
-    this.stf(this.mem_seq[id], value)
-    this.mem_seq[id] += 4
-  }
-
-  seq_double (id, value) {
-    this.std(this.mem_seq[id], value)
-    this.mem_seq[id] += 8
-  }
-
-  seq_str (id, value) {
-    this.sts(this.mem_seq[id], value)
-    this.mem_seq[id] += value.length
-  }
-
-  seq_end (id) { delete this.mem_seq[id] }
+  write (value, addr, type) { return data_write(value, this.mem_buffer, addr, type) }
 
   dump (addr = 0, size = 1024) {
     console.log('Dumping', size, ' bytes from memory at ', hex(addr))
@@ -390,4 +326,4 @@ export class Memory {
 
 }
 
-mixin(Memory.prototype, StackMixin.prototype)
+mixin(Memory.prototype, StackBuffer.prototype)

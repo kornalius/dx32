@@ -61,9 +61,22 @@ export var data_types = {
   f32: 4,
   i64: 8,
   s64: 8,
+  str: 64,
 }
 
-export var data_type_size = name => data_types[name]
+export var data_type_size = name => {
+  let r
+  if (_.isNumber(name)) {
+    r = name
+  }
+  else {
+    r = data_types[name]
+    if (!r) {
+      console.error('invalid type "' + name + '"')
+    }
+  }
+  return r
+}
 
 export var sbc = (name, bc = false, signed = false) => name + (signed ? '_s' : '') + (bc ? '_bc' : '')
 
@@ -109,6 +122,112 @@ export var data_type_to_define = type => {
     default: return null
   }
 }
+
+export var data_read = (buf, offset = 0, type = 'i8') => {
+  let value = 0
+  if (_.isNumber(type)) {
+    value = new Uint8Array(buf.buffer, offset, type)
+    offset += type
+  }
+  switch (type) {
+    case 'i8':
+      value = buf.readUInt8(offset)
+      offset++
+      break
+    case 's8':
+      value = buf.readInt8(offset)
+      offset++
+      break
+    case 'i16':
+      value = buf.readUInt16LE(offset)
+      offset += 2
+      break
+    case 's16':
+      value = buf.readInt16LE(offset)
+      offset += 2
+      break
+    case 'i32':
+      value = buf.readUInt32LE(offset)
+      offset += 4
+      break
+    case 's32':
+      value = buf.readInt32LE(offset)
+      offset += 4
+      break
+    case 'f32':
+      value = buf.readFloatLE(offset)
+      offset += 4
+      break
+    case 'i64':
+      value = buf.readDoubleLE(offset)
+      offset += 8
+      break
+    case 'str':
+      value = ''
+      let c = buf[offset++]
+      while (offset < buf.byteLength && c !== 0) {
+        value += String.fromCharCode(c)
+        c = buf[offset++]
+      }
+      break
+  }
+  return { offset, value }
+}
+
+export var data_write = (value, buf, offset = 0, type = 'i8') => {
+  if (_.isNumber(type)) {
+    value = new Uint8Array(buf.buffer, offset, type)
+    buf.copy(value, 0, offset, offset + type - 1)
+    offset += type
+  }
+  else {
+    switch (type) {
+      case 'i8':
+        buf.writeUInt8(value, offset)
+        offset++
+        break
+      case 's8':
+        buf.writeInt8(value, offset)
+        offset++
+        break
+      case 'i16':
+        buf.writeUInt16LE(value, offset)
+        offset += 2
+        break
+      case 's16':
+        buf.writeInt16LE(value, offset)
+        offset += 2
+        break
+      case 'i32':
+        buf.writeUInt32LE(value, offset)
+        offset += 4
+        break
+      case 's32':
+        buf.writeInt32LE(value, offset)
+        offset += 4
+        break
+      case 'f32':
+        buf.writeFloatLE(value, offset)
+        offset += 4
+        break
+      case 'i64':
+        buf.writeDoubleLE(value, offset)
+        offset += 8
+        break
+      case 'str':
+        let i = 0
+        let x = offset
+        while (i < value.length) {
+          buf.writeUInt8(value.charCodeAt(i++), x++)
+        }
+        buf.writeUInt8(0, x++)
+        offset += 64
+        break
+    }
+  }
+  return offset
+}
+
 
 export var errors = 0
 
@@ -252,8 +371,8 @@ export var opcodes = {
   'st.s': { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck, true), '(', a, ',', b, ')'] },
   'std.s': { gen: (a, b) => [sbc('_vm.std', defaults.boundscheck, true), '(', a, ',', b, ')'] },
 
-  copy: { gen: (s, t, sz) => [sbc('_vm.copy', defaults.boundscheck), '(', s, ',', t, ',', sz, ')'] },
-  fill: { gen: (a, v, sz) => [sbc('_vm.fill', defaults.boundscheck), '(', a, ',', v, ',', sz, ')'] },
+  copy: { gen: (s, b, c) => [sbc('_vm.copy', defaults.boundscheck), '(', s, ',', b, ',', c, ')'] },
+  fill: { gen: (a, b, c) => [sbc('_vm.fill', defaults.boundscheck), '(', a, ',', b, ',', c, ')'] },
 
   free: { gen: (...args) => ['_vm.free', '(', comma_array(args), ')'] },
   type: { gen: a => ['_vm.type', '(', a, ')'], expr: true },
@@ -262,7 +381,7 @@ export var opcodes = {
 
   // Stack
 
-  stk: { gen: (a, b, c, d, e) => ['_vm.stk_new', '(', a, ',', b, ',', c || '\'' + defaults.type + '\'', ',', d, ',', e || false, ')'] },
+  stk: { gen: (a, b, c, d, e) => ['_vm.stk_new', '(', a, ',', b, ',', c || '\'' + defaults.type + '\'', ',', d || 0, ',', e, ')'] },
   psh: { gen: (a, ...args) => ['_vm.stk_push', '(', a, ',', comma_array(args), ')'] },
   pop: { gen: a => ['_vm.stk_pop', '(', a, ')'], expr: true },
   'stk.used': { gen: a => ['_vm.stk_used', '(', a, ')'], expr: true },

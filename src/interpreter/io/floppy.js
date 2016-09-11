@@ -11,7 +11,7 @@ export class Floppy {
   constructor (drive, size = defaults.floppy.size, block_size = defaults.floppy.block_size, max_blocks = defaults.floppy.max_blocks, entry_size = defaults.floppy.entry_size, max_entries = defaults.floppy.max_entries) {
     this.drive = drive
 
-    this.size = size
+    this.mem_size = size
 
     this.diskname = 'UNTITLED'
 
@@ -30,7 +30,7 @@ export class Floppy {
 
     this.blocks_top = this.entries_table_top + this.entries_table_size + 1
 
-    this.mem_init(this.size)
+    this.mem_init(this.mem_size)
 
     this.entries = []
     this.blocks = []
@@ -129,7 +129,7 @@ export class Floppy {
     for (let b of this.blocks) {
       this.st(ptr, b.entry_idx + 1)
       ptr += 4
-      this.stw(ptr, b.size)
+      this.stw(ptr, b.mem_size)
       ptr += 2
     }
 
