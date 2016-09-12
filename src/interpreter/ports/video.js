@@ -83,6 +83,8 @@ export class VideoPort extends Port {
     this.pixel(500, 8)
     this.pixel(600, 20)
 
+    this.vid_refresh()
+
     this.txt_move_to(1, 1)
     this.txt_put_char('A', 29, 15)
 

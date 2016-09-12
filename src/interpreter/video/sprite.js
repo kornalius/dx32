@@ -13,8 +13,7 @@ export class Sprite {
 
   spr_tick (t) {
     if (this.spr_force_update) {
-      this.spr_draw()
-      this.spr_force_update = false
+      this.spr_refresh()
     }
   }
 
@@ -24,7 +23,6 @@ export class Sprite {
 
     _vm.fill(0, this.spr_top, this.spr_bottom)
 
-    this.spr_force_update = false
     this.spr_clear()
   }
 
@@ -32,6 +30,7 @@ export class Sprite {
   }
 
   spr_refresh (flip = true) {
+    this.spr_draw()
     this.vid_refresh(flip)
     this.spr_force_update = true
   }
@@ -92,7 +91,7 @@ export class Sprite {
     for (let s of _.sortBy(this.spr_list, 'z')) {
       let ptr = sl + s.frame * ss
       for (let by = 0; by < sh; by++) {
-        let pi = (s.y + by) * this.width + s.x
+        let pi = (s.y + by) * sw + s.x
         for (let bx = 0; bx < sw; bx++) {
           this.pixel(pi++, _vm.mem_buffer[ptr++])
         }

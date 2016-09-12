@@ -3,7 +3,7 @@ import { Sound } from '../sound.js'
 import { Memory } from '../memory.js'
 import { Block } from './block.js'
 import { Entry } from './entry.js'
-import { defaults, mixin, string_to_buffer, buffer_to_string, string_buffer } from '../../globals.js'
+import { defaults, mixin, string_buffer } from '../../globals.js'
 
 
 export class Floppy {
@@ -173,15 +173,6 @@ export class Floppy {
 
   dump_blocks () {
     this.dump(this.blocks_table_top, this.blocks_table_size)
-  }
-
-  fromString (str) {
-    this.mem_buffer.fill(0)
-    this.mem_buffer = string_to_buffer(str)
-  }
-
-  toString () {
-    return buffer_to_string(this.mem_buffer)
   }
 }
 

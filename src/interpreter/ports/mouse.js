@@ -114,7 +114,7 @@ export class MousePort extends Port {
     cursor.x = x
     cursor.y = y
 
-    this.video.vid_refresh()
+    this.video.vid_refresh(false)
   }
 
   pos_x () { return this.x }

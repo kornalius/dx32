@@ -60,7 +60,6 @@ export var data_types = {
   s32: 4,
   f32: 4,
   i64: 8,
-  s64: 8,
   str: 64,
 }
 
@@ -76,6 +75,44 @@ export var data_type_size = name => {
     }
   }
   return r
+}
+
+function data_read_str (offset) {
+  let value = ''
+  let c = this[offset++]
+  while (offset < this.byteLength && c !== 0) {
+    value += String.fromCharCode(c)
+    c = this[offset++]
+  }
+  return value
+}
+
+export var data_read_fns = {
+  i8: Buffer.prototype.readUInt8,
+  s8: Buffer.prototype.readInt8,
+  i16: Buffer.prototype.readUInt16LE,
+  s16: Buffer.prototype.readInt16LE,
+  i32: Buffer.prototype.readUInt32LE,
+  s32: Buffer.prototype.readInt32LE,
+  f32: Buffer.prototype.readFloatLE,
+  i64: Buffer.prototype.readDoubleLE,
+  str: data_read_str,
+}
+
+function data_write_str (value, offset) {
+  this.write(value + '\0', offset, value.length + 1, 'ascii')
+}
+
+export var data_write_fns = {
+  i8: Buffer.prototype.writeUInt8,
+  s8: Buffer.prototype.writeInt8,
+  i16: Buffer.prototype.writeUInt16LE,
+  s16: Buffer.prototype.writeInt16LE,
+  i32: Buffer.prototype.writeUInt32LE,
+  s32: Buffer.prototype.writeInt32LE,
+  f32: Buffer.prototype.writeFloatLE,
+  i64: Buffer.prototype.writeDoubleLE,
+  str: data_write_str,
 }
 
 export var sbc = (name, bc = false, signed = false) => name + (signed ? '_s' : '') + (bc ? '_bc' : '')
@@ -129,47 +166,9 @@ export var data_read = (buf, offset = 0, type = 'i8') => {
     value = new Uint8Array(buf.buffer, offset, type)
     offset += type
   }
-  switch (type) {
-    case 'i8':
-      value = buf.readUInt8(offset)
-      offset++
-      break
-    case 's8':
-      value = buf.readInt8(offset)
-      offset++
-      break
-    case 'i16':
-      value = buf.readUInt16LE(offset)
-      offset += 2
-      break
-    case 's16':
-      value = buf.readInt16LE(offset)
-      offset += 2
-      break
-    case 'i32':
-      value = buf.readUInt32LE(offset)
-      offset += 4
-      break
-    case 's32':
-      value = buf.readInt32LE(offset)
-      offset += 4
-      break
-    case 'f32':
-      value = buf.readFloatLE(offset)
-      offset += 4
-      break
-    case 'i64':
-      value = buf.readDoubleLE(offset)
-      offset += 8
-      break
-    case 'str':
-      value = ''
-      let c = buf[offset++]
-      while (offset < buf.byteLength && c !== 0) {
-        value += String.fromCharCode(c)
-        c = buf[offset++]
-      }
-      break
+  else {
+    value = data_read_fns[type].call(buf, offset)
+    offset += data_type_size[type]
   }
   return { offset, value }
 }
@@ -181,49 +180,8 @@ export var data_write = (value, buf, offset = 0, type = 'i8') => {
     offset += type
   }
   else {
-    switch (type) {
-      case 'i8':
-        buf.writeUInt8(value, offset)
-        offset++
-        break
-      case 's8':
-        buf.writeInt8(value, offset)
-        offset++
-        break
-      case 'i16':
-        buf.writeUInt16LE(value, offset)
-        offset += 2
-        break
-      case 's16':
-        buf.writeInt16LE(value, offset)
-        offset += 2
-        break
-      case 'i32':
-        buf.writeUInt32LE(value, offset)
-        offset += 4
-        break
-      case 's32':
-        buf.writeInt32LE(value, offset)
-        offset += 4
-        break
-      case 'f32':
-        buf.writeFloatLE(value, offset)
-        offset += 4
-        break
-      case 'i64':
-        buf.writeDoubleLE(value, offset)
-        offset += 8
-        break
-      case 'str':
-        let i = 0
-        let x = offset
-        while (i < value.length) {
-          buf.writeUInt8(value.charCodeAt(i++), x++)
-        }
-        buf.writeUInt8(0, x++)
-        offset += 64
-        break
-    }
+    data_write_fns[type].call(buf, value, offset)
+    offset += data_type_size[type]
   }
   return offset
 }
