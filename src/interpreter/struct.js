@@ -1,10 +1,11 @@
-import { mixin, data_type_size, data_read, data_write } from '../globals.js'
+import { mixin } from '../globals.js'
+import { Memory, data_type_size } from './memory.js'
 
 
 export class StructEntry {
 
-  constructor (buf, offset, format) {
-    this.struct_init(buf, offset, format)
+  constructor (offset, format) {
+    this.struct_init(offset, format)
   }
 
 }
@@ -12,21 +13,31 @@ export class StructEntry {
 
 export class Struct {
 
-  struct_init (buf, offset, format) {
+  struct_init (offset, format) {
+    if (_.isObject(offset)) {
+      format = offset
+      offset = null
+    }
+
     this.struct_format = format
     let sz = this.struct_format_size(format)
-    this.struct_buffer = _.isNull(buf) ? _vm.mem_buffer : buf || new Buffer(sz)
-    this.struct_top = _.isNull(buf) && _.isNull(offset) ? _vm.alloc(sz) : offset || 0
-    this.struct_bottom = this.struct_assign_properties(this.struct_top) - 1
+    offset = offset || _vm.alloc(sz)
+
+    this.mem_init(offset, sz)
+
+    this.struct_assign_properties(offset)
+
     return this
   }
 
   struct_reset () {
-    _vm.fill(0, this.struct_top, this.struct_bottom)
+    this.mem_reset()
+    this.fill(0, this.mem_top, this.mem_size)
   }
 
   struct_shut () {
-    _vm.free(this.struct_top)
+    _vm.free(this.mem_top)
+    this.mem_shut()
   }
 
   struct_format_by_name (name) { return _.find(this.struct_format, { name }) }
@@ -41,11 +52,14 @@ export class Struct {
       let n = '_' + name
 
       if (_.isObject(type)) {
-        this[n] = new StructEntry(this.struct_buffer, offset, type)
-        size = this[n].struct_bottom - this[n].struct_top
+        this[n] = new StructEntry(offset, type)
+        size = this[n].mem_bottom - this[n].mem_top
       }
       else {
         size = this.struct_size(type)
+        if (!_.isNumber(type) && ['i16', 's16', 'i32', 's32', 'f32'].indexOf(type) !== -1) {
+          while (offset % 2 !== 0) { offset++ }
+        }
         this[n] = { name, type, mem_size: size, mem_top: offset, mem_bottom: offset + size - 1 }
       }
 
@@ -53,12 +67,8 @@ export class Struct {
 
       Object.defineProperty(this, name, {
         enumerable: true,
-        get: () => data_read(this.struct_buffer, entry.mem_top, entry.type).value,
-        set: value => {
-          if (!(entry instanceof StructEntry)) {
-            data_write(value, this.struct_buffer, entry.mem_top, entry.type)
-          }
-        },
+        get: () => this.read(entry.mem_top, entry.type),
+        set: value => { this.write(value, entry.mem_top, entry.type) },
       })
 
       if (value) {
@@ -76,14 +86,9 @@ export class Struct {
     let names = _.map(fmt, st => st.name)
 
     for (let name of names) {
-      let f = this.struct_format_by_name(name)
+      let f = _.find(this.struct_format, { name })
       let type = f.type
-      if (_.isObject(type)) {
-        sz += this.struct_format_size(type)
-      }
-      else {
-        sz += data_type_size(type)
-      }
+      sz += _.isObject(type) ? this.struct_format_size(type) : data_type_size(type)
     }
 
     return sz
@@ -93,7 +98,7 @@ export class Struct {
 
   struct_size (type) {
     if (!type) {
-      return this.struct_bottom - this.struct_top
+      return this.mem_bottom - this.mem_top
     }
     else if (type instanceof StructEntry) {
       return type.struct_size()
@@ -103,21 +108,16 @@ export class Struct {
     }
   }
 
-  struct_clear () {
-    this.struct_buffer.fill(0, this.struct_top, this.struct_bottom)
-    return this
-  }
-
   from_buffer (buf, offset = 0) {
-    buf.copy(this.struct_buffer, 0, offset, offset + this.struct_size() - 1)
+    this.mem_array.set(buf, offset)
     return this
   }
 
   to_buffer (buf, offset = 0) {
     if (!buf) {
-      buf = new Buffer(this.struct_size())
+      buf = new ArrayBuffer(this.struct_size())
     }
-    this.struct_buffer.copy(buf, offset)
+    buf.set(this.mem_array, offset)
     return buf
   }
 
@@ -147,14 +147,8 @@ export class Struct {
     return s
   }
 
-  struct_read (offset, type) {
-    return data_read(this.struct_buffer, offset, type).value
-  }
-
-  struct_write (value, offset, type) {
-    return data_write(value, this.struct_buffer, offset, type)
-  }
-
 }
+
+mixin(Struct.prototype, Memory.prototype)
 
 mixin(StructEntry.prototype, Struct.prototype)

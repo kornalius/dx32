@@ -14,6 +14,8 @@ export class Palette {
     this.pal_top = this._palette.mem_top
     this.pal_bottom = this._palette.mem_bottom
 
+    this.pal_array = new Uint32Array(_vm.mem_buffer, this.pal_top, this.pal_size)
+
     this.palette_rgba(0, 0x000000ff)
     this.palette_rgba(1, 0xffffffff)
     this.palette_rgba(2, 0x120723ff)
@@ -51,18 +53,59 @@ export class Palette {
   pal_shut () {
   }
 
-  palette_rgba (c, r, g, b, a) {
-    let pi = this.pal_top + c * 4
-    if (r) {
-      this.rgba_to_mem(_vm.mem_buffer, pi, r, g, b, a)
+  red (rgba) { return this.split_rgba(rgba).r }
+
+  green (rgba) { return this.split_rgba(rgba).g }
+
+  blue (rgba) { return this.split_rgba(rgba).b }
+
+  alpha (rgba) { return this.split_rgba(rgba).a }
+
+  split_rgba (rgba) {
+    return {
+      r: rgba >> (_vm.littleEndian ? 24 : 0) & 0xFF,
+      g: rgba >> (_vm.littleEndian ? 16 : 8) & 0xFF,
+      b: rgba >> (_vm.littleEndian ? 8 : 16) & 0xFF,
+      a: rgba >> (_vm.littleEndian ? 0 : 24) & 0xFF,
     }
-    return _vm.mem_buffer.readUInt32BE(pi)
+  }
+
+  rgba_to_num (r, g, b, a) {
+    let reverse = x => {
+      let s32 = new Uint32Array(4)
+      let s8 = new Uint8Array(s32.buffer)
+      let t32 = new Uint32Array(4)
+      let t8 = new Uint8Array(t32.buffer)
+      s32[0] = x
+      t8[0] = s8[3]
+      t8[1] = s8[2]
+      t8[2] = s8[1]
+      t8[3] = s8[0]
+      return t32[0]
+    }
+
+    let c = r
+
+    if (r && g) {
+      c = a << 24 | r << 16 | g << 8 | b
+    }
+
+    return _vm.littleEndian ? reverse(c) : c
+  }
+
+  palette_rgba (c, r, g, b, a) {
+    let mem = this.pal_array
+    if (r) {
+      mem[c] = this.rgba_to_num(r, g, b, a)
+    }
+    return mem[c]
   }
 
   rgba_to_palette (r, g, b, a) {
-    let rgba = this.rgba_to_num(r, g, b, a)
+    let mem = this.pal_array
+    let color = this.rgba_to_num(r, g, b, a)
     for (let c = 0; c < this.pal_count; c++) {
-      if (this.palette_rgba(c) === rgba) {
+      if (mem[c] === color) {
         return c
       }
     }

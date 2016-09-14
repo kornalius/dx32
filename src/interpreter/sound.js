@@ -90,7 +90,9 @@ export class Sound {
 
     let r
 
-    let cmd = _vm.mem_buffer[addr++]
+    let mem = _vm.mem_array
+
+    let cmd = mem[addr++]
     while (cmd !== 0) {
       switch (cmd) {
         case 1:  // shape
@@ -175,7 +177,7 @@ export class Sound {
           break
       }
 
-      cmd = _vm.mem_buffer[addr++]
+      cmd = mem[addr++]
     }
 
     return { note, addr }
@@ -187,7 +189,9 @@ export class Sound {
     let envelop = {
     }
 
-    let cmd = _vm.mem_buffer[addr++]
+    let mem = _vm.mem_array
+
+    let cmd = mem[addr++]
     while (cmd !== 0) {
       switch (cmd) {
         case 20:  // sustain
@@ -216,7 +220,7 @@ export class Sound {
           break
       }
 
-      cmd = _vm.mem_buffer[addr++]
+      cmd = mem[addr++]
     }
 
     return { envelop, addr }
@@ -228,7 +232,9 @@ export class Sound {
     let filter = {
     }
 
-    let cmd = _vm.mem_buffer[addr++]
+    let mem = _vm.mem_array
+
+    let cmd = mem[addr++]
     while (cmd !== 0) {
       switch (cmd) {
         case 30:  // type (L H)
@@ -259,7 +265,7 @@ export class Sound {
           break
       }
 
-      cmd = _vm.mem_buffer[addr++]
+      cmd = mem[addr++]
     }
 
     return { filter, addr }
@@ -275,7 +281,9 @@ export class Sound {
     let delay = {
     }
 
-    let cmd = _vm.mem_buffer[addr++]
+    let mem = _vm.mem_array
+
+    let cmd = mem[addr++]
     while (cmd !== 0) {
       switch (cmd) {
         case 40:  // time
@@ -294,7 +302,7 @@ export class Sound {
           break
       }
 
-      cmd = _vm.mem_buffer[addr++]
+      cmd = mem[addr++]
     }
 
     return { delay, addr }
@@ -306,7 +314,9 @@ export class Sound {
     let vibrato = {
     }
 
-    let cmd = _vm.mem_buffer[addr++]
+    let mem = _vm.mem_array
+
+    let cmd = mem[addr++]
     while (cmd !== 0) {
       switch (cmd) {
         case 50:  // time
@@ -342,7 +352,7 @@ export class Sound {
           break
       }
 
-      cmd = _vm.mem_buffer[addr++]
+      cmd = mem[addr++]
     }
 
     return { vibrato, addr }
@@ -354,7 +364,9 @@ export class Sound {
     let tremolo = {
     }
 
-    let cmd = _vm.mem_buffer[addr++]
+    let mem = _vm.mem_array
+
+    let cmd = mem[addr++]
     while (cmd !== 0) {
       switch (cmd) {
         case 60:  // shape
@@ -390,7 +402,7 @@ export class Sound {
           break
       }
 
-      cmd = _vm.mem_buffer[addr++]
+      cmd = mem[addr++]
     }
 
     return { tremolo, addr }

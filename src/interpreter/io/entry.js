@@ -16,7 +16,7 @@ export class Entry {
 
     this.mem_size = 60
     this.mem_top = this.floppy.entries_table_top + this.idx * this.floppy.entry_size
-    this.mem_bottom = this.mem_top + this.mem_size
+    this.mem_bottom = this.mem_top + this.mem_size - 1
 
     this.uid = uid || _.uniqueId()
     this.parent_uid = parent_uid || 0
@@ -40,10 +40,10 @@ export class Entry {
     ptr += 32
     this.ext = this.floppy.ldl(ptr, 3).toString('ascii')
     ptr += 3
-    this.created = this.floppy.ldd(ptr)
-    ptr += 8
-    this.modified = this.floppy.ldd(ptr)
-    ptr += 8
+    this.created = this.floppy.ld(ptr)
+    ptr += 4
+    this.modified = this.floppy.ld(ptr)
+    ptr += 4
     this.attrs = this.floppy.ldb(ptr)
 
     this.drive.operation('read', ptr - this.mem_top)
@@ -61,10 +61,10 @@ export class Entry {
     ptr += 32
     this.floppy.stl(ptr, string_buffer(this.ext, 3))
     ptr += 3
-    this.floppy.std(ptr, this.created)
-    ptr += 8
-    this.floppy.std(ptr, this.modified)
-    ptr += 8
+    this.floppy.st(ptr, this.created)
+    ptr += 4
+    this.floppy.st(ptr, this.modified)
+    ptr += 4
     this.floppy.stb(ptr, this.attrs)
 
     this.drive.operation('write', ptr - this.mem_top)
@@ -149,14 +149,13 @@ export class Entry {
 
   write (addr, size) {
     this.clear_blocks()
-    let ptr = addr
     while (size > 0) {
       let b = this.next_free_block()
       if (b) {
         let sz = Math.min(size, this.floppy.block_size)
         b.set_size(sz)
-        _vm.copy(b.mem_top, ptr, sz)
-        ptr += b.write(ptr)
+        _vm.copy(b.mem_top, addr, sz)
+        addr += b.write(addr)
       }
       size -= this.floppy.block_size
     }

@@ -16,8 +16,8 @@ export class Port {
   }
 
   reset () {
-    if (this.mem_top && this.mem_bottom) {
-      _vm.fill(0, this.mem_top, this.mem_bottom)
+    if (this.mem_top && this.mem_size) {
+      _vm.fill(0, this.mem_top, this.mem_size)
     }
   }
 

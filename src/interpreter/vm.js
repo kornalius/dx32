@@ -1,6 +1,7 @@
 import { defaults, mixin, runtime_error, delay } from '../globals.js'
 
 import { Memory } from './memory.js'
+import { StackBuffer } from './stackbuffer.js'
 import { MemoryManager } from './memorymanager.js'
 import { Debugger } from './debugger.js'
 import { Interrupt } from './interrupt.js'
@@ -23,10 +24,12 @@ export const _VM_PAUSED = 2
 
 export class VM {
 
-  constructor (mem_size = defaults.vm.mem_size) {
+  constructor (mem_size) {
     window._vm = this
 
-    this.mem_init(mem_size)
+    mem_size = mem_size || defaults.vm.mem_size
+
+    this.mem_init(new ArrayBuffer(mem_size))
     this.mm_init()
 
     this.int_init()
@@ -49,6 +52,13 @@ export class VM {
 
     if (cold) {
       this.clear()
+
+      // Check for littleEndian
+      let b = new ArrayBuffer(4)
+      let a = new Uint32Array(b)
+      let c = new Uint8Array(b)
+      a[0] = 0xdeadbeef
+      this.littleEndian = c[0] === 0xef
 
       new CPUPort(0)
       new VideoPort(1)
@@ -169,4 +179,4 @@ export class VM {
   }
 }
 
-mixin(VM.prototype, Memory.prototype, MemoryManager.prototype, Interrupt.prototype, Debugger.prototype)
+mixin(VM.prototype, Memory.prototype, StackBuffer.prototype, MemoryManager.prototype, Interrupt.prototype, Debugger.prototype)

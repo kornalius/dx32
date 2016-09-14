@@ -42,25 +42,13 @@
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>(db|dw|ddw)(\.s)?\b</string>
+			<string>(db|dw|dd|df)(\.s)?\b</string>
 			<key>name</key>
 			<string>keyword.operator</string>
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>(dd|df)\b</string>
-			<key>name</key>
-			<string>keyword.operator</string>
-		</dict>
-		<dict>
-			<key>match</key>
-			<string>(ldb|ldw|ld|stb|stw|st)(\.s)?\b</string>
-			<key>name</key>
-			<string>keyword.other</string>
-		</dict>
-		<dict>
-			<key>match</key>
-			<string>(ldd|ldf|ldl|std|stf|stl)\b</string>
+			<string>(ldb|ldw|ld|ldf|ldl|stb|stw|st|stf|stl)(\.s)?\b</string>
 			<key>name</key>
 			<string>keyword.other</string>
 		</dict>

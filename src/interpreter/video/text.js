@@ -146,10 +146,15 @@ export class Text {
     this.fnt_top = this._fonts.mem_top
     this.fnt_bottom = this._fonts.mem_bottom
 
+    this.fnt_array = new Uint8Array(_vm.mem_buffer, this.fnt_top, this.fnt_size)
+
     this.txt_top = this._text.mem_top
     this.txt_bottom = this._text.mem_bottom
 
+    this.txt_array = new Uint8Array(_vm.mem_buffer, this.txt_top, this.txt_size)
+
     this.txt_force_update = false
+
     this.txt_clear()
   }
 
@@ -167,16 +172,16 @@ export class Text {
     let baseline = fontAscent + this.chr_offset_y
 
     let cw = this.chr_width
-    let fnt = this.fnt_top
     let fnt_sz = this.chr_size
     let osx = this.chr_offset_x
-    var mem = _vm.mem_buffer
+
+    var mem = this.fnt_array
 
     for (let k in b.glyphs) {
       let g = b.glyphs[k]
       let bb = g.boundingBox
       let dsc = baseline - bb.height - bb.y
-      let ptr = fnt + g.code * fnt_sz
+      let ptr = g.code * fnt_sz
 
       for (let y = 0; y < bb.height; y++) {
         let p = ptr + (y + dsc) * cw
@@ -195,26 +200,27 @@ export class Text {
     let tw = this.txt_width
     let th = this.txt_height
     let w = this.vid_width
-    let fnt = this.fnt_top
     let fnt_sz = this.chr_size
-    var mem = _vm.mem_buffer
 
-    let idx = this.txt_top
+    var fnt_mem = this.fnt_array
+    var txt_mem = this.txt_array
+
+    let idx = 0
     for (let y = 0; y < th; y++) {
       for (let x = 0; x < tw; x++) {
-        let c = mem[idx]
+        let c = txt_mem[idx]
         if (c) {
-          let fg = mem[idx + 1]
-          let bg = mem[idx + 2]
+          let fg = txt_mem[idx + 1]
+          let bg = txt_mem[idx + 2]
 
           let px = x * cw
           let py = y * ch
 
-          let ptr = fnt + c * fnt_sz
+          let ptr = c * fnt_sz
           for (let by = 0; by < ch; by++) {
             let pi = (py + by) * w + px
             for (let bx = 0; bx < cw; bx++) {
-              this.pixel(pi++, mem[ptr++] ? fg : bg)
+              this.pixel(pi++, fnt_mem[ptr++] ? fg : bg)
             }
           }
         }
@@ -229,17 +235,17 @@ export class Text {
   }
 
   txt_index (x, y) {
-    return this.txt_top + ((y - 1) * this.txt_width + (x - 1)) * 3
+    return ((y - 1) * this.txt_width + (x - 1)) * 3
   }
 
   txt_line (y) {
     let l = this.txt_width * 3
-    return { start: this.txt_top + y * l, end: this.txt_top + (y + 1) * l - 3, length: l }
+    return { start: y * l, end: (y + 1) * l - 3, length: l }
   }
 
   txt_char_at (x, y) {
     let tidx = this.txt_index(x, y)
-    let mem = _vm.mem_buffer
+    let mem = this.txt_array
     return { ch: mem[tidx], fg: mem[tidx + 1], bg: mem[tidx + 2] }
   }
 
@@ -253,12 +259,9 @@ export class Text {
         this.txt_bs()
         return
     }
-    let { x, y } = this.txt_pos()
 
-    let tidx = this.txt_index(x, y)
-    _vm.mem_buffer[tidx] = ch.charCodeAt(0)
-    _vm.mem_buffer[tidx + 1] = fg
-    _vm.mem_buffer[tidx + 2] = bg
+    let { x, y } = this.txt_pos()
+    this.txt_array.set([ch.charCodeAt(0), fg, bg], this.txt_index(x, y))
 
     this.overlays.textCursor.x++
     if (this.overlays.textCursor.x > this.txt_width) {
@@ -290,9 +293,11 @@ export class Text {
     else if (y < 1) {
       y = 1
     }
+
     this.overlays.textCursor.x = x
     this.overlays.textCursor.y = y
-    this.txt_refresh()
+
+    this.txt_refresh(false)
   }
 
   txt_move_by (x, y) { return this.txt_move_to(this.overlays.textCursor.x + x, this.overlays.textCursor.y + y) }
@@ -320,71 +325,86 @@ export class Text {
   txt_right () { return this.txt_move_to(this.overlays.textCursor.x + 1, this.overlays.textCursor.y) }
 
   txt_clear () {
-    _vm.mem_buffer.fill(0, this.txt_top, this.txt_bottom)
+    this.txt_array.fill(0)
+    this.txt_refresh()
   }
 
   txt_clear_eol () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_index(this.txt_width, y))
+    let s = this.txt_index(x, y)
+    this.txt_array.fill(0, s, this.txt_index(this.txt_width, y) - s)
+    this.txt_refresh()
   }
 
   txt_clear_eos () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_bottom)
+    let s = this.txt_index(x, y)
+    this.txt_array.fill(0, s, this.txt_size - s)
+    this.txt_refresh()
   }
 
   txt_clear_bol () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_index(1, y))
+    let s = this.txt_index(x, y)
+    this.txt_array.fill(0, s, this.txt_index(1, y) - s)
+    this.txt_refresh()
   }
 
   txt_clear_bos () {
     let { x, y } = this.txt_pos()
-    _vm.mem_buffer.fill(0, this.txt_index(x, y), this.txt_top)
+    this.txt_array.fill(0, 0, this.txt_index(x, y) - 1)
+    this.txt_refresh()
   }
 
   txt_copy_lin (sy, ty) {
     let si = this.txt_line(sy)
-    let ti = this.txt_line(ty)
-    _vm.mem_buffer.copy(_vm.mem_buffer, ti.start, si.start, si.length)
+    this.txt_array.copy(si.start, this.txt_line(ty), si.length)
+    this.txt_refresh()
   }
 
   txt_copy_col (sx, tx) {
-    var mem = _vm.mem_buffer
+    let mem = this.txt_array
+    sx *= 3
+    tx *= 3
     for (let y = 0; y < this.txt_height; y++) {
       let i = this.txt_line(y)
-      let si = i.start + sx * 3
-      let ti = i.start + tx * 3
-      mem.copy(mem, ti, si, 3)
+      mem.copy(i.start + sx, i.start + tx, 3)
     }
+    this.txt_refresh()
   }
 
   txt_erase_lin (y) {
     let i = this.txt_line(y)
-    _vm.mem_buffer.fill(0, i.start, i.end)
+    this.txt_array.fill(0, i.start, i.length)
+    this.txt_refresh()
   }
 
   txt_erase_col (x) {
-    var mem = _vm.mem_buffer
+    let mem = this.txt_array
+    let ls = this.txt_line(0).start + x * 3
     for (let y = 0; y < this.txt_height; y++) {
-      let i = this.txt_line(y).start + x * 3
-      mem.fill(0, i, i + 3)
+      mem.fill(0, ls, 3)
+      ls += this.txt_width * 3
     }
+    this.txt_refresh()
   }
 
   txt_scroll (dy) {
-    let i
     if (dy > 0) {
-      i = this.txt_line(dy + 1)
-      _vm.mem_buffer.copy(_vm.mem_buffer, this.txt_top, i.start, this.txt_size - i)
+      let i = this.txt_line(dy + 1)
+      this.txt_array.copy(i.start, 0, this.txt_size)
       i = this.txt_line(dy)
-      _vm.mem_buffer.fill(0, this.txt_top - i.start, this.txt_bottom)
+      let s = i.start
+      this.txt_array.fill(0, s, this.txt_size - s)
+      this.txt_refresh()
     }
     else if (dy < 0) {
-      i = this.txt_line(dy + 1)
-      _vm.mem_buffer.copy(_vm.mem_buffer, this.txt_top, i, this.txt_size - i)
-      i = this.txt_line(dy + 1)
-      _vm.mem_buffer.fill(0, this.txt_top - dy * this.txt_width * 3, this.txt_bottom)
+      let i = this.txt_line(dy + 1)
+      this.txt_array.copy(i.start, 0, this.txt_size)
+      i = this.txt_line(dy)
+      let s = i.start
+      this.txt_array.fill(0, s, this.txt_size - s)
+      this.txt_refresh()
     }
   }
 

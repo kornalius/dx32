@@ -11,7 +11,7 @@ export class MousePort extends Port {
 
     this.name = 'mse'
 
-    this.struct_init(null, null, [
+    this.struct_init([
       { name: 'x', type: 'i32' },
       { name: 'y', type: 'i32' },
       { name: 'btns', type: 'i8' },
@@ -19,6 +19,7 @@ export class MousePort extends Port {
 
     this.mem_top = this.struct_top
     this.mem_bottom = this.struct_bottom
+    this.mem_size = this.mem_bottom - this.mem_top
 
     this.stk_init()
 

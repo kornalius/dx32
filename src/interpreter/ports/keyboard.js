@@ -11,7 +11,7 @@ export class KeyboardPort extends Port {
 
     this.name = 'kbd'
 
-    this.struct_init(null, null, [
+    this.struct_init([
       { name: 'mods', type: 'i8' },
       { name: 'joystick', type: 'i8' },
 
@@ -20,6 +20,7 @@ export class KeyboardPort extends Port {
 
     this.mem_top = this.struct_top
     this.mem_bottom = this.struct_bottom
+    this.mem_size = this.mem_bottom - this.mem_top
 
     this.stk_init()
 

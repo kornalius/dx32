@@ -25,16 +25,10 @@ patterns:
     match: (\[|\]|\{|\}|\(|\)|,)
 
   - name: keyword.operator
-    match: (db|dw|ddw)(\.s)?\b
-
-  - name: keyword.operator
-    match: (dd|df)\b
+    match: (db|dw|dd|df)(\.s)?\b
 
   - name: keyword.other
-    match: (ldb|ldw|ld|stb|stw|st)(\.s)?\b
-
-  - name: keyword.other
-    match: (ldd|ldf|ldl|std|stf|stl)\b
+    match: (ldb|ldw|ld|ldf|ldl|stb|stw|st|stf|stl)(\.s)?\b
 
   - name: keyword.other
     match: (inc|dec|shl|shr|rol|ror|lob|low|lodw|lo|lod|hib|hiw|hidw|hi|hid|max|min|abs|cos|acos|sin|asin|tan|atan|exp|floor|ceil|round|rnd|clamp|lds|sts|lens|subs|lows|upps|caps|cmls|snks|pads|lpads|rpads|reps|repls|truncs|ord|chr|hex|hex8|hex16|print|copy|fill|free|type|size|stk|psh|pop|stk\.used|stk\.max|stk\.size|stk\.type|call|callp|ret|hlt|brk|wait|int\.start|int\.pause|int\.resume|int\.stop)\b

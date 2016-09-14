@@ -1,5 +1,6 @@
-import { defaults, mixin, data_type_size, runtime_error } from '../globals.js'
+import { defaults, mixin, runtime_error } from '../globals.js'
 import { Struct } from './struct.js'
+import { data_type_size } from './memory.js'
 
 
 export var mem_stacks = {}
@@ -8,52 +9,49 @@ export var mem_stacks = {}
 export class Stack {
 
   constructor (addr, max_entries, entry_type, rolling, entry_size) {
-    entry_type = entry_type || _vm.type(addr) || defaults.type
+    entry_type = entry_type || _vm.mm_type(addr) || defaults.type
     entry_size = entry_size || data_type_size(entry_type)
     max_entries = max_entries || 255
 
-    let sizes = max_entries * entry_size
+    let sz = max_entries * entry_size
 
-    this.struct_init(null, null, [
-      { name: 'mem_top', type: 'i32' },
-      { name: 'mem_bottom', type: 'i32' },
-      { name: 'mem_ptr', type: 'i32' },
+    this.struct_init([
+      { name: 'stk_ptr', type: 'i32', value: addr },
+      { name: 'stk_top', type: 'i32', value: addr },
+      { name: 'stk_bottom', type: 'i32', value: addr + sz - 1 },
+      { name: 'stk_size', type: 'i32', value: sz },
       { name: 'max_entries', type: 'i16', value: max_entries },
       { name: 'entry_type', type: 'str', value: entry_type },
       { name: 'entry_size', type: 'i16', value: entry_size },
-      { name: 'rolling', type: 'i8', value: rolling || 0 },
+      { name: 'rolling', type: 'i8', value: rolling },
     ])
 
-    this.mem_top = addr
-    this.mem_bottom = this.mem_top + sizes - 1
-    this.mem_ptr = this.mem_top
-
-    mem_stacks[this.mem_top] = this
+    mem_stacks[this.stk_top] = this
   }
 
   reset () {
-    this.mem_ptr = this.mem_top
+    this.stk_ptr = this.stk_top
   }
 
   shut () {
+    mem_stacks[this.stk_top] = undefined
     this.struct_shut()
-    mem_stacks[this.mem_top] = undefined
   }
 
   push (...value) {
     let sz = this.entry_size
     let t = this.entry_type
-    let top = this.mem_top
-    let bottom = this.mem_bottom
+    let top = this.stk_top
+    let bottom = this.stk_bottom
     let rolling = this.rolling
     for (let v of value) {
-      if (rolling && this.mem_ptr >= bottom) {
-        _vm.copy(top + sz, top, this.mem_bottom - sz)
-        this.mem_ptr -= sz
+      if (rolling && this.stk_ptr >= bottom) {
+        this.copy(top + sz, top, this.stk_bottom - sz)
+        this.stk_ptr -= sz
       }
-      if (this.mem_ptr + sz < bottom) {
-        this.mem_ptr += sz
-        _vm.write(v, this.mem_ptr, t)
+      if (this.stk_ptr + sz < bottom) {
+        this.write(v, this.stk_ptr, t)
+        this.stk_ptr += sz
       }
       else {
         runtime_error(0x03)
@@ -63,10 +61,9 @@ export class Stack {
   }
 
   pop () {
-    if (this.mem_ptr > this.mem_top) {
-      let r = _vm.read(this.mem_ptr, this.type)
-      this.mem_ptr -= this.entry_size
-      return r.value
+    if (this.stk_ptr > this.stk_top) {
+      this.stk_ptr -= this.entry_size
+      return this.read(this.stk_ptr, this.type)
     }
     else {
       runtime_error(0x02)
@@ -74,11 +71,9 @@ export class Stack {
     }
   }
 
-  get used () { return Math.trunc((this.mem_ptr - this.mem_top) / this.entry_size) }
+  get used () { return Math.trunc((this.stk_ptr - this.stk_top) / this.entry_size) }
 
 }
-
-mixin(Stack.prototype, Struct.prototype)
 
 
 export class StackBuffer {
@@ -151,7 +146,7 @@ export class StackBuffer {
     }
   }
 
-  stk_size (addr) {
+  stk_esize (addr) {
     let s = mem_stacks[addr]
     if (s) {
       return s.entry_size
@@ -162,7 +157,7 @@ export class StackBuffer {
     }
   }
 
-  stk_type (addr) {
+  stk_etype (addr) {
     let s = mem_stacks[addr]
     if (s) {
       return s.entry_type
@@ -174,3 +169,5 @@ export class StackBuffer {
   }
 
 }
+
+mixin(Stack.prototype, Struct.prototype)

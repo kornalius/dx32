@@ -26,7 +26,7 @@ export var defaults = {
   },
 
   mouse: {
-    mem_size: 8 * 1024,
+    mem_size: 4 * 1024,
   },
 
   drive: {
@@ -51,70 +51,6 @@ export var defaults = {
 
 }
 
-export var data_types = {
-  i8: 1,
-  s8: 1,
-  i16: 2,
-  s16: 2,
-  i32: 4,
-  s32: 4,
-  f32: 4,
-  i64: 8,
-  str: 64,
-}
-
-export var data_type_size = name => {
-  let r
-  if (_.isNumber(name)) {
-    r = name
-  }
-  else {
-    r = data_types[name]
-    if (!r) {
-      console.error('invalid type "' + name + '"')
-    }
-  }
-  return r
-}
-
-function data_read_str (offset) {
-  let value = ''
-  let c = this[offset++]
-  while (offset < this.byteLength && c !== 0) {
-    value += String.fromCharCode(c)
-    c = this[offset++]
-  }
-  return value
-}
-
-export var data_read_fns = {
-  i8: Buffer.prototype.readUInt8,
-  s8: Buffer.prototype.readInt8,
-  i16: Buffer.prototype.readUInt16LE,
-  s16: Buffer.prototype.readInt16LE,
-  i32: Buffer.prototype.readUInt32LE,
-  s32: Buffer.prototype.readInt32LE,
-  f32: Buffer.prototype.readFloatLE,
-  i64: Buffer.prototype.readDoubleLE,
-  str: data_read_str,
-}
-
-function data_write_str (value, offset) {
-  this.write(value + '\0', offset, value.length + 1, 'ascii')
-}
-
-export var data_write_fns = {
-  i8: Buffer.prototype.writeUInt8,
-  s8: Buffer.prototype.writeInt8,
-  i16: Buffer.prototype.writeUInt16LE,
-  s16: Buffer.prototype.writeInt16LE,
-  i32: Buffer.prototype.writeUInt32LE,
-  s32: Buffer.prototype.writeInt32LE,
-  f32: Buffer.prototype.writeFloatLE,
-  i64: Buffer.prototype.writeDoubleLE,
-  str: data_write_str,
-}
-
 export var sbc = (name, bc = false, signed = false) => name + (signed ? '_s' : '') + (bc ? '_bc' : '')
 
 export var data_type_to_alloc = type => {
@@ -126,7 +62,6 @@ export var data_type_to_alloc = type => {
     case 'i32': return '_vm.alloc_dw'
     case 's32': return sbc('_vm.alloc_dw', false, true)
     case 'f32': return '_vm.alloc_f'
-    case 'i64': return '_vm.alloc_dd'
     case 'str': return '_vm.alloc_str'
     default: return '_vm.alloc'
   }
@@ -138,10 +73,9 @@ export var define_to_data_type = def_name => {
     case 'db.s': return 's8'
     case 'dw': return 'i16'
     case 'dw.s': return 's16'
-    case 'ddw': return 'i32'
-    case 'ddw.s': return 's32'
+    case 'dd': return 'i32'
+    case 'dd.s': return 's32'
     case 'df': return 'f32'
-    case 'dd': return 'i64'
     default: return null
   }
 }
@@ -152,40 +86,12 @@ export var data_type_to_define = type => {
     case 's8': return sbc('_vm.db', false, true)
     case 'i16': return '_vm.dw'
     case 's16': return sbc('_vm.dw', false, true)
-    case 'i32': return '_vm.ddw'
-    case 's32': return sbc('_vm.ddw', false, true)
+    case 'i32': return '_vm.dd'
+    case 's32': return sbc('_vm.dd', false, true)
     case 'f32': return '_vm.df'
-    case 'i64': return '_vm.dd'
     default: return null
   }
 }
-
-export var data_read = (buf, offset = 0, type = 'i8') => {
-  let value = 0
-  if (_.isNumber(type)) {
-    value = new Uint8Array(buf.buffer, offset, type)
-    offset += type
-  }
-  else {
-    value = data_read_fns[type].call(buf, offset)
-    offset += data_type_size[type]
-  }
-  return { offset, value }
-}
-
-export var data_write = (value, buf, offset = 0, type = 'i8') => {
-  if (_.isNumber(type)) {
-    value = new Uint8Array(buf.buffer, offset, type)
-    buf.copy(value, 0, offset, offset + type - 1)
-    offset += type
-  }
-  else {
-    data_write_fns[type].call(buf, value, offset)
-    offset += data_type_size[type]
-  }
-  return offset
-}
-
 
 export var errors = 0
 
@@ -197,13 +103,6 @@ export var comma_array = args => {
   }
   r.splice(r.length - 1, 1)
   return r
-}
-
-export var string_buffer = (str, len = 0) => {
-  len = len || str.length
-  var b = new Buffer(len)
-  b.write(str, 0, str.length, 'ascii')
-  return b
 }
 
 export var opcodes = {
@@ -246,14 +145,10 @@ export var opcodes = {
 
   lob: { gen: () => [''], expr: true },
   low: { gen: () => [''], expr: true },
-  lodw: { gen: () => [''], expr: true },
   lo: { gen: () => [''], expr: true },
-  lod: { gen: () => [''], expr: true },
   hib: { gen: () => [''], expr: true },
   hiw: { gen: () => [''], expr: true },
-  hidw: { gen: () => [''], expr: true },
   hi: { gen: () => [''], expr: true },
-  hid: { gen: () => [''], expr: true },
 
   max: { gen: (a, b) => ['Math.max', '(', a, ',', b, ')'], expr: true },
   min: { gen: (a, b) => ['Math.min', '(', a, ',', b, ')'], expr: true },
@@ -274,8 +169,8 @@ export var opcodes = {
 
   // String
 
-  lds: { gen: a => [sbc('_vm.lds', defaults.boundscheck), '(', a, ')'], expr: true },
-  sts: { gen: (a, b) => [sbc('_vm.sts', defaults.boundscheck), '(', a, ',', b, ')'] },
+  lds: { gen: (a, b) => [sbc('_vm.lds', defaults.boundscheck), '(', a, ',', b, ')'], expr: true },
+  sts: { gen: (a, b, c) => [sbc('_vm.sts', defaults.boundscheck), '(', a, ',', b, ',', c, ')'] },
 
   lens: { gen: a => [sbc('_vm.lds', defaults.boundscheck), '(', a, ')', '.length'], expr: true },
   subs: { gen: (a, b, c) => [sbc('_vm.lds', defaults.boundscheck), '(', a, ')', '.substr', '(', b, ',', c, ')'], expr: true },
@@ -309,25 +204,21 @@ export var opcodes = {
   ldw: { gen: a => [sbc('_vm.ldw', defaults.boundscheck), '(', a, ')'], expr: true },
   ld: { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', a, ')'], expr: true },
   ldf: { gen: a => [sbc('_vm.ldf', defaults.boundscheck), '(', a, ')'], expr: true },
-  ldd: { gen: a => [sbc('_vm.ldd', defaults.boundscheck), '(', a, ')'], expr: true },
   ldl: { gen: (a, b) => [sbc('_vm.ldl', defaults.boundscheck), '(', a, ',', b, ')'], expr: true },
 
   'ldb.s': { gen: a => [sbc('_vm.ldb', defaults.boundscheck, true), '(', a, ')'], expr: true },
   'ldw.s': { gen: a => [sbc('_vm.ldw', defaults.boundscheck, true), '(', a, ')'], expr: true },
   'ld.s': { gen: a => [sbc('_vm.ld', defaults.boundscheck, true), '(', a, ')'], expr: true },
-  'ldd.s': { gen: a => [sbc('_vm.ldd', defaults.boundscheck, true), '(', a, ')'], expr: true },
 
   stb: { gen: (a, b) => [sbc('_vm.stb', defaults.boundscheck), '(', a, ',', b, ')'] },
   stw: { gen: (a, b) => [sbc('_vm.stw', defaults.boundscheck), '(', a, ',', b, ')'] },
   st: { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', a, ',', b, ')'] },
-  std: { gen: (a, b) => [sbc('_vm.std', defaults.boundscheck), '(', a, ',', b, ')'] },
   stf: { gen: (a, b) => [sbc('_vm.stf', defaults.boundscheck), '(', a, ',', b, ')'] },
   stl: { gen: (a, b) => [sbc('_vm.stl', defaults.boundscheck), '(', a, ',', b, ')'] },
 
   'stb.s': { gen: (a, b) => [sbc('_vm.stb', defaults.boundscheck, true), '(', a, ',', b, ')'] },
   'stw.s': { gen: (a, b) => [sbc('_vm.stw', defaults.boundscheck, true), '(', a, ',', b, ')'] },
   'st.s': { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  'std.s': { gen: (a, b) => [sbc('_vm.std', defaults.boundscheck, true), '(', a, ',', b, ')'] },
 
   copy: { gen: (s, b, c) => [sbc('_vm.copy', defaults.boundscheck), '(', s, ',', b, ',', c, ')'] },
   fill: { gen: (a, b, c) => [sbc('_vm.fill', defaults.boundscheck), '(', a, ',', b, ',', c, ')'] },
@@ -343,9 +234,9 @@ export var opcodes = {
   psh: { gen: (a, ...args) => ['_vm.stk_push', '(', a, ',', comma_array(args), ')'] },
   pop: { gen: a => ['_vm.stk_pop', '(', a, ')'], expr: true },
   'stk.used': { gen: a => ['_vm.stk_used', '(', a, ')'], expr: true },
-  'stk.max': { gen: a => ['_vm.stk_type', '(', a, ')'], expr: true },
-  'stk.size': { gen: a => ['_vm.stk_type', '(', a, ')'], expr: true },
-  'stk.type': { gen: a => ['_vm.stk_type', '(', a, ')'], expr: true },
+  'stk.max': { gen: a => ['_vm.stk_max', '(', a, ')'], expr: true },
+  'stk.esize': { gen: a => ['_vm.stk_esize', '(', a, ')'], expr: true },
+  'stk.etype': { gen: a => ['_vm.stk_etype', '(', a, ')'], expr: true },
 
 
   // Interpreter
@@ -489,5 +380,12 @@ export var string_to_buffer = str => {
     b[x++] = parseInt(hex, 16)
     i += 2
   }
+  return b
+}
+
+export var string_buffer = (str, len = 0) => {
+  len = len || str.length
+  var b = new Buffer(len)
+  b.write(str, 0, str.length, 'ascii')
   return b
 }

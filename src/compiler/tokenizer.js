@@ -75,9 +75,6 @@ export class Tokenizer {
               else if (r > 0xFFFF && r <= 0xFFFFFFFF) {
                 return t + '32'
               }
-              else if (r > 0xFFFFFFFF && r <= 0xFFFFFFFFFFFFFFFF) {
-                return 'i64'
-              }
               else {
                 error({ v, row, col }, 'value out of bounds')
                 return null
@@ -308,11 +305,6 @@ export class Tokenizer {
       },
 
       {
-        i64: {
-        },
-      },
-
-      {
         string: /"([^"]*)"/i,
       },
 
@@ -453,7 +445,7 @@ export var is_opcode = t => (is_symbol(t) || t.type === 'id') && opcodes[t.value
 
 export var is_digit_signed = t => t.type === 's8' || t.type === 's16' || t.type === 's32'
 
-export var is_digit = t => t.type === 'i8' || t.type === 'i16' || t.type === 'i32' || t.type === 'f32' || t.type === 'i64' || is_digit_signed(t)
+export var is_digit = t => t.type === 'i8' || t.type === 'i16' || t.type === 'i32' || t.type === 'f32' || is_digit_signed(t)
 
 export var is_string = t => t.type === 'string'
 

@@ -27,7 +27,7 @@ export class Video {
     this.spr_init()
     this.txt_init()
 
-    this.struct_init(null, null, [
+    this.struct_init([
       { name: 'vid_force_update', type: 'i8' },
       { name: 'vid_force_flip', type: 'i8' },
 
@@ -82,6 +82,8 @@ export class Video {
     this.vid_top = this._pixels.mem_top
     this.vid_bottom = this.vid_top + this.vid_size - 1
 
+    this.vid_array = new Uint8Array(_vm.mem_buffer, this.vid_top, this.vid_size)
+
     this.pal_reset()
     this.spr_reset()
     this.txt_reset()
@@ -106,7 +108,6 @@ export class Video {
 
       if (this.vid_force_flip) {
         this.vid_flip()
-        this.vid_force_flip = false
       }
 
       this.renderer.render(this.stage)
@@ -138,37 +139,37 @@ export class Video {
 
   vid_refresh (flip = true) {
     this.vid_force_update = true
-    this.vid_force_flip = flip
+    if (!this.vid_force_flip) {
+      this.vid_force_flip = flip
+    }
   }
 
   vid_clear () {
-    _vm.fill(0, this.vid_top, this.vid_bottom)
+    this.vid_array.fill(0)
     this.vid_refresh()
   }
 
   vid_flip () {
     let screenOverlay = this.overlays.screen
     let data = screenOverlay.context.getImageData(0, 0, screenOverlay.width, screenOverlay.height)
-    let pixels = data.data
+    let pixels = new Uint32Array(data.data.buffer)
 
-    let end = this.vid_bottom
-    let mem = _vm.mem_buffer
-    let c
-    for (let si = this.vid_top, pi = 0; si < end; si++, pi += 4) {
-      c = this.palette_rgba(mem[si])
-      pixels.set([c >> 24 & 0xFF, c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF], pi)
+    let mem = this.vid_array
+    for (let i = 0; i < this.vid_size; i++) {
+      pixels[i] = this.palette_rgba(mem[i])
     }
 
     screenOverlay.context.putImageData(data, 0, 0)
+
+    this.vid_force_flip = false
   }
 
   pixel (i, c) {
-    let pi = this.vid_top + i
-    let mem = _vm.mem_buffer
-    if (c !== undefined && mem[pi] !== c) {
-      mem[pi] = c
+    let mem = this.vid_array
+    if (c !== undefined && mem[i] !== c) {
+      mem[i] = c
     }
-    return mem[pi]
+    return mem[i]
   }
 
   pixel_to_index (x, y) { return y * this.vid_width + x }
@@ -179,39 +180,11 @@ export class Video {
     return { x, y }
   }
 
-  split_rgba (rgba) { return { r: this.red(rgba), g: this.green(rgba), b: this.blue(rgba), a: this.alpha(rgba) } }
-
-  red (rgba) { return rgba >> 24 & 0xFF }
-
-  green (rgba) { return rgba >> 16 & 0xFF }
-
-  blue (rgba) { return rgba >> 8 & 0xFF }
-
-  alpha (rgba) { return rgba & 0xFF }
-
-  rgba_to_num (r, g, b, a) { return r << 24 | g << 16 | b << 8 | a }
-
-  rgba_to_mem (buffer, i, r, g, b, a) {
-    if (r && !g) {
-      let rgb = this.split_rgba(r)
-      r = rgb.r
-      g = rgb.g
-      b = rgb.b
-      a = rgb.a
-    }
-    if (buffer instanceof Buffer) {
-      buffer[i] = r
-      buffer[i + 1] = g
-      buffer[i + 2] = b
-      buffer[i + 3] = a
-    }
-    else {
-      buffer.set([r, g, b, a], i)
-    }
-  }
-
   scroll (x, y) {
-    _vm.mem_buffer.copy(_vm.mem_buffer, this.vid_top, this.vid_top + y * this.vid_width, (this.vid_height - y) * this.vid_width)
+    let lw = y * this.vid_width
+    let s = lw
+    let e = this.vid_size - lw
+    this.vid_array.copy(s, 0, e - s)
     this.vid_refresh()
   }
 

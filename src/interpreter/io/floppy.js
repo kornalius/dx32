@@ -30,7 +30,7 @@ export class Floppy {
 
     this.blocks_top = this.entries_table_top + this.entries_table_size + 1
 
-    this.mem_init(this.mem_size)
+    this.mem_init(new ArrayBuffer(this.mem_size))
 
     this.entries = []
     this.blocks = []

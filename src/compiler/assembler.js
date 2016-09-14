@@ -2,7 +2,9 @@ import _ from 'lodash'
 
 import { is_eos, is_opcode, is_digit, is_digit_signed, is_string, is_comma, is_open_paren, is_open_bracket, is_end, is_const_def, is_label_def, is_struct_def, is_func_expr_def, is_label_assign, is_assign, is_if, is_elif, is_else, is_brk, is_whl, is_for, is_port, is_port_call, peek_at, peeks_at, expected } from './tokenizer.js'
 
-import { defaults, opcodes, comma_array, error, data_type_size, sbc, data_type_to_alloc, define_to_data_type } from '../globals.js'
+import { defaults, opcodes, comma_array, error, sbc, data_type_to_alloc, define_to_data_type } from '../globals.js'
+
+import { data_type_size } from '../interpreter/memory.js'
 
 import { codify, CodeGenerator, _PRETTY, js_name } from './codegen.js'
 
@@ -112,9 +114,7 @@ export class Assembler {
 
     let ldf = (offset, bc = false) => [sbc('_vm.ldf', bc), '(', offset, ')']
 
-    let ldd = (offset, bc = false) => [sbc('_vm.ldd', bc), '(', offset, ')']
-
-    let ldl = (offset, size, bc = false) => [sbc('_vm.ldl', bc), '(', offset, size, ')']
+    let ldl = (offset, size, bc = false) => [sbc('_vm.ldl', bc), '(', offset, ',', size, ')']
 
     let lds = (offset, bc = false) => [sbc('_vm.lds', bc), '(', offset, ')']
 
@@ -126,13 +126,14 @@ export class Assembler {
 
     let stf = (offset, value, bc = false) => [sbc('_vm.stf', bc), '(', offset, ',', value, ')']
 
-    let std = (offset, value, bc = false) => [sbc('_vm.std', bc), '(', offset, ',', value, ')']
-
-    let stl = (offset, value, size, bc = false) => [sbc('_vm.stl', bc), '(', offset, ',', value, size, ')']
+    let stl = (offset, value, bc = false) => [sbc('_vm.stl', bc), '(', offset, ',', value, ')']
 
     let sts = (offset, value, bc = false) => [sbc('_vm.sts', bc), '(', offset, ',', value, ')']
 
     let read = (offset, type, bc = defaults.boundscheck) => {
+      if (_.isNumber(type)) {
+        return ldl(offset, bc, true)
+      }
       switch (type || defaults.type) {
         case 'i8': return ldb(offset, bc)
         case 's8': return ldb(offset, bc, true)
@@ -141,13 +142,15 @@ export class Assembler {
         case 'i32': return ld(offset, bc)
         case 's32': return ld(offset, bc, true)
         case 'f32': return ldf(offset, bc)
-        case 'i64': return ldd(offset, bc)
         case 'str': return lds(offset, bc)
         default: return []
       }
     }
 
     let write = (offset, type, value, bc = defaults.boundscheck) => {
+      if (_.isNumber(type)) {
+        return stl(offset, value, bc, true)
+      }
       switch (type || defaults.type) {
         case 'i8': return stb(offset, value, bc)
         case 's8': return stb(offset, value, bc, true)
@@ -156,7 +159,6 @@ export class Assembler {
         case 'i32': return st(offset, value, bc)
         case 's32': return st(offset, value, bc, true)
         case 'f32': return stf(offset, value, bc)
-        case 'i64': return std(offset, value, bc)
         case 'str': return sts(offset, value, bc)
         default: return []
       }

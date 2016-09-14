@@ -13,7 +13,8 @@ export class Sprite {
 
   spr_tick (t) {
     if (this.spr_force_update) {
-      this.spr_refresh()
+      this.spr_draw()
+      this.spr_force_update = false
     }
   }
 
@@ -21,7 +22,7 @@ export class Sprite {
     this.spr_top = this._sprites.mem_top
     this.spr_bottom = this._sprites.mem_bottom
 
-    _vm.fill(0, this.spr_top, this.spr_bottom)
+    this.spr_array = new Uint8Array(_vm.mem_buffer, this.spr_top, this.spr_size)
 
     this.spr_clear()
   }
@@ -30,13 +31,12 @@ export class Sprite {
   }
 
   spr_refresh (flip = true) {
-    this.spr_draw()
     this.vid_refresh(flip)
     this.spr_force_update = true
   }
 
   spr_clear () {
-    _vm.fill(0, this.spr_top, this.spr_bottom)
+    this.spr_array.fill(0)
     this.spr_list = []
     this.spr_refresh()
   }
@@ -88,12 +88,14 @@ export class Sprite {
     let sl = this.spr_list
     let ss = this.spr_size
 
+    let mem = this.spr_array
+
     for (let s of _.sortBy(this.spr_list, 'z')) {
       let ptr = sl + s.frame * ss
       for (let by = 0; by < sh; by++) {
         let pi = (s.y + by) * sw + s.x
         for (let bx = 0; bx < sw; bx++) {
-          this.pixel(pi++, _vm.mem_buffer[ptr++])
+          this.pixel(pi++, mem[ptr++])
         }
       }
     }

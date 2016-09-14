@@ -10,8 +10,9 @@ export class SoundPort extends Port {
 
     this.name = 'snd'
 
-    this.mem_top = _vm.alloc(1)
-    this.mem_bottom = this.mem_top
+    this.mem_size = 1
+    this.mem_top = _vm.alloc(this.mem_size)
+    this.mem_bottom = this.mem_top + this.mem_size - 1
 
     this.snd_init()
 

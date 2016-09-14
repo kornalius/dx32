@@ -76,7 +76,7 @@ export class VideoPort extends Port {
   }
 
   test () {
-    _vm.fill(10, this.vid_top, this.vid_top + 2000)
+    _vm.fill(10, this.vid_top, 2000)
 
     this.pixel(200, 0)
     this.pixel(400, 6)

@@ -17,6 +17,7 @@ export class Block {
     if (size < 0) {
       size = 0
     }
+
     this.mem_size = size
     this.mem_bottom = this.mem_top + this.mem_size - 1
   }

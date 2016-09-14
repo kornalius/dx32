@@ -1,5 +1,6 @@
 import _ from 'lodash'
-import { defaults, data_type_size } from '../globals.js'
+import { defaults } from '../globals.js'
+import { data_type_size } from '../interpreter/memory.js'
 import { js_name } from './codegen.js'
 
 

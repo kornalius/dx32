@@ -176,19 +176,19 @@ export class DrivePort extends Port {
     let start = 0
     let b
     if (addr) {
-      b = _vm.mem_buffer
+      b = _vm.mem_array
       start = addr
     }
     else {
-      b = new Buffer(size)
+      b = new ArrayBuffer(size)
     }
-    this.floppy.mem_buffer.copy(b, start, this.pos, this.pos + size)
+    b.set(this.floppy.mem_array.subarray(this.pos, this.pos + size - 1), start)
     this.operation('read', size)
     this.seek_by(size)
   }
 
   write (addr, size) {
-    _vm.mem_buffer.copy(this.floppy.mem_buffer, this.pos, addr, size)
+    this.floppy.mem_array.set(_vm.mem_array.subarray(addr, addr + size - 1), this.pos)
     this.operation('write', size)
     this.dos.flush()
     this.seek_by(size)
