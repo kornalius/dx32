@@ -31,18 +31,18 @@ export class Entry {
 
   read_info () {
     let ptr = this.mem_top
-    this.uid = this.floppy.ld(ptr)
+    this.uid = this.floppy.ldd(ptr)
     ptr += 4
-    this.parent_uid = this.floppy.ld(ptr)
+    this.parent_uid = this.floppy.ldd(ptr)
     this.parent = this.floppy.find_entry(this.parent_uid)
     ptr += 4
     this.filename = this.floppy.ldl(ptr, 32).toString('ascii')
     ptr += 32
     this.ext = this.floppy.ldl(ptr, 3).toString('ascii')
     ptr += 3
-    this.created = this.floppy.ld(ptr)
+    this.created = this.floppy.ldd(ptr)
     ptr += 4
-    this.modified = this.floppy.ld(ptr)
+    this.modified = this.floppy.ldd(ptr)
     ptr += 4
     this.attrs = this.floppy.ldb(ptr)
 
@@ -53,17 +53,17 @@ export class Entry {
 
   write_info () {
     let ptr = this.mem_top
-    this.floppy.st(ptr, this.uid)
+    this.floppy.std(ptr, this.uid)
     ptr += 4
-    this.floppy.st(ptr, this.parent_uid)
+    this.floppy.std(ptr, this.parent_uid)
     ptr += 4
     this.floppy.stl(ptr, string_buffer(this.filename, 32))
     ptr += 32
     this.floppy.stl(ptr, string_buffer(this.ext, 3))
     ptr += 3
-    this.floppy.st(ptr, this.created)
+    this.floppy.std(ptr, this.created)
     ptr += 4
-    this.floppy.st(ptr, this.modified)
+    this.floppy.std(ptr, this.modified)
     ptr += 4
     this.floppy.stb(ptr, this.attrs)
 

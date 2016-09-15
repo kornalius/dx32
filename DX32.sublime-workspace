@@ -4,8 +4,76 @@
 		"selected_items":
 		[
 			[
+				"memo",
+				"memory.js\t(assembler.js)"
+			],
+			[
+				"rg",
+				"rgba"
+			],
+			[
+				"data_type",
+				"data_type_size\t(memory.js)"
+			],
+			[
+				"mem_bu",
+				"mem_buffer_sizes"
+			],
+			[
+				"data",
+				"data_view_fns"
+			],
+			[
+				"UInt",
+				"Uint32Array\t(memory.js)"
+			],
+			[
 				"data_",
 				"data_type_size"
+			],
+			[
+				"rgb",
+				"rgba_to_num"
+			],
+			[
+				"mem_buffer_",
+				"mem_buffer_types\t(memory.js)"
+			],
+			[
+				"his",
+				"history"
+			],
+			[
+				"_RDL",
+				"_RDL_ACTIVE"
+			],
+			[
+				"read",
+				"readUInt8"
+			],
+			[
+				"write",
+				"writeUInt8"
+			],
+			[
+				"charAt",
+				"charCodeAt\t(assembler.js)"
+			],
+			[
+				"vid_",
+				"vid_flip\t(video.js)"
+			],
+			[
+				"seq_",
+				"seq_double\t(memory.js)"
+			],
+			[
+				"entry",
+				"entry_type"
+			],
+			[
+				"is_di",
+				"is_digit_signed"
 			],
 			[
 				"_",
@@ -14,10 +82,6 @@
 			[
 				"inte",
 				"interrupts"
-			],
-			[
-				"read",
-				"readUInt32LE"
 			],
 			[
 				"expc",
@@ -52,10 +116,6 @@
 				"parent_uid"
 			],
 			[
-				"write",
-				"writeUInt32LE"
-			],
-			[
 				"comma_",
 				"comma_array"
 			]
@@ -63,10 +123,126 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "test/test1.x32",
+			"settings":
+			{
+				"buffer_size": 815,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/interpreter/memory.js",
+			"settings":
+			{
+				"buffer_size": 5196,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/interpreter/memorymanager.js",
+			"settings":
+			{
+				"buffer_size": 2994,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/compiler/assembler.js",
+			"settings":
+			{
+				"buffer_size": 20084,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/main.js",
+			"settings":
+			{
+				"buffer_size": 634,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/compiler/tokenizer.js",
+			"settings":
+			{
+				"buffer_size": 11114,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/interpreter/video/palette.js",
+			"settings":
+			{
+				"buffer_size": 2873,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/os/shell.js",
+			"settings":
+			{
+				"buffer_size": 615,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/os/readline.js",
+			"settings":
+			{
+				"buffer_size": 2770,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Volumes/hd2/sources/swim/user/plugins/swim-terminal/ui/textview.coffee",
+			"settings":
+			{
+				"buffer_size": 13124,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Volumes/hd2/sources/swim/user/plugins/swim-terminal/terminal.coffee",
+			"settings":
+			{
+				"buffer_size": 23582,
+				"line_ending": "Unix"
+			}
+		}
 	],
-	"build_system": "Packages/User/Gulp.sublime-build",
+	"build_system": "Packages/PackageDev/Support/Convert to ....sublime-build",
 	"build_system_choices":
 	[
+		[
+			[
+				[
+					"Packages/PackageDev/Support/Convert to ....sublime-build",
+					""
+				],
+				[
+					"Packages/PackageDev/Support/Convert to ....sublime-build",
+					"JSON"
+				],
+				[
+					"Packages/PackageDev/Support/Convert to ....sublime-build",
+					"Property List"
+				],
+				[
+					"Packages/PackageDev/Support/Convert to ....sublime-build",
+					"YAML (Block Style)"
+				],
+				[
+					"Packages/PackageDev/Support/Convert to ....sublime-build",
+					"YAML (Default Style)"
+				]
+			],
+			[
+				"Packages/PackageDev/Support/Convert to ....sublime-build",
+				""
+			]
+		],
 		[
 			[
 				[
@@ -91,6 +267,18 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"snak",
+				"Convert Case: snake_case"
+			],
+			[
+				"das",
+				"Convert Case: dash-case"
+			],
+			[
+				"came",
+				"Convert Case: camelCase"
+			],
 			[
 				"case",
 				"Convert Case: snake_case"
@@ -124,7 +312,7 @@
 				"AutoBackups: Open file backup"
 			]
 		],
-		"width": 754.0
+		"width": 601.0
 	},
 	"console":
 	{
@@ -148,25 +336,99 @@
 		"/Volumes/hd2/sources/DX32/src",
 		"/Volumes/hd2/sources/DX32/src/compiler",
 		"/Volumes/hd2/sources/DX32/src/interpreter",
-		"/Volumes/hd2/sources/DX32/src/interpreter/ports"
+		"/Volumes/hd2/sources/DX32/src/interpreter/io",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ports",
+		"/Volumes/hd2/sources/DX32/src/interpreter/video",
+		"/Volumes/hd2/sources/DX32/src/os",
+		"/Volumes/hd2/sources/DX32/test"
 	],
 	"file_history":
 	[
-		"/Volumes/hd2/sources/DX32/test/test1.x32",
-		"/Volumes/hd2/sources/DX32/src/compiler/assembler.js",
-		"/Volumes/hd2/sources/DX32/src/assembler.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/struct.js",
 		"/Volumes/hd2/sources/DX32/src/interpreter/ports/sound.js",
-		"/Volumes/hd2/sources/DX32/src/compiler/tokenizer.js",
-		"/Volumes/hd2/sources/DX32/src/memory.js",
-		"/Volumes/hd2/sources/DX32/src/interpreter/vm.js",
-		"/Volumes/hd2/sources/DX32/src/interpreter/sound.js",
-		"/Volumes/hd2/sources/DX32/src/globals.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ports/cpu.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/stackbuffer.js",
 		"/Volumes/hd2/sources/DX32/src/interpreter/memorymanager.js",
-		"/Volumes/hd2/sources/DX32/build/bundle.js",
-		"/Volumes/hd2/sources/DX32/src/compiler/label.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/io/floppy.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/io/entry.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/sound.js",
+		"/Volumes/hd2/sources/DX32/src/compiler/codegen.js",
+		"/Volumes/hd2/sources/DX32/src/globals.js",
 		"/Volumes/hd2/sources/DX32/src/compiler/frame.js",
-		"/Volumes/hd2/sources/DX32/src/interpreter/dict.js",
+		"/Volumes/hd2/sources/DX32/src/compiler/tokenizer.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/video/text.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/vm.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/stack.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/video/video.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/video/sprite.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/video/palette.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ports/video.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ports/drive.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ports/mouse.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ports/keyboard.js",
+		"/Volumes/hd2/sources/DX32/test/test1.x32",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ports/network.js",
+		"/Volumes/hd2/sources/DX32/src/compiler/assembler.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/io/block.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/port.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/io/dos.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ui/monitor/overlays.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/memory.js",
+		"/Volumes/hd2/sources/DX32/sublime/Syntaxes/DX32.YAML-tmLanguage",
+		"/Volumes/hd2/sources/DX32/sublime/Syntaxes/DX32.tmLanguage",
 		"/Volumes/hd2/sources/DX32/src/main.js",
+		"/Volumes/hd2/sources/DX32/src/compiler/label.js",
+		"/Volumes/hd2/sources/termos/components/text-edit-view.coffee",
+		"/Volumes/hd2/sources/swim/user/plugins/swim-terminal/termbuffer.coffee",
+		"/Volumes/hd2/sources/swim/user/plugins/swim-terminal/cursor.coffee",
+		"/Volumes/hd2/sources/DX32/src/interpreter/ui/monitor/monitor.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/stackstruct.js",
+		"/Volumes/hd2/sources/DX32/src/stack.js",
+		"/Volumes/hd2/sources/DX32/src/memory.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/video/overlays.js",
+		"/Users/alain/Library/Application Support/Sublime Text 3/Packages/pygments/all/pygments/lexers/c_cpp.py",
+		"/Users/alain/Library/Application Support/Sublime Text 3/Packages/pygments/all/pygments/lexers/basic.py",
+		"/Users/alain/Library/Application Support/Sublime Text 3/Packages/User/Afterglow-twilight (SL).tmTheme",
+		"/Volumes/hd2/sources/DX32/sublime/DX32.sublime-settings",
+		"/Volumes/hd2/sources/DX32/sublime/Preferences/Symbol List Labels.tmPreferences",
+		"/Volumes/hd2/sources/DX32/sublime/Preferences/Symbol List Macro.tmPreferences",
+		"/Volumes/hd2/sources/DX32/sublime/Preferences/Symbol List Namespace.tmPreferences",
+		"/Volumes/hd2/sources/DX32/sublime/Preferences/Symbol List Pseudocommand.tmPreferences",
+		"/Volumes/hd2/sources/DX32/sublime/Preferences/Symbol List Function.tmPreferences",
+		"/Volumes/hd2/sources/DX32/sublime/Preferences/Comments.tmPreferences",
+		"/Volumes/hd2/sources/DX32/sublime/package-metadata.json",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/DX32.breakpoint.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/messages.json",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/DX32.if.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/DX32.for.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/DX32.function.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/DX32.if-else.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/KickAssembler(C64) macro.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/if.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/for.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/if-else.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/function.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/breakpoint.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/KickAssembler(C64) cosinus.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Snippets/KickAssembler(C64) breakpoint.sublime-snippet",
+		"/Volumes/hd2/sources/DX32/sublime/Messages/1.1.0.txt",
+		"/Volumes/hd2/sources/DX32/sublime/Messages/0.7.0.txt",
+		"/Volumes/hd2/sources/DX32/sublime/Key Maps/Default (Linux).sublime-keymap",
+		"/Volumes/hd2/sources/DX32/sublime/README.md",
+		"/Volumes/hd2/sources/DX32/sublime/KickAssembler (C64).sublime-settings",
+		"/Volumes/hd2/sources/DX32/sublime/.gitignore",
+		"/Users/alain/Library/Application Support/Sublime Text 3/Packages/User/JavaScript.sublime-settings",
+		"/Users/alain/Library/Application Support/Sublime Text 3/Packages/User/Markdown Extended.sublime-settings",
+		"/Users/alain/ziptemp/BetterZip Temporary Folder.FkzbRw/BetterZip Temporary Folder.IidOZf/Context.sublime-menu",
+		"/Volumes/hd2/sources/DX32/build/pixi.js",
+		"/Volumes/hd2/sources/DX32/node_modules/hexy/hexy.js",
+		"/Volumes/hd2/sources/DX32/node_modules/.bin/hexy",
+		"/Volumes/hd2/sources/DX32/build/bundle.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/interrupt.js",
+		"/Volumes/hd2/sources/DX32/style/main.css",
+		"/Volumes/hd2/sources/DX32/index.html",
+		"/Volumes/hd2/sources/DX32/src/assembler.js",
+		"/Volumes/hd2/sources/DX32/src/interpreter/dict.js",
 		"/Volumes/hd2/sources/DX32/src/vm.js",
 		"/Volumes/hd2/sources/DX32/src/tokenizer.js",
 		"/Volumes/hd2/sources/DX32/src/memorymanager.js",
@@ -177,17 +439,13 @@
 		"/Volumes/hd2/sources/DX32/src/ports/network.js",
 		"/Volumes/hd2/sources/DX32/src/ports/mouse.js",
 		"/Volumes/hd2/sources/DX32/src/ports/keyboard.js",
-		"/Volumes/hd2/sources/DX32/src/stack.js",
 		"/Volumes/hd2/sources/DX32/src/ports/video.js",
 		"/Volumes/hd2/sources/DX32/src/dict.js",
 		"/Volumes/hd2/sources/DX32/src/interrupt.js",
-		"/Volumes/hd2/sources/DX32/build/pixi.js",
 		"/Volumes/hd2/sources/DX32/src/ports/drive.js",
 		"/Volumes/hd2/sources/DX32/src/floppy.js",
 		"/Volumes/hd2/sources/DX32/src/ports/sound.js",
 		"/Volumes/hd2/sources/DX32/src/dos.js",
-		"/Volumes/hd2/sources/DX32/style/main.css",
-		"/Volumes/hd2/sources/DX32/index.html",
 		"/Volumes/hd2/sources/DX32/src/sound.js",
 		"/Volumes/hd2/sources/DX32/.eslintrc",
 		"/Volumes/hd2/sources/DX32/src/label.js",
@@ -224,6 +482,7 @@
 		"height": 112.0,
 		"where_history":
 		[
+			"<open folders>,-node_modules/,-bower_components/,-build/",
 			"<open folders>,-node_modules/,-bower_components/",
 			"<open folders>"
 		]
@@ -233,134 +492,134 @@
 		"case_sensitive": false,
 		"find_history":
 		[
-			"func_",
-			"is_label_def",
-			"skip_token",
-			"is_for",
-			"peek_token",
-			"peek_at",
-			"skip_token",
-			"label_def",
-			"assign_label_name",
-			"label_def",
-			"next_token",
-			"skip_token",
-			"last_expr_type",
-			"this.last_expr_type",
-			"'str'",
-			"_s'",
-			"_s",
-			"'string'",
-			"string",
-			"'string'",
-			"ldl",
-			"expr_type",
-			"result",
-			"expr",
-			"expr()",
-			"'str",
-			"st$",
-			"ld$",
-			"lds",
-			"$",
-			"lds",
-			"sts",
-			"sts(",
-			"lds",
-			"sts",
-			"lds",
-			"sts",
-			"lds",
-			"_vm_lds",
-			"lds",
-			"label_assign_bracket",
-			"label_assign",
-			"var_alloc",
-			"data_type_to_alloc",
-			"\n    ",
-			"data_type_to_alloc",
-			"var_alloc",
-			".type === '",
-			".value === '",
-			"is_port",
-			"is_constant",
-			"type",
-			"t.type === 'constant_def'",
-			"t.type === 'label_def'",
-			".type === '",
-			"close_curly",
-			"paren",
-			"open",
-			"is_open_",
-			"is_open_+",
-			"close_paren",
-			"t.value === 'end'",
-			"t.type === 'comma'",
-			".type === '",
-			"t.type === 'open_bracket'",
-			".type === '",
-			"t.type === 'func_expr_def'",
-			"t.type === 'open_paren'",
-			"type === 'open_paren'",
-			"t.type === 'open_paren'",
-			"is_label",
-			"check_constant",
-			"check_label",
-			"check_func",
-			"is_port_call",
-			"check_port_call",
-			"check_port",
-			"r",
-			"simple_expr",
+			"is_eos",
+			"block(",
+			"'for'",
+			"alloc",
 			"size",
-			"value",
 			"alloc",
-			"func_def",
-			"name",
-			"na",
-			"aa",
-			"args_values",
-			"name",
+			"vm.alloc",
+			"var_alloc",
+			"defaults.type",
 			"alloc",
-			"nw",
-			"label_def",
+			".alloc",
+			".st(",
+			"sbc",
+			".st(",
+			"st",
+			"ld",
+			"st",
+			"ld",
+			".ld(",
+			"stb",
+			"st",
+			"ld",
+			"ldw",
+			"ldb",
+			".ldb",
+			"prettyBytes",
+			"'\"' + defaults.type + '\"', ','",
+			"prettyBytes",
+			"\\'",
+			".ld",
+			"comma_array",
+			"define_to_data_type",
 			"alloc",
-			"alloc_s",
-			"alloc_str",
-			"string",
-			"alloc_str",
-			"logic",
-			"struct_def",
-			"consta",
-			"dict",
-			"assign",
-			"dimensions",
-			"find_label",
-			"label",
-			"name",
-			"label",
-			"Label",
-			"frames",
-			"assign",
+			"comma_array",
+			"comma",
+			"var_alloc",
+			"alloc_",
+			"type",
+			"data_type_to_define",
 			"data_type_to_alloc",
-			"type",
-			"is_type",
-			"type",
-			"assign",
-			"data_size",
-			"data_type",
-			"write",
+			"define_to_data_type",
+			"_type",
+			", true",
+			".st",
+			"sbc",
+			"ldb",
+			"rgba ",
+			"color",
+			"uint32",
+			"rgba_to_num",
+			"c",
+			"txt_array",
+			"txt_view",
+			"fnt_view",
+			"vid_force_flip",
+			"spr_view",
+			"pal_view",
+			"vid_view",
+			"vid_force_flip",
+			"txt_refresh",
+			"txt_force_update",
+			"txt_refresh",
+			"spr_refresh",
+			"txt_refresh",
+			"vid_refresh",
+			"txt_refresh",
+			"txt_force_update",
+			"vid_force_",
+			"_vm.",
+			"mem_init",
+			"struct_init",
+			"struct_size",
+			"mem_buffer_sizes",
+			"mem_type_size",
+			"_bc",
+			"return",
+			"mem_data_view",
+			"mem_view",
+			".mem_view",
+			"mem_data_view",
+			"StructEntry",
+			"mem_init(",
+			"mem_buffer",
+			"mem_init(",
+			"struct_init",
+			"StructEntry",
+			"buf",
 			"data_type_size",
-			"check_port",
-			"alloc_size",
-			"new Frame",
-			"label_def",
-			"new_label",
-			"global",
-			".fn",
-			"struct",
-			"check_label",
-			"check_constant"
+			"data_type_sizes",
+			"mem_buffer.",
+			"mem_buffer_types",
+			"mem",
+			"_vm.mem_buffer_types.i8",
+			"mem_buffer_types",
+			"mem_",
+			"mem_buffer",
+			"mem_buffer_types",
+			"mem_data_view",
+			"mem_buffer_types",
+			"mem_buffer.buffer",
+			"_top",
+			"_vm.",
+			"mem_buffer",
+			"_top",
+			"_vm.",
+			"_top",
+			"_bottom",
+			"_top",
+			"_bottom",
+			"_top",
+			"ptr",
+			"rgba_to_mem",
+			"data_type_sizes",
+			"mem_buffer",
+			"palette_rgba",
+			"_vm.mem_buffer_types",
+			"lds",
+			"mem_init",
+			"entry_size",
+			"used",
+			"stk_size",
+			"stk",
+			"stack.js",
+			"Stack",
+			"Stacl",
+			"stk_size",
+			"sizes",
+			"mem_ptr"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -368,6 +627,9 @@
 		"regex": false,
 		"replace_history":
 		[
+			"mem_view",
+			".mem_array",
+			"$1",
 			"\n      "
 		],
 		"reverse": false,
@@ -379,8 +641,413 @@
 	"groups":
 	[
 		{
+			"selected": 3,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "test/test1.x32",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 815,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								333,
+								333
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/User/DX32.tmLanguage",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1473886723.98,
+							"tabs_extra_last_activated_sheet_index": 0,
+							"tabs_extra_moving":
+							[
+								3,
+								0
+							],
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 253.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/interpreter/memory.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5196,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2182,
+								2182
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1473886171.76,
+							"tabs_extra_last_activated_sheet_index": 1,
+							"tabs_extra_moving":
+							[
+								3,
+								0
+							],
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1847.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/interpreter/memorymanager.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2994,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								817,
+								817
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1473886536.44,
+							"tabs_extra_last_activated_sheet_index": 2,
+							"tabs_extra_moving":
+							[
+								3,
+								0
+							],
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 489.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "src/compiler/assembler.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 20084,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								16371,
+								16371
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1473954149.86,
+							"tabs_extra_last_activated_sheet_index": 3,
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 16636.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "src/main.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 634,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								409,
+								409
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tabs_extra_last_activated": 1473941777.8,
+							"tabs_extra_last_activated_sheet_index": 4,
+							"tabs_extra_spawned": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "src/compiler/tokenizer.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11114,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4726,
+								4726
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1473946173.64,
+							"tabs_extra_last_activated_sheet_index": 5,
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 5385.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "src/interpreter/video/palette.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2873,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2357,
+								2357
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1473876587.54,
+							"tabs_extra_last_activated_sheet_index": 2,
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1600.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "src/os/shell.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 615,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								161,
+								161
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"open_with_edit": true,
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tabs_extra_last_activated": 1473778225.82,
+							"tabs_extra_last_activated_sheet_index": 4,
+							"tabs_extra_spawned": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "src/os/readline.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2770,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1223,
+								1223
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"open_with_edit": true,
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tabs_extra_last_activated": 1473766404.83,
+							"tabs_extra_last_activated_sheet_index": 4,
+							"tabs_extra_moving":
+							[
+								3,
+								0
+							],
+							"tabs_extra_spawned": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 526.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "/Volumes/hd2/sources/swim/user/plugins/swim-terminal/ui/textview.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 13124,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2606,
+								2973
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"tab_size": 2,
+							"tabs_extra_last_activated": 1473709242.54,
+							"tabs_extra_last_activated_sheet_index": 5,
+							"tabs_extra_moving":
+							[
+								3,
+								0
+							],
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 2339.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "/Volumes/hd2/sources/swim/user/plugins/swim-terminal/terminal.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 23582,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"apply_syntax_touched": true,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Afterglow-twilight (SL).tmTheme",
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"tab_size": 2,
+							"tabs_extra_spawned": true,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -423,6 +1090,10 @@
 	{
 		"height": 0.0
 	},
+	"output.package_dev":
+	{
+		"height": 252.0
+	},
 	"output.unsaved_changes":
 	{
 		"height": 140.0
@@ -431,7 +1102,7 @@
 	"project": "DX32.sublime-project",
 	"replace":
 	{
-		"height": 58.0
+		"height": 74.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -440,6 +1111,10 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"hexy",
+				"node_modules/hexy/hexy.js"
+			],
 			[
 				"pixi",
 				"build/pixi.js"
@@ -473,7 +1148,7 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 302.0,
+	"side_bar_width": 382.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

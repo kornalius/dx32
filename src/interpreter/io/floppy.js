@@ -101,9 +101,9 @@ export class Floppy {
 
   write_info_table () {
     let ptr = this.info_table_top
-    this.st(ptr, this.blocks.length)
+    this.std(ptr, this.blocks.length)
     ptr += 2
-    this.st(ptr, this.entries.length)
+    this.std(ptr, this.entries.length)
     ptr += 2
     this.stl(ptr, string_buffer(this.diskname, 32))
     ptr += 32
@@ -114,7 +114,7 @@ export class Floppy {
   read_blocks_table () {
     let ptr = this.blocks_table_top
     for (let i = 0; i < this.blocks_count; i++) {
-      let entry = this.ld(ptr) - 1
+      let entry = this.ldd(ptr) - 1
       ptr += 4
       let size = this.ldw(ptr)
       ptr += 2
@@ -127,7 +127,7 @@ export class Floppy {
   write_blocks_table () {
     let ptr = this.blocks_table_top
     for (let b of this.blocks) {
-      this.st(ptr, b.entry_idx + 1)
+      this.std(ptr, b.entry_idx + 1)
       ptr += 4
       this.stw(ptr, b.mem_size)
       ptr += 2

@@ -7,7 +7,35 @@ export const _PRETTY = 2
 
 export var js_name = name => name.replace(/\./g, '_')
 
-export var codify = args => {
+export var codify
+
+export var comma_array = args => {
+  let r = []
+  if (!_.isArray(args)) {
+    args = [args]
+  }
+  for (let a of args) {
+    if (_.isArray(a)) {
+      a = codify(a)
+    }
+    if (!_.isArray(a) || a.length > 0) {
+      r.push(a)
+      r.push(',')
+    }
+  }
+  r.splice(-1, 1)
+  return r
+}
+
+export var gen_args = args => {
+  let r = []
+  r.push('(')
+  r = r.concat(comma_array(args))
+  r.push(')')
+  return r
+}
+
+codify = args => {
   let r = []
   if (!_.isArray(args)) {
     args = [args]
@@ -15,13 +43,14 @@ export var codify = args => {
   for (let a of args) {
     if (a && a.type) {
       if (is_string(a)) {
-        r.push('"' + a.value + '"')
+        a = '"' + a.value + '"'
       }
       else {
-        r.push(a.value)
+        a = a.value
       }
     }
-    else if (_.isArray(a)) {
+
+    if (_.isArray(a)) {
       r = r.concat(codify(a))
     }
     else {

@@ -1,6 +1,6 @@
 import hexy from 'hexy'
 import prettyBytes from 'pretty-bytes'
-import { data_type_sizes, data_type_size } from './memory.js'
+import { data_type_size } from './memory.js'
 
 
 export class MemoryManager {
@@ -42,17 +42,9 @@ export class MemoryManager {
 
   free_mem () { return this.avail_mem() - this.used_mem() }
 
-  alloc (size, type) {
-    type = type || 'i8'
-
-    if (_.isString(size)) {
-      type = size
-      size = data_type_size(type)
-    }
-    else {
-      size = size || 1
-    }
-
+  mm_alloc (type, count) {
+    count = count || 1
+    let size = data_type_size(type) * count
     let n = 0
 
     for (let b of this.mm_blocks) {
@@ -68,9 +60,10 @@ export class MemoryManager {
         let ob = b.mem_bottom
         b.mem_bottom = b.mem_top + size - 1
         b.size = size
+        b.count = count
         b.used = true
 
-        this.mm_blocks.push({ mem_top: b.mem_bottom + 1, mem_bottom: ob, size: ob - (b.mem_bottom + 1), type, used: false })
+        this.mm_blocks.push({ mem_top: b.mem_bottom + 1, mem_bottom: ob, size: ob - (b.mem_bottom + 1), count, type, used: false })
 
         return b.mem_top
       }
@@ -81,64 +74,27 @@ export class MemoryManager {
       return 0
     }
 
-    this.mm_blocks.push({ mem_top: n + 1, mem_bottom: n + size, size, type, used: true })
+    let addr = n + 1
 
-    _vm.fill(0, n + 1, size)
+    this.mm_blocks.push({ mem_top: addr, mem_bottom: addr + size - 1, size, count, type, used: true })
 
-    return n + 1
-  }
+    _vm.fill(0, addr, size)
 
-  alloc_type (type, value) {
-    let addr = this.alloc(type)
-    _vm.mem_view['set' + _vm.data_view_fns[type]](addr, value)
     return addr
   }
 
-  alloc_b (v) {
-    let addr = this.alloc('i8')
-    new Uint8Array(_vm.mem_buffer.buffer, addr)[0] = v
-    return addr
-  }
+  alloc (type, count, ...value) {
+    let addr = this.mm_alloc(type, count)
 
-  alloc_b_s (v) {
-    let addr = this.alloc('s8')
-    new Int8Array(_vm.mem_buffer.buffer, addr)[0] = v
-    return addr
-  }
+    if (value) {
+      let size = data_type_size(type) * count
+      let a = addr
+      for (let v of value) {
+        _vm.write(v, a, type)
+        a += size
+      }
+    }
 
-  alloc_w (v) {
-    let addr = this.alloc('i16')
-    new Uint16Array(_vm.mem_buffer.buffer, addr)[0] = v
-    return addr
-  }
-
-  alloc_w_s (v) {
-    let addr = this.alloc('s16')
-    new Int16Array(_vm.mem_buffer.buffer, addr)[0] = v
-    return addr
-  }
-
-  alloc_dw (v) {
-    let addr = this.alloc('i32')
-    new Uint32Array(_vm.mem_buffer.buffer, addr)[0] = v
-    return addr
-  }
-
-  alloc_dw_s (v) {
-    let addr = this.alloc('s32')
-    new Int32Array(_vm.mem_buffer.buffer, addr)[0] = v
-    return addr
-  }
-
-  alloc_f (v) {
-    let addr = this.alloc('f32')
-    new Float32Array(_vm.mem_buffer.buffer, addr)[0] = v
-    return addr
-  }
-
-  alloc_str (str, size) {
-    let addr = this.alloc(size || data_type_sizes.str, 'str')
-    _vm.sts(addr, str, size)
     return addr
   }
 

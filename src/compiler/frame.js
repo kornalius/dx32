@@ -1,5 +1,4 @@
-import { comma_array } from '../globals.js'
-import { js_name } from './codegen.js'
+import { comma_array, js_name } from './codegen.js'
 import { Label } from './label.js'
 
 

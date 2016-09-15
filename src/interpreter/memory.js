@@ -72,7 +72,8 @@ export class Memory {
     }
   }
 
-  db_type (type, addr, ...args) {
+
+  db (type, addr, ...args) {
     let sz = data_type_sizes[type]
     let fn = this.mem_view['set' + this.data_view_fns[type]]
     for (let a of args) {
@@ -82,95 +83,47 @@ export class Memory {
     return addr
   }
 
-  ld_type (type, addr) { return this.mem_view['get' + this.data_view_fns[type]](addr, _vm.littleEndian) }
-
-  st_type (type, addr, value) { this.mem_view['set' + this.data_view_fns[type]](addr, value, _vm.littleEndian) }
-
-
-  db_type_bc (type, addr, ...args) {
+  db_bc (type, addr, ...args) {
     this.chk_bounds(addr, args.length * data_type_sizes[type])
-    this.db_type(type, addr, ...args)
+    this.db(type, addr, ...args)
   }
 
-  ld_type_bc (type, addr) {
+  ld (type, addr) { return this.mem_view['get' + this.data_view_fns[type]](addr, _vm.littleEndian) }
+
+  ldb (addr) { return this.ld('i8', addr) }
+
+  ldw (addr) { return this.ld('i16', addr) }
+
+  ldd (addr) { return this.ld('i32', addr) }
+
+  ldf (addr) { return this.ld('f32', addr) }
+
+  ld_bc (type, addr) {
     this.chk_bounds(addr, data_type_sizes[type])
-    return this.ld_type(type, addr)
+    return this.ld(type, addr)
   }
 
-  st_type_bc (type, addr, value) {
+  st (type, addr, value) { this.mem_view['set' + this.data_view_fns[type]](addr, value, _vm.littleEndian) }
+
+  stb (addr, value) { this.st('i8', addr, value) }
+
+  stw (addr, value) { this.st('i16', addr, value) }
+
+  std (addr, value) { this.st('i32', addr, value) }
+
+  stf (addr, value) { this.st('f32', addr, value) }
+
+  st_bc (type, addr, value) {
     this.chk_bounds(addr, data_type_sizes[type])
-    this.st_type(type, addr, value)
+    this.st(type, addr, value)
   }
 
-
-  db_bc (addr, ...args) { this.db_type_bc('i8', addr, ...args) }
-
-  db_s_bc (addr, ...args) { this.db_type_bc('s8', addr, ...args) }
-
-  dw_bc (addr, ...args) { this.db_type_bc('i16', addr, ...args) }
-
-  dw_s_bc (addr, ...args) { this.db_type_bc('s16', addr, ...args) }
-
-  dd_bc (addr, ...args) { this.db_type_bc('i32', addr, ...args) }
-
-  dd_s_bc (addr, ...args) { this.db_type_bc('s32', addr, ...args) }
-
-  df_bc (addr, ...args) { this.db_type_bc('f32', addr, ...args) }
-
-  db (addr, ...args) { return this.db_type('i8', addr, ...args) }
-
-  db_s (addr, ...args) { return this.db_type('s8', addr, ...args) }
-
-  dw (addr, ...args) { return this.db_type('i16', addr, ...args) }
-
-  dw_s (addr, ...args) { return this.db_type('s16', addr, ...args) }
-
-  dd (addr, ...args) { return this.db_type('i32', addr, ...args) }
-
-  dd_s (addr, ...args) { return this.db_type('s32', addr, ...args) }
-
-  df (addr, ...args) { return this.db_type('f32', addr, ...args) }
-
-
-  ldb_bc (addr) { return this.ld_type_bc('i8', addr) }
-
-  ldb_s_bc (addr) { return this.ld_type_bc('s8', addr) }
-
-  ldw_bc (addr) { return this.ld_type_bc('i16', addr) }
-
-  ldw_s_bc (addr) { return this.ld_type_bc('s16', addr) }
-
-  ld_bc (addr) { return this.ld_type_bc('i32', addr) }
-
-  ld_s_bc (addr) { return this.ld_type_bc('s32', addr) }
-
-  ldf_bc (addr) { return this.ld_type_bc('f32', addr) }
+  ldl (addr, size) { return this.mem_array.slice(addr, addr + size - 1) }
 
   ldl_bc (addr, size) {
     this.chk_bounds(addr, size)
     return this.ldl(addr, size)
   }
-
-  lds_bc (addr, size) {
-    this.chk_bounds(addr, Math.min(size || 0, data_type_sizes.str))
-    return this.lds(addr, size)
-  }
-
-  ldb (addr) { return this.ld_type('i8', addr) }
-
-  ldb_s (addr) { return this.ld_type('s8', addr) }
-
-  ldw (addr) { return this.ld_type('i16', addr) }
-
-  ldw_s (addr) { return this.ld_type('s16', addr) }
-
-  ld (addr) { return this.ld_type('i32', addr) }
-
-  ld_s (addr) { return this.ld_type('s32', addr) }
-
-  ldf (addr) { return this.ld_type('f32', addr) }
-
-  ldl (addr, size) { return this.mem_array.slice(addr, addr + size - 1) }
 
   lds (addr, size) {
     if (_.isString(addr)) {  // assembler will use lds("")
@@ -193,45 +146,17 @@ export class Memory {
     return s
   }
 
-  stb_bc (addr, value) { this.st_type_bc('i8', addr, value) }
+  lds_bc (addr, size) {
+    this.chk_bounds(addr, Math.min(size || 0, data_type_sizes.str))
+    return this.lds(addr, size)
+  }
 
-  stb_s_bc (addr, value) { this.st_type_bc('s8', addr, value) }
-
-  stw_bc (addr, value) { this.st_type_bc('i16', addr, value) }
-
-  stw_s_bc (addr, value) { this.st_type_bc('s16', addr, value) }
-
-  st_bc (addr, value) { this.st_type_bc('i32', addr, value) }
-
-  st_s_bc (addr, value) { this.st_type_bc('s32', addr, value) }
-
-  stf_bc (addr, value) { this.st_type_bc('f32', addr, value) }
+  stl (addr, value, size) { this.mem_array.set(value.subarray(0, size || value.byteLength), addr) }
 
   stl_bc (addr, value, size) {
     this.chk_bounds(addr, Math.min(size || 0, value.byteLength))
     this.stl(addr, value, size)
   }
-
-  sts_bc (addr, str, size) {
-    this.chk_bounds(addr, Math.min(size, data_type_sizes.str))
-    this.sts(addr, str, size)
-  }
-
-  stb (addr, value) { this.st_type('i8', addr, value) }
-
-  stb_s (addr, value) { this.st_type('s8', addr, value) }
-
-  stw (addr, value) { this.st_type('i16', addr, value) }
-
-  stw_s (addr, value) { this.st_type('s16', addr, value) }
-
-  st (addr, value) { this.st_type('i32', addr, value) }
-
-  st_s (addr, value) { this.st_type('s32', addr, value) }
-
-  stf (addr, value) { this.st_type('f32', addr, value) }
-
-  stl (addr, value, size) { this.mem_array.set(value.subarray(0, size || value.byteLength), addr) }
 
   sts (addr, str, size) {
     size = size || data_type_sizes.str - 1
@@ -241,20 +166,25 @@ export class Memory {
     this.mem_array.set(a, addr)
   }
 
+  sts_bc (addr, str, size) {
+    this.chk_bounds(addr, Math.min(size, data_type_sizes.str))
+    this.sts(addr, str, size)
+  }
+
+  fill (value, top, size) { this.mem_array.fill(value || 0, top, top + size) }
+
   fill_bc (value, top, size) {
     this.chk_bounds(top, size)
     this.fill(value, top, size)
   }
 
-  fill (value, top, size) { this.mem_array.fill(value || 0, top, top + size) }
+  copy (src, tgt, size) { this.mem_array.copyWithin(tgt, src, src + size - 1) }
 
   copy_bc (src, tgt, size) {
     this.chk_bounds(src, size)
     this.chk_bounds(tgt, size)
     this.copy(src, tgt, size)
   }
-
-  copy (src, tgt, size) { this.mem_array.copyWithin(tgt, src, src + size - 1) }
 
   read (addr, type = 'i8') {
     let value
@@ -265,7 +195,7 @@ export class Memory {
       value = this.lds(addr)
     }
     else {
-      value = this.ld_type(type, addr)
+      value = this.ld(type, addr)
     }
     return value
   }
@@ -282,7 +212,7 @@ export class Memory {
       sz = data_type_sizes[type]
     }
     else {
-      this.st_type(type, addr, value)
+      this.st(type, addr, value)
       sz = data_type_sizes[type]
     }
     return addr + sz

@@ -1,4 +1,6 @@
 import _ from 'lodash'
+import { comma_array } from './compiler/codegen.js'
+
 
 export var defaults = {
   boundscheck: false,
@@ -51,21 +53,7 @@ export var defaults = {
 
 }
 
-export var sbc = (name, bc = false, signed = false) => name + (signed ? '_s' : '') + (bc ? '_bc' : '')
-
-export var data_type_to_alloc = type => {
-  switch (type) {
-    case 'i8': return '_vm.alloc_b'
-    case 's8': return sbc('_vm.alloc_b', false, true)
-    case 'i16': return '_vm.alloc_w'
-    case 's16': return sbc('_vm.alloc_w', false, true)
-    case 'i32': return '_vm.alloc_dw'
-    case 's32': return sbc('_vm.alloc_dw', false, true)
-    case 'f32': return '_vm.alloc_f'
-    case 'str': return '_vm.alloc_str'
-    default: return '_vm.alloc'
-  }
-}
+export var sbc = (name, bc = false) => name + (bc ? '_bc' : '')
 
 export var define_to_data_type = def_name => {
   switch (def_name) {
@@ -80,30 +68,7 @@ export var define_to_data_type = def_name => {
   }
 }
 
-export var data_type_to_define = type => {
-  switch (type) {
-    case 'i8': return '_vm.db'
-    case 's8': return sbc('_vm.db', false, true)
-    case 'i16': return '_vm.dw'
-    case 's16': return sbc('_vm.dw', false, true)
-    case 'i32': return '_vm.dd'
-    case 's32': return sbc('_vm.dd', false, true)
-    case 'f32': return '_vm.df'
-    default: return null
-  }
-}
-
 export var errors = 0
-
-export var comma_array = args => {
-  let r = []
-  for (let a of args) {
-    r.push(a)
-    r.push(',')
-  }
-  r.splice(r.length - 1, 1)
-  return r
-}
 
 export var opcodes = {
   nop: { fn: () => {} },
@@ -198,27 +163,25 @@ export var opcodes = {
 
   // Memory
 
-  '@': { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', a, ')'], expr: true },
+  '@': { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'i32\'', ',', a, ')'], expr: true },
 
-  ldb: { gen: a => [sbc('_vm.ldb', defaults.boundscheck), '(', a, ')'], expr: true },
-  ldw: { gen: a => [sbc('_vm.ldw', defaults.boundscheck), '(', a, ')'], expr: true },
-  ld: { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', a, ')'], expr: true },
-  ldf: { gen: a => [sbc('_vm.ldf', defaults.boundscheck), '(', a, ')'], expr: true },
+  ldb: { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'i8\'', ',', a, ')'], expr: true },
+  'ldb.s': { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'s8\'', ',', a, ')'], expr: true },
+  ldw: { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'i16\'', ',', a, ')'], expr: true },
+  'ldw.s': { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'s16\'', ',', a, ')'], expr: true },
+  ld: { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'i32\'', ',', a, ')'], expr: true },
+  'ld.s': { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'s32\'', ',', a, ')'], expr: true },
+  ldf: { gen: a => [sbc('_vm.ld', defaults.boundscheck), '(', '\'f32\'', ',', a, ')'], expr: true },
   ldl: { gen: (a, b) => [sbc('_vm.ldl', defaults.boundscheck), '(', a, ',', b, ')'], expr: true },
 
-  'ldb.s': { gen: a => [sbc('_vm.ldb', defaults.boundscheck, true), '(', a, ')'], expr: true },
-  'ldw.s': { gen: a => [sbc('_vm.ldw', defaults.boundscheck, true), '(', a, ')'], expr: true },
-  'ld.s': { gen: a => [sbc('_vm.ld', defaults.boundscheck, true), '(', a, ')'], expr: true },
-
-  stb: { gen: (a, b) => [sbc('_vm.stb', defaults.boundscheck), '(', a, ',', b, ')'] },
-  stw: { gen: (a, b) => [sbc('_vm.stw', defaults.boundscheck), '(', a, ',', b, ')'] },
-  st: { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', a, ',', b, ')'] },
-  stf: { gen: (a, b) => [sbc('_vm.stf', defaults.boundscheck), '(', a, ',', b, ')'] },
+  stb: { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', '\'i8\'', ',', a, ',', b, ')'] },
+  'stb.s': { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', '\'s8\'', ',', a, ',', b, ')'] },
+  stw: { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', '\'i16\'', ',', a, ',', b, ')'] },
+  'stw.s': { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', '\'s16\'', ',', a, ',', b, ')'] },
+  st: { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', '\'i32\'', ',', a, ',', b, ')'] },
+  'st.s': { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', '\'s32\'', ',', a, ',', b, ')'] },
+  stf: { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck), '(', '\'f32\'', ',', a, ',', b, ')'] },
   stl: { gen: (a, b) => [sbc('_vm.stl', defaults.boundscheck), '(', a, ',', b, ')'] },
-
-  'stb.s': { gen: (a, b) => [sbc('_vm.stb', defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  'stw.s': { gen: (a, b) => [sbc('_vm.stw', defaults.boundscheck, true), '(', a, ',', b, ')'] },
-  'st.s': { gen: (a, b) => [sbc('_vm.st', defaults.boundscheck, true), '(', a, ',', b, ')'] },
 
   copy: { gen: (s, b, c) => [sbc('_vm.copy', defaults.boundscheck), '(', s, ',', b, ',', c, ')'] },
   fill: { gen: (a, b, c) => [sbc('_vm.fill', defaults.boundscheck), '(', a, ',', b, ',', c, ')'] },

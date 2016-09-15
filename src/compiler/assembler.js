@@ -2,11 +2,11 @@ import _ from 'lodash'
 
 import { is_eos, is_opcode, is_digit, is_digit_signed, is_string, is_comma, is_open_paren, is_open_bracket, is_end, is_const_def, is_label_def, is_struct_def, is_func_expr_def, is_label_assign, is_assign, is_if, is_elif, is_else, is_brk, is_whl, is_for, is_port, is_port_call, peek_at, peeks_at, expected } from './tokenizer.js'
 
-import { defaults, opcodes, comma_array, error, sbc, data_type_to_alloc, define_to_data_type } from '../globals.js'
+import { defaults, opcodes, error, sbc, define_to_data_type } from '../globals.js'
 
 import { data_type_size } from '../interpreter/memory.js'
 
-import { codify, CodeGenerator, _PRETTY, js_name } from './codegen.js'
+import { comma_array, gen_args, codify, CodeGenerator, _PRETTY, js_name } from './codegen.js'
 
 import { global_frame, frames, Frame } from './frame.js'
 
@@ -70,7 +70,7 @@ export class Assembler {
     var func_expr_def
     var bracket_def
 
-    var _bind_global = (name, bc = false, signed = false) => code.line_s('var', sbc(name, bc, signed), '=', sbc('_vm.' + name, bc, signed) + '.bind(_vm)')
+    var _bind_global = (name, bc = false) => code.line_s('var', sbc(name, bc), '=', sbc('_vm.' + name, bc) + '.bind(_vm)')
 
     var code_init = () => {
       code.line('')
@@ -106,25 +106,13 @@ export class Assembler {
       }
     }
 
-    let ldb = (offset, bc = false, signed = false) => [sbc('_vm.ldb', bc, signed), '(', offset, ')']
-
-    let ldw = (offset, bc = false, signed = false) => [sbc('_vm.ldw', bc, signed), '(', offset, ')']
-
-    let ld = (offset, bc = false, signed = false) => [sbc('_vm.ld', bc, signed), '(', offset, ')']
-
-    let ldf = (offset, bc = false) => [sbc('_vm.ldf', bc), '(', offset, ')']
+    let ld = (offset, bc = false, type = 'i8') => [sbc('_vm.ld', bc), '(', '"' + type + '"', ',', offset, ')']
 
     let ldl = (offset, size, bc = false) => [sbc('_vm.ldl', bc), '(', offset, ',', size, ')']
 
     let lds = (offset, bc = false) => [sbc('_vm.lds', bc), '(', offset, ')']
 
-    let stb = (offset, value, bc = false, signed = false) => [sbc('_vm.stb', bc, signed), '(', offset, ',', value, ')']
-
-    let stw = (offset, value, bc = false, signed = false) => [sbc('_vm.stw', bc, signed), '(', offset, ',', value, ')']
-
-    let st = (offset, value, bc = false, signed = false) => [sbc('_vm.st', bc, signed), '(', offset, ',', value, ')']
-
-    let stf = (offset, value, bc = false) => [sbc('_vm.stf', bc), '(', offset, ',', value, ')']
+    let st = (offset, value, bc = false, type = 'i8') => [sbc('_vm.st', bc), '(', '"' + type + '"', ',', offset, ',', value, ')']
 
     let stl = (offset, value, bc = false) => [sbc('_vm.stl', bc), '(', offset, ',', value, ')']
 
@@ -134,16 +122,11 @@ export class Assembler {
       if (_.isNumber(type)) {
         return ldl(offset, bc, true)
       }
-      switch (type || defaults.type) {
-        case 'i8': return ldb(offset, bc)
-        case 's8': return ldb(offset, bc, true)
-        case 'i16': return ldw(offset, bc)
-        case 's16': return ldw(offset, bc, true)
-        case 'i32': return ld(offset, bc)
-        case 's32': return ld(offset, bc, true)
-        case 'f32': return ldf(offset, bc)
-        case 'str': return lds(offset, bc)
-        default: return []
+      if (type === 'str') {
+        return lds(offset, bc)
+      }
+      else {
+        return ld(offset, bc, type)
       }
     }
 
@@ -151,22 +134,19 @@ export class Assembler {
       if (_.isNumber(type)) {
         return stl(offset, value, bc, true)
       }
-      switch (type || defaults.type) {
-        case 'i8': return stb(offset, value, bc)
-        case 's8': return stb(offset, value, bc, true)
-        case 'i16': return stw(offset, value, bc)
-        case 's16': return stw(offset, value, bc, true)
-        case 'i32': return st(offset, value, bc)
-        case 's32': return st(offset, value, bc, true)
-        case 'f32': return stf(offset, value, bc)
-        case 'str': return sts(offset, value, bc)
-        default: return []
+      if (type === 'str') {
+        return sts(offset, value, bc)
+      }
+      else {
+        return st(offset, value, bc, type)
       }
     }
 
-    let var_alloc = (name, type, dimensions = []) => ['var', name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
+    let type_to_string = type => _.isString(type) ? '"' + type + '"' : type
 
-    let alloc = (name, type, dimensions = []) => [name, '=', data_type_to_alloc(type), '(', codify(dimensions), ')']
+    let var_alloc = (type, name, dimensions, args) => ['var', name, '=', '_vm.alloc', gen_args([type_to_string(type), codify(dimensions), comma_array(args)])]
+
+    let alloc = (type, name, dimensions, args) => [name, '=', '_vm.alloc', gen_args([type_to_string(type), codify(dimensions), comma_array(args)])]
 
     let find_label = name => {
       let l = frame.findLabel(name)
@@ -449,7 +429,7 @@ export class Assembler {
 
       if (_ind) {
         for (i = 0; i < t.count; i++) {
-          r = r.concat([sbc('_vm.ld', defaults.boundscheck), '('])
+          r = r.concat([sbc('_vm.ld', defaults.boundscheck), '(', '"' + defaults.type + '"', ','])
         }
       }
 
@@ -487,7 +467,7 @@ export class Assembler {
 
       if (is_eos(t) || simple) {
         if (_new) {
-          code.line_s(...var_alloc(l.name, l.type))
+          code.line_s(...var_alloc(l.type, l.name, [1]))
         }
         else {
           code.line_s(...write(l.name, l.type, 0))
@@ -508,7 +488,7 @@ export class Assembler {
         }
 
         if (_new) {
-          code.line_s(...var_alloc(l.name, l.type, v))
+          code.line_s(...var_alloc(l.type, l.name, [1], v))
         }
         else {
           code.line_s(...write(l.name, l.type, v))
@@ -516,7 +496,6 @@ export class Assembler {
       }
 
       else {
-        let def_fn = t.value
         let type = define_to_data_type(t.value)
         if (!type) {
           error(t, 'data define token expected')
@@ -524,21 +503,18 @@ export class Assembler {
           return l
         }
 
-        let size = data_type_size(type)
-        let signed = type.startsWith('s')
-
         next_token()
 
         if (is_open_bracket(t)) {
           l.dimensions = bracket_def()
           if (_new) {
-            code.line_s(...var_alloc(l.name, null, [size, '*', l.dimensions]))
+            code.line_s(...var_alloc(type, l.name, l.dimensions))
           }
           else {
             if (!l.noFree) {
               code.line_s('_vm.free', '(', l.name, ')')
             }
-            code.line_s(...alloc(l.name, null, [size, '*', l.dimensions]))
+            code.line_s(...alloc(type, l.name, l.dimensions))
           }
         }
 
@@ -554,18 +530,15 @@ export class Assembler {
               }
             }
             else {
-              if (is_digit_signed(p)) {
-                signed = true
-              }
               parms.push(p)
             }
           }
           if (_new) {
-            code.line_s(...var_alloc(l.name, null, size * parms.length))
+            code.line_s(...var_alloc(type, l.name, [parms.length], parms))
           }
-          let n = js_name(def_fn)
-          signed = signed && !n.endsWith('_s')
-          code.line_s(sbc('_vm.' + n, defaults.boundscheck, signed), '(', l.name, ',', comma_array(parms), ')')
+          else {
+            code.line_s(sbc('_vm.db', defaults.boundscheck), '(', type_to_string(type), ',', l.name, ',', comma_array(parms), ')')
+          }
         }
       }
 
@@ -599,7 +572,7 @@ export class Assembler {
       let r = []
       if (_ind) {
         for (i = 0; i < count; i++) {
-          r = r.concat([sbc('_vm.ld', defaults.boundscheck), '('])
+          r = r.concat([sbc('_vm.ld', defaults.boundscheck), '(', type_to_string(defaults.type), ','])
         }
 
         r.push(name)
@@ -645,7 +618,7 @@ export class Assembler {
       new_frame_code()
       for (let p of parms) {
         let l = new_label(p.value)
-        code.line_s(...var_alloc(l.name, defaults.type, '__' + l.name))
+        code.line_s(...var_alloc(defaults.type, l.name, ['__' + l.name]))
       }
       block('end')
       end_frame_code()
@@ -858,7 +831,7 @@ export class Assembler {
         skip_token('comma')
         code.line('for', '(', 'var', '__' + l.name, '=', min, ';', '__' + l.name, '<=', max, ';', '__' + l.name, '+=', '1', ')', '{')
         this.indent++
-        code.line_s(...st(l.name, '__' + l.name))
+        code.line_s(sbc('_vm.st', defaults.boundscheck), '(', type_to_string(defaults.type), ',', l.name, ',', '__' + l.name, ')')
         block('end')
         this.indent--
         code.line_s('}')
